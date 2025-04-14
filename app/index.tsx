@@ -1,10 +1,14 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Image, Dimensions, ImageBackground } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { Alert, StyleSheet, View, ImageBackground, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as eva from '@eva-design/eva';
 import { ApplicationProvider, Layout, Text, Button, Icon, IconProps, IconElement } from '@ui-kitten/components';
 
-const { width } = Dimensions.get('window');
+// const { width } = Dimensions.get('window');
+import * as Google from "expo-auth-session/providers/google";
+import * as Facebook from "expo-auth-session/providers/facebook";
+import { getAuth, signInWithCredential, GoogleAuthProvider, FacebookAuthProvider,
+} from "firebase/auth";
 
 const FacebookIcon = (props: IconProps) : IconElement => (
   <Icon {...props} name='facebook' pack='eva' />
@@ -17,14 +21,65 @@ const GoogleIcon = (props: IconProps) => (
 export default function WelcomeScreen() {
   const router = useRouter();
 
+  // Initialize Google Auth Request
+  const [googleRequest, googleResponse, promptGoogleLogin] =
+    Google.useIdTokenAuthRequest({
+      clientId:
+        "",
+    });
+
+  // Initialize Facebook Auth Request
+  const [facebookRequest, facebookResponse, promptFacebookLogin] =
+    Facebook.useAuthRequest({
+      clientId: "",
+    });
+
+  // Handle Google Login Response
+  useEffect(() => {
+    const handleGoogleResponse = async () => {
+      if (googleResponse?.type === "success") {
+        const { id_token: idToken } = googleResponse.params;
+        const credential = GoogleAuthProvider.credential(idToken);
+        const auth = getAuth();
+        try {
+          await signInWithCredential(auth, credential);
+          Alert.alert("Login Successful", "Welcome!");
+          router.push('/(tabs)');
+        } catch (error) {
+          Alert.alert("Login Failed", error.message);
+        }
+      }
+    };
+    handleGoogleResponse();
+  }, [googleResponse]);
+
+  // Handle Facebook Login Response
+  useEffect(() => {
+    const handleFacebookResponse = async () => {
+      if (facebookResponse?.type === "success") {
+        const { access_token: token } = facebookResponse.params;
+        const credential = FacebookAuthProvider.credential(token);
+        const auth = getAuth();
+        try {
+          await signInWithCredential(auth, credential);
+          Alert.alert("Login Successful", "Welcome!");
+          router.push('/(tabs)');
+        } catch (error) {
+          Alert.alert("Login Failed", error.message);
+        }
+      }
+    };
+    handleFacebookResponse();
+  }, [facebookResponse]);
+
   const handleFacebookLogin = () => {
     // Handle Facebook login logic here
-    router.push('/(tabs)');
+    promptFacebookLogin();
   };
 
   const handleGoogleLogin = () => {
     // Handle Google login logic here
-    router.push('/(tabs)');
+    promptGoogleLogin();
   };
 
   return (
@@ -36,8 +91,8 @@ export default function WelcomeScreen() {
           <View style={styles.overlay} />
           <Layout style={styles.container}>
             <View style={styles.contentContainer}>
-              <Text style={styles.headline}>Lorem ipsum dolor sit amet</Text>
-              <Text style={styles.subtext}>Consectetur adipiscing elit, sed do eiusmod.</Text>
+              <Text style={styles.headline}>Good Vibes. Great Finds.</Text>
+              <Text style={styles.subtext}>Find the best deals for the best meals.</Text>
             
             <View style={styles.buttonContainer}>
               <Button
