@@ -45,8 +45,9 @@ export default function WelcomeScreen() {
           await signInWithCredential(auth, credential);
           Alert.alert("Login Successful", "Welcome!");
           router.push('/(tabs)');
-        } catch (error) {
-          Alert.alert("Login Failed", error.message);
+        } catch (error: any) {
+          const errorMessage = error?.message || 'An error occurred during login';
+          Alert.alert("Login Failed", errorMessage);
         }
       }
     };
@@ -64,8 +65,9 @@ export default function WelcomeScreen() {
           await signInWithCredential(auth, credential);
           Alert.alert("Login Successful", "Welcome!");
           router.push('/(tabs)');
-        } catch (error) {
-          Alert.alert("Login Failed", error.message);
+        } catch (error: any) {
+          const errorMessage = error?.message || 'An error occurred during login';
+          Alert.alert("Login Failed", errorMessage);
         }
       }
     };
@@ -74,12 +76,13 @@ export default function WelcomeScreen() {
 
   const handleFacebookLogin = () => {
     // Handle Facebook login logic here
-    promptFacebookLogin();
+    //promptFacebookLogin();
+    router.push("/main/MainNavigator");
   };
 
   const handleGoogleLogin = () => {
     // Handle Google login logic here
-    promptGoogleLogin();
+    //promptGoogleLogin();
   };
 
   return (
