@@ -4,12 +4,6 @@ import { useRouter } from 'expo-router';
 import * as eva from '@eva-design/eva';
 import { ApplicationProvider, Layout, Text, Button, Icon, IconProps, IconElement } from '@ui-kitten/components';
 
-// const { width } = Dimensions.get('window');
-import * as Google from "expo-auth-session/providers/google";
-import * as Facebook from "expo-auth-session/providers/facebook";
-import { getAuth, signInWithCredential, GoogleAuthProvider, FacebookAuthProvider,
-} from "firebase/auth";
-
 const FacebookIcon = (props: IconProps) : IconElement => (
   <Icon {...props} name='facebook' pack='eva' />
 );
@@ -21,68 +15,12 @@ const GoogleIcon = (props: IconProps) => (
 export default function WelcomeScreen() {
   const router = useRouter();
 
-  // Initialize Google Auth Request
-  const [googleRequest, googleResponse, promptGoogleLogin] =
-    Google.useIdTokenAuthRequest({
-      clientId:
-        "",
-    });
-
-  // Initialize Facebook Auth Request
-  const [facebookRequest, facebookResponse, promptFacebookLogin] =
-    Facebook.useAuthRequest({
-      clientId: "",
-    });
-
-  // Handle Google Login Response
-  useEffect(() => {
-    const handleGoogleResponse = async () => {
-      if (googleResponse?.type === "success") {
-        const { id_token: idToken } = googleResponse.params;
-        const credential = GoogleAuthProvider.credential(idToken);
-        const auth = getAuth();
-        try {
-          await signInWithCredential(auth, credential);
-          Alert.alert("Login Successful", "Welcome!");
-          router.push('/(tabs)');
-        } catch (error: any) {
-          const errorMessage = error?.message || 'An error occurred during login';
-          Alert.alert("Login Failed", errorMessage);
-        }
-      }
-    };
-    handleGoogleResponse();
-  }, [googleResponse]);
-
-  // Handle Facebook Login Response
-  useEffect(() => {
-    const handleFacebookResponse = async () => {
-      if (facebookResponse?.type === "success") {
-        const { access_token: token } = facebookResponse.params;
-        const credential = FacebookAuthProvider.credential(token);
-        const auth = getAuth();
-        try {
-          await signInWithCredential(auth, credential);
-          Alert.alert("Login Successful", "Welcome!");
-          router.push('/(tabs)');
-        } catch (error: any) {
-          const errorMessage = error?.message || 'An error occurred during login';
-          Alert.alert("Login Failed", errorMessage);
-        }
-      }
-    };
-    handleFacebookResponse();
-  }, [facebookResponse]);
-
   const handleFacebookLogin = () => {
-    // Handle Facebook login logic here
-    //promptFacebookLogin();
-    router.push("/main/MainNavigator");
+    router.push("/main/HomeScreen");
   };
 
   const handleGoogleLogin = () => {
-    // Handle Google login logic here
-    //promptGoogleLogin();
+    router.push("/main/HomeScreen");
   };
 
   return (
@@ -100,7 +38,7 @@ export default function WelcomeScreen() {
             <View style={styles.buttonContainer}>
               <Button
                 style={styles.facebookButton}
-                accessoryLeft={FacebookIcon}
+                // accessoryLeft={FacebookIcon}
                 onPress={handleFacebookLogin}
               >
                 Continue with Facebook
@@ -109,7 +47,7 @@ export default function WelcomeScreen() {
               <Button
                 style={styles.googleButton}
                 status='basic'
-                accessoryLeft={GoogleIcon}
+                // accessoryLeft={GoogleIcon}
                 onPress={handleGoogleLogin}
               >
                 Continue with Google
