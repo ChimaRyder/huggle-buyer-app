@@ -6,8 +6,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import * as eva from '@eva-design/eva';
-import { ApplicationProvider, IconRegistry } from '@ui-kitten/components';
-import { EvaIconsPack } from '@ui-kitten/eva-icons';
+import { ApplicationProvider } from '@ui-kitten/components';
+
+
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -17,7 +18,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Poppins: require('../assets/fonts/Poppins-Regular.ttf'),
   });
 
   useEffect(() => {
@@ -32,11 +33,14 @@ export default function RootLayout() {
 
   return (
     <>
-      <IconRegistry icons={EvaIconsPack} />
       <ApplicationProvider {...eva} theme={colorScheme === 'dark' ? eva.dark : eva.light}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="main/SearchScreen" options={{ headerShown: false }} />
+            <Stack.Screen name="main/FavoritesScreen" options={{ headerShown: false }} />
+            <Stack.Screen name="main/ProfileScreen" options={{ headerShown: false }} />
+            <Stack.Screen name="main/Home" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>

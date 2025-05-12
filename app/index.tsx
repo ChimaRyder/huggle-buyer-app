@@ -1,48 +1,45 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Alert, StyleSheet, View, ImageBackground, Dimensions } from 'react-native';
+import React from 'react';
+import { StyleSheet, View, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as eva from '@eva-design/eva';
-import { ApplicationProvider, Layout, Text, Button, Icon, IconProps, IconElement } from '@ui-kitten/components';
+import { ApplicationProvider, Layout, Text, Button } from '@ui-kitten/components';
+import { FontAwesome } from '@expo/vector-icons';
 
-const FacebookIcon = (props: IconProps) : IconElement => (
-  <Icon {...props} name='facebook' pack='eva' />
+const FacebookIcon = () => (
+  <FontAwesome name="facebook" size={20} color="white" style={{ marginRight: 10 }} />
 );
 
-const GoogleIcon = (props: IconProps) => (
-  <Icon {...props} name='google' pack='eva' />
+const GoogleIcon = () => (
+  <FontAwesome name="google" size={20} color="#051D24" style={{ marginRight: 10 }} />
 );
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
   const handleFacebookLogin = () => {
-    router.push("/main/Home");
-                // "/main/SearchScreen" for SearchScreen
-                // "/main/Home" for Home
-                // "/main/ProfileScreen" for ProfileScreen
-                //etc
+    router.push("/main/FavoritesScreen");
   };
 
   const handleGoogleLogin = () => {
-    router.push("/main/Home");
+    router.push("/main/FavoritesScreen");
   };
 
   return (
     <ApplicationProvider {...eva} theme={eva.light}>
-        <ImageBackground 
-          source={require('../assets/images/welcome-screen-background.jpg')} 
-          style={styles.backgroundImage}
-        >
-          <View style={styles.overlay} />
-          <Layout style={styles.container}>
-            <View style={styles.contentContainer}>
-              <Text style={styles.headline}>Good Vibes. Great Finds.</Text>
-              <Text style={styles.subtext}>Find the best deals for the best meals.</Text>
-            
+      <ImageBackground 
+        source={require('../assets/images/welcome-screen-background.jpg')} 
+        style={styles.backgroundImage}
+      >
+        <View style={styles.overlay} />
+        <Layout style={styles.container}>
+          <View style={styles.contentContainer}>
+            <Text style={styles.headline}>Good Vibes. Great Finds.</Text>
+            <Text style={styles.subtext}>Find the best deals for the best meals.</Text>
+
             <View style={styles.buttonContainer}>
               <Button
                 style={styles.facebookButton}
-                // accessoryLeft={FacebookIcon}
+                accessoryLeft={FacebookIcon}
                 onPress={handleFacebookLogin}
               >
                 Continue with Facebook
@@ -50,8 +47,8 @@ export default function WelcomeScreen() {
               
               <Button
                 style={styles.googleButton}
+                accessoryLeft={GoogleIcon}
                 status='basic'
-                // accessoryLeft={GoogleIcon}
                 onPress={handleGoogleLogin}
               >
                 Continue with Google
