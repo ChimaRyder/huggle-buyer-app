@@ -17,11 +17,11 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   const handleFacebookLogin = () => {
-    router.push("/main/FavoritesScreen");
+    router.push("/(tabs)");
   };
 
   const handleGoogleLogin = () => {
-    router.push("/main/FavoritesScreen");
+    router.push("/(tabs)");
   };
 
   return (
