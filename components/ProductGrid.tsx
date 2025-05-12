@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   seeAll: {
     fontSize: 14,
-    color: '#FF6B6B',
+    color: '#548C2F',
   },
   grid: {
     flexDirection: 'row',

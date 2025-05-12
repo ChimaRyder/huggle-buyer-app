@@ -16,7 +16,7 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   const handleFacebookLogin = () => {
-    router.push("/main/SearchScreen");
+    router.push("/main/Home");
                 // "/main/SearchScreen" for SearchScreen
                 // "/main/Home" for Home
                 // "/main/ProfileScreen" for ProfileScreen
@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
   };
 
   const handleGoogleLogin = () => {
-    router.push("/main/SearchScreen");
+    router.push("/main/Home");
   };
 
   return (

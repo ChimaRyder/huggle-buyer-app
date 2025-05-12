@@ -32,7 +32,7 @@ const bannerData: BannerItem[] = [
 ];
 
 const { width } = Dimensions.get('window');
-const SIDE_PADDING = 20;
+const SIDE_PADDING = 15;
 const BANNER_WIDTH = width;
 const BANNER_HEIGHT = 143;
 
@@ -115,6 +115,7 @@ const styles = StyleSheet.create({
     height: BANNER_HEIGHT,
     borderRadius: 12,
     overflow: 'hidden',
+    marginHorizontal: 10,
   },
   bannerImage: {
     width: '100%',
