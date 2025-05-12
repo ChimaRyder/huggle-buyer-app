@@ -32,7 +32,8 @@ const bannerData: BannerItem[] = [
 ];
 
 const { width } = Dimensions.get('window');
-const BANNER_WIDTH = 333;
+const SIDE_PADDING = 20;
+const BANNER_WIDTH = width;
 const BANNER_HEIGHT = 143;
 
 const PromoBanner = () => {
@@ -44,7 +45,7 @@ const PromoBanner = () => {
     const timer = setInterval(() => {
       const nextIndex = (currentIndex + 1) % bannerData.length;
       bannerRef.current?.scrollTo({
-        x: nextIndex * BANNER_WIDTH,
+        x: nextIndex * width,
         animated: true,
       });
       setCurrentIndex(nextIndex);
@@ -67,6 +68,7 @@ const PromoBanner = () => {
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        contentContainerStyle={{ paddingHorizontal: SIDE_PADDING }}
       >
         {bannerData.map((item) => (
           <View key={item.id} style={styles.bannerItem}>
@@ -81,9 +83,9 @@ const PromoBanner = () => {
       <View style={styles.pagination}>
         {bannerData.map((_, index) => {
           const inputRange = [
-            (index - 1) * BANNER_WIDTH,
-            index * BANNER_WIDTH,
-            (index + 1) * BANNER_WIDTH,
+            (index - 1) * width,
+            index * width,
+            (index + 1) * width,
           ];
 
           const dotWidth = scrollX.interpolate({
@@ -109,9 +111,8 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   bannerItem: {
-    width: BANNER_WIDTH,
+    width: width - SIDE_PADDING * 2,
     height: BANNER_HEIGHT,
-    marginHorizontal: (width - BANNER_WIDTH) / 2,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#548C2F',
     marginHorizontal: 4,
   },
 });

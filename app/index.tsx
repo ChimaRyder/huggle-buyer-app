@@ -16,11 +16,15 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   const handleFacebookLogin = () => {
-    router.push("/main/HomeScreen");
+    router.push("/main/SearchScreen");
+                // "/main/SearchScreen" for SearchScreen
+                // "/main/Home" for Home
+                // "/main/ProfileScreen" for ProfileScreen
+                //etc
   };
 
   const handleGoogleLogin = () => {
-    router.push("/main/HomeScreen");
+    router.push("/main/SearchScreen");
   };
 
   return (

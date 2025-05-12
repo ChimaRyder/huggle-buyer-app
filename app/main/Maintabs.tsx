@@ -1,36 +1,26 @@
+// MainTabs.tsx
 import React from 'react';
-import { Dimensions } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
-import Home from './Home';
 import SearchScreen from './SearchScreen';
 import FavoritesScreen from './FavoritesScreen';
 import ProfileScreen from './ProfileScreen';
+import Home from './Home';
 
 const Tab = createBottomTabNavigator();
-const { width } = Dimensions.get('window');
 
-const MainNavigator = () => (
+const MainTabs = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
-      tabBarIcon: ({ focused, size }) => {
+      tabBarIcon: ({ focused }) => {
         let iconName: keyof typeof MaterialIcons.glyphMap;
         switch (route.name) {
-          case 'Home':
-            iconName = 'home';
-            break;
-          case 'Search':
-            iconName = 'search';
-            break;
-          case 'Favorites':
-            iconName = 'favorite';
-            break;
-          case 'Profile':
-            iconName = 'person';
-            break;
-          default:
-            iconName = 'home';
+          case 'Home': iconName = 'home'; break;
+          case 'Search': iconName = 'search'; break;
+          case 'Favorites': iconName = 'favorite'; break;
+          case 'Profile': iconName = 'person'; break;
+          default: iconName = 'home';
         }
         return (
           <MaterialIcons
@@ -45,17 +35,10 @@ const MainNavigator = () => (
       tabBarStyle: {
         backgroundColor: '#051D24',
         height: 69,
-        width: width,
         position: 'absolute',
         bottom: 0,
-        left: 0,
-        right: 0,
         borderTopWidth: 0,
         elevation: 0,
-      },
-      tabBarLabelStyle: {
-        fontSize: 12,
-        marginBottom: 8,
       },
       tabBarShowLabel: false,
     })}
@@ -67,4 +50,4 @@ const MainNavigator = () => (
   </Tab.Navigator>
 );
 
-export default MainNavigator;
+export default MainTabs;

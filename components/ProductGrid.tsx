@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Image, Text, TouchableOpacity, Dimensions } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons } from '@expo/vector-icons';
 
 import { images, ImageSource } from '../assets';
 
@@ -89,7 +89,7 @@ const ProductGrid = () => {
                 {product.name}
               </Text>
               <View style={styles.ratingContainer}>
-                <Icon name="star" size={16} color="#FFD700" />
+                <MaterialIcons name="star" size={16} color="#FFD700" />
                 <Text style={styles.rating}>{product.rating}</Text>
               </View>
               <Text style={styles.items}>
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
   },
@@ -154,10 +154,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: 'rgba(217, 217, 217, 0.5)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 5,
   },
   discountText: {
     color: '#FFFFFF',
@@ -166,12 +166,12 @@ const styles = StyleSheet.create({
   },
   distanceContainer: {
     position: 'absolute',
-    bottom: 8,
-    right: 8,
+  bottom: 0,
+    left: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderTopRightRadius: 10,
   },
   distanceText: {
     color: '#FFFFFF',

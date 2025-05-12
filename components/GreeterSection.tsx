@@ -12,9 +12,9 @@ const getGreeting = () => {
 
 const getGreetingTime = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return 'morning!';
-  if (hour < 18) return 'afternoon!';
-  return 'evening!';
+  if (hour < 12) return 'Morning!';
+  if (hour < 18) return 'Afternoon!';
+  return 'Evening!';
 };
 
 const GreeterSection = () => {
@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'Poppins',
     fontWeight: '600',
+    fontStyle: 'bold',
     color: '#000',
   },
   highlight: {

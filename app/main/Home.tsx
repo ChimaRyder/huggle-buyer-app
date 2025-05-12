@@ -1,3 +1,4 @@
+// CustomHome.tsx
 import React from 'react';
 import { ScrollView, StyleSheet, View, SafeAreaView } from 'react-native';
 import CategoryCarousel from '../../components/CategoryCarousel';
@@ -5,12 +6,11 @@ import PromoBanner from '../../components/PromoBanner';
 import ProductGrid from '../../components/ProductGrid';
 import GreeterSection from '../../components/GreeterSection';
 
-
-const HomeScreen = () => {
+const CustomHome = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <GreeterSection />
+        <GreeterSection />
         <CategoryCarousel />
         <PromoBanner />
         <ProductGrid />
@@ -29,4 +29,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default CustomHome;
