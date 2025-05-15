@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   },
   accentLine: {
     width: 4,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#104911',
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
   },

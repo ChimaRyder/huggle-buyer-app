@@ -238,7 +238,11 @@ export default function StoreHomepageScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff',
+    marginTop: 25,
+  },
   scrollView: { flex: 1 },
   banner: { height: BANNER_HEIGHT },
   bannerOverlay: {

@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: 16,
+    marginTop: 25,
   },
   searchBar: {
     marginTop: 10,

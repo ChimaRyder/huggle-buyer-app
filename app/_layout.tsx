@@ -41,6 +41,11 @@ export default function RootLayout() {
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(screens)/ProductScreen" options={{ headerShown: false }} />
+            <Stack.Screen name="(screens)/StoreHomepageScreen" options={{ headerShown: false }} />
+            <Stack.Screen name="(screens)/cart" options={{ headerShown: false }} />
+            <Stack.Screen name="(screens)/chat" options={{ headerShown: false }} />
+            <Stack.Screen name="(screens)/reviews" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
           <StatusBar style="auto" />

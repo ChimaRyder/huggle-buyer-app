@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { View, Image, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Text } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useLocalSearchParams } from 'expo-router';
 import ReviewCard from '../../components/ReviewCard';
 import { mockProducts } from '../../components/ProductGrid';
+import { TouchableOpacity } from 'react-native';
 
 export default function ProductScreen() {
+  const router = useRouter();
   const { id } = useLocalSearchParams();
   const [quantity, setQuantity] = useState(1);
   
@@ -22,11 +25,19 @@ export default function ProductScreen() {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        <Image
-          source={product?.image}
-          style={styles.productImage}
-          resizeMode="cover"
-        />
+        <View style={styles.imageContainer}>
+          <Image
+            source={product?.image}
+            style={styles.productImage}
+            resizeMode="cover"
+          />
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="close" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.contentContainer}>
           {/* Product Name & Quantity Selector */}
@@ -67,11 +78,11 @@ export default function ProductScreen() {
           {/* Store Info Row */}
           <View style={styles.storeInfoRow}>
             <View style={styles.storeSection}>
-              <FontAwesome name="shopping-bag" size={16} color="#333" />
+              <FontAwesome name="shopping-bag" size={20} color="#548C2F" />
               <Text style={styles.storeName}>Store Name</Text>
             </View>
             <View style={styles.locationSection}>
-              <FontAwesome name="map-marker" size={16} color="#333" />
+              <FontAwesome name="map-marker" size={20} color="#548C2F" />
               <Text style={styles.location}>Store Location</Text>
             </View>
           </View>
@@ -95,11 +106,17 @@ export default function ProductScreen() {
 
       {/* Bottom Action Buttons */}
       <View style={styles.bottomButtons}>
-        <Pressable style={styles.actionButton}>
-          <FontAwesome name="comment" size={28} color="#fff" />
+        <Pressable 
+          style={styles.actionButton}
+          onPress={() => router.push('/(screens)/chat')}
+        >
+          <FontAwesome name="comment" size={25} color="#fff" />
         </Pressable>
-        <Pressable style={styles.actionButton}>
-          <FontAwesome name="shopping-cart" size={28} color="#fff" />
+        <Pressable 
+          style={styles.actionButton}
+          onPress={() => router.push('/(screens)/cart')}
+        >
+          <FontAwesome name="shopping-cart" size={25} color="#fff" />
         </Pressable>
       </View>
     </View>
@@ -110,13 +127,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    marginTop: 20,
   },
   scrollView: {
     flex: 1,
   },
+  imageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: '50%',
+  },
   productImage: {
     width: '100%',
-    height: '25%',
+    height: '100%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 20,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
   contentContainer: {
     padding: 16,
@@ -125,11 +160,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   productName: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 25,
     fontFamily: 'Poppins-Bold',
     flex: 1,
   },
@@ -150,7 +184,6 @@ const styles = StyleSheet.create({
   },
   quantityButtonText: {
     fontSize: 20,
-    fontWeight: '600',
     fontFamily: 'Poppins-SemiBold',
   },
   quantityText: {
@@ -165,24 +198,23 @@ const styles = StyleSheet.create({
   },
   discountedPrice: {
     fontFamily: 'Poppins-Regular',
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
     color: '#F9A620',
     marginRight: 8,
   },
   originalPrice: {
     fontFamily: 'Poppins-Regular',
-    fontSize: 18,
-    color: '#F9A620',
+    fontSize: 20,
+    color: '#979797',
     textDecorationLine: 'line-through',
   },
   section: {
-    marginBottom: 16,
+    marginBottom: 30,
   },
   sectionTitle: {
     color: '#454B60',
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'Poppins-Regular',
     marginBottom: 8,
   },
   horizontalRule: {
@@ -193,11 +225,12 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 16,
     color: '#666',
+    fontFamily: 'Poppins-Regular',
   },
   storeInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   storeSection: {
     flexDirection: 'row',
@@ -210,12 +243,15 @@ const styles = StyleSheet.create({
   },
   storeName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Poppins-Regular',
     marginLeft: 8,
+    color: '#868889',
   },
   location: {
     fontSize: 16,
+    color: '#868889',
     marginLeft: 8,
+    fontFamily: 'Poppins-Regular',
   },
   reviewsSection: {
     marginBottom: 100, // Extra space for bottom buttons
@@ -225,9 +261,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    color: '#454B60',
   },
   seeAllButton: {
-    color: '#007AFF',
+    color: '#104911',
     fontSize: 16,
   },
   bottomButtons: {
@@ -242,7 +279,7 @@ const styles = StyleSheet.create({
     width: 75,
     height: 75,
     borderRadius: 37.5,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#F9A620',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

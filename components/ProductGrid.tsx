@@ -84,8 +84,8 @@ const getStyles = (cardWidth: number) =>
       marginBottom: 16,
     },
     title: {
-      fontSize: 20,
-      fontWeight: 'bold',
+      fontSize: 23,
+      fontFamily: 'Poppins-SemiBold',
       color: '#333',
     },
     viewAllButton: {
@@ -93,8 +93,8 @@ const getStyles = (cardWidth: number) =>
       alignItems: 'center',
     },
     viewAllText: {
-      fontSize: 14,
-      color: '#666',
+      fontSize: 15,
+      color: '#548C2F',
       marginRight: 4,
     },
     grid: {
@@ -217,10 +217,9 @@ const ProductGrid = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Popular Items</Text>
+        <Text style={styles.title}>Trending</Text>
         <TouchableOpacity style={styles.viewAllButton}>
-          <Text style={styles.viewAllText}>View All</Text>
-          <MaterialIcons name="arrow-forward" size={20} color="#666" />
+          <Text style={styles.viewAllText}>See All</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.grid}>{mockProducts.map(renderProduct)}</View>
