@@ -50,8 +50,8 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   imageContainer: {
-    width: 70,
-    height: 70,
+    width: 60,
+    height: 60,
     borderRadius: 35,
     borderWidth: 2,
     borderColor: '#4E4545',
