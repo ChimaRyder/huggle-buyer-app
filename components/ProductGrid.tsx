@@ -21,9 +21,10 @@ interface Product {
   distance: string;
   time: string;
   availableItems: number;
+  price: number;
 }
 
-const mockProducts: Product[] = [
+export const mockProducts: Product[] = [
   {
     id: '1',
     name: 'Chocolate Cake',
@@ -33,6 +34,7 @@ const mockProducts: Product[] = [
     distance: '5km',
     time: '45mins',
     availableItems: 5,
+    price: 100,
   },
   {
     id: '2',
@@ -43,6 +45,7 @@ const mockProducts: Product[] = [
     distance: '3km',
     time: '30mins',
     availableItems: 8,
+    price: 150,
   },
   {
     id: '3',
@@ -53,6 +56,7 @@ const mockProducts: Product[] = [
     distance: '4km',
     time: '35mins',
     availableItems: 3,
+    price: 120,
   },
   {
     id: '4',
@@ -63,13 +67,15 @@ const mockProducts: Product[] = [
     distance: '6km',
     time: '40mins',
     availableItems: 6,
+    price: 180,
   },
 ];
 
 const getStyles = (cardWidth: number) =>
   StyleSheet.create({
     container: {
-      padding: 16,
+      paddingTop: 16,
+      paddingBottom: 16,
     },
     header: {
       flexDirection: 'row',
@@ -102,10 +108,7 @@ const getStyles = (cardWidth: number) =>
       backgroundColor: '#fff',
       borderRadius: 12,
       shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
+      shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 3,
@@ -176,15 +179,16 @@ const getStyles = (cardWidth: number) =>
 const ProductGrid = () => {
   const router = useRouter();
   const screenWidth = Dimensions.get('window').width;
-  const cardMargin = 16;
-  const cardWidth = (screenWidth - cardMargin * 3) / 2; // 2 cards + margin in between + outer padding
+  const paddingHorizontal = 16;
+  const cardGap = 12;
+  const cardWidth = (screenWidth - paddingHorizontal * 2 - cardGap) / 2; // 2 cards + margin in between + outer padding
   const styles = getStyles(cardWidth);
 
   const renderProduct = (product: Product) => (
     <TouchableOpacity
       key={product.id}
       style={styles.card}
-      onPress={() => router.push({ pathname: '/product/[id]', params: { id: product.id } } as any)}
+      onPress={() => router.push(`/(screens)/ProductScreen?id=${product.id}`)}
     >
       <View style={styles.imageContainer}>
         <Image source={product.image} style={styles.image} />

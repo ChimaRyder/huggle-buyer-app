@@ -18,15 +18,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ reviewerName, message, r
           {message}
         </Text>
         <View style={styles.ratingContainer}>
-          {[...Array(5)].map((_, index) => (
-            <FontAwesome
-              key={index}
-              name="star"
-              size={16}
-              color={index < rating ? '#FFD700' : '#E0E0E0'}
-              style={styles.star}
-            />
-          ))}
+          <FontAwesome name="star" size={16} color="#FFD700" style={styles.star} />
+          <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
         </View>
       </View>
     </View>
@@ -38,7 +31,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 8,
-    marginVertical: 8,
+    marginVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -70,7 +63,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   star: {
-    marginRight: 2,
+    marginRight: 4,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: '#666',
   },
 });
 

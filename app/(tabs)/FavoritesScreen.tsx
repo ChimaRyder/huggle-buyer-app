@@ -3,6 +3,8 @@ import { View, Image, FlatList, StyleSheet } from 'react-native';
 import { Layout, Text, Input, Button } from '@ui-kitten/components';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { TouchableOpacity } from 'react-native';
 
 const sampleFavorites = [
   {
@@ -26,6 +28,7 @@ const sampleFavorites = [
 ];
 
 const FavoritesScreen = () => {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [sortOption, setSortOption] = useState<'Recents' | 'A-Z' | 'Z-A'>('Recents');
@@ -38,31 +41,45 @@ const FavoritesScreen = () => {
       return 0; // Recents or default
     });
 
-  const renderStoreItem = ({ item }: any) => (
-    <View style={styles.storeItem}>
-      <View style={styles.storeImageWrapper}>
-        <Image source={item.image} style={styles.storeImage} />
-        <View style={styles.heartContainer}>
-          <Ionicons name="heart" size={14} color="white" />
-        </View>
-      </View>
+  interface Store {
+    id: string;
+    name: string;
+    category: string;
+    rating: number;
+    reviews: number;
+    distance: string;
+    image: any;
+  }
 
-      <View style={styles.storeTextSection}>
-        <View style={styles.titleRow}>
-          <Text category="h6">{item.name}</Text>
-          <Text appearance="hint" style={styles.rating}>
-            ⭐ {item.rating} ({item.reviews})
-          </Text>
-        </View>
-        <Text appearance="hint">{item.category}</Text>
-        <View style={styles.distanceRow}>
-          <Ionicons name="walk" size={16} color="#104911" />
-          <Text appearance="hint" style={styles.distanceText}>
-            {item.distance}
-          </Text>
-        </View>
+  const renderStoreItem = ({ item }: { item: Store }) => (
+    <TouchableOpacity
+    style={styles.storeItem}
+    onPress={() => router.push(`/(screens)/StoreHomepageScreen?id=${item.id}`)}
+    activeOpacity={0.8}
+  >
+    <View style={styles.storeImageWrapper}>
+      <Image source={item.image} style={styles.storeImage} />
+      <View style={styles.heartContainer}>
+        <Ionicons name="heart" size={14} color="white" />
       </View>
     </View>
+
+    <View style={styles.storeTextSection}>
+      <View style={styles.titleRow}>
+        <Text category="h6">{item.name}</Text>
+        <Text appearance="hint" style={styles.rating}>
+          ⭐ {item.rating} ({item.reviews})
+        </Text>
+      </View>
+      <Text appearance="hint">{item.category}</Text>
+      <View style={styles.distanceRow}>
+        <Ionicons name="walk" size={16} color="#104911" />
+        <Text appearance="hint" style={styles.distanceText}>
+          {item.distance}
+        </Text>
+      </View>
+    </View>
+  </TouchableOpacity>
   );
 
   return (

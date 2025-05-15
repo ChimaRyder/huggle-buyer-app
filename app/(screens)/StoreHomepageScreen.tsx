@@ -11,8 +11,10 @@ import {
   TextInput,
   Dimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { ReviewCard } from '../../components/ReviewCard';
+import ProductGrid from '../../components/ProductGrid';
 
 const { width, height } = Dimensions.get('window');
 const BANNER_HEIGHT = height * 0.25;
@@ -24,6 +26,43 @@ interface Review {
   userName: string;
   date: string;
 }
+
+interface Store {
+  id: string;
+  name: string;
+  category: string;
+  rating: number;
+  reviews: number;
+  distance: string;
+  image: any;
+  profileImage: any;
+  bannerImage: any;
+}
+
+const MOCK_STORES: Store[] = [
+  {
+    id: '1',
+    name: 'Baked Bliss',
+    category: 'Pastries',
+    rating: 4.7,
+    reviews: 120,
+    distance: '1.2km',
+    image: require('../../assets/images/sample-store.jpg'),
+    profileImage: require('../../assets/images/sample-store.jpg'),
+    bannerImage: require('../../assets/images/sample-store.jpg'),
+  },
+  {
+    id: '2',
+    name: 'Snack Shack',
+    category: 'Burgers',
+    rating: 4.5,
+    reviews: 98,
+    distance: '0.8km',
+    image: require('../../assets/images/sample-store.jpg'),
+    profileImage: require('../../assets/images/sample-store.jpg'),
+    bannerImage: require('../../assets/images/sample-store.jpg'),
+  },
+];
 
 const DUMMY_REVIEWS: Review[] = [
   {
@@ -44,6 +83,16 @@ const DUMMY_REVIEWS: Review[] = [
 
 export default function StoreHomepageScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
+  const store = MOCK_STORES.find((s) => s.id === id?.toString());
+  
+  if (!store) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text>Store not found</Text>
+      </SafeAreaView>
+    );
+  }
   const [isFavorited, setIsFavorited] = useState(false);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -65,7 +114,7 @@ export default function StoreHomepageScreen() {
       <ScrollView style={styles.scrollView}>
         {/* Banner */}
         <ImageBackground
-          source={{ uri: 'https://placeholder-store-image.jpg' }}
+          source={store.bannerImage}
           style={styles.banner}
         >
           <View style={styles.bannerOverlay}>
@@ -79,14 +128,14 @@ export default function StoreHomepageScreen() {
             <View style={styles.bannerBottom}>
               <View style={styles.storeInfo}>
                 <Image
-                  source={{ uri: 'https://placeholder-profile.jpg' }}
+                  source={store.profileImage}
                   style={styles.storeProfileImage}
                 />
                 <View style={styles.storeTextInfo}>
-                  <Text style={styles.storeName}>Store Name</Text>
+                  <Text style={styles.storeName}>{store.name}</Text>
                   <View style={styles.ratingContainer}>
                     <Ionicons name="star" size={16} color="#FFD700" />
-                    <Text style={styles.ratingText}>4.8 (120)</Text>
+                    <Text style={styles.ratingText}>{store.rating.toFixed(1)} ({store.reviews})</Text>
                   </View>
                 </View>
               </View>
@@ -104,7 +153,7 @@ export default function StoreHomepageScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.circleButton, { marginTop: 8 }]}
-                  onPress={() => router.push({ pathname: '/chat' })}
+                  onPress={() => router.push('/(screens)/chat' as any)}
                 >
                   <Ionicons name="chatbubble-outline" size={24} color="black" />
                 </TouchableOpacity>
@@ -113,21 +162,11 @@ export default function StoreHomepageScreen() {
           </View>
         </ImageBackground>
 
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="gray" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search in shop"
-            placeholderTextColor="gray"
-          />
-        </View>
-
         {/* Reviews */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Reviews</Text>
-            <TouchableOpacity onPress={() => router.push({ pathname: '/reviews' })}>
+            <TouchableOpacity onPress={() => router.push('/(screens)/reviews' as any)}>
               <Text style={styles.seeAll}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -137,6 +176,7 @@ export default function StoreHomepageScreen() {
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.reviewsContainer}
             onMomentumScrollEnd={(event) => {
               const newIndex = Math.round(
                 event.nativeEvent.contentOffset.x / width
@@ -145,16 +185,12 @@ export default function StoreHomepageScreen() {
             }}
           >
             {DUMMY_REVIEWS.map((review) => (
-              <View key={review.id} style={styles.reviewCard}>
-                <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewUserName}>{review.userName}</Text>
-                  <View style={styles.ratingContainer}>
-                    <Ionicons name="star" size={16} color="#FFD700" />
-                    <Text>{review.rating}</Text>
-                  </View>
-                </View>
-                <Text style={styles.reviewComment}>{review.comment}</Text>
-                <Text style={styles.reviewDate}>{review.date}</Text>
+              <View key={review.id} style={styles.reviewWrapper}>
+                <ReviewCard
+                  reviewerName={review.userName}
+                  message={review.comment}
+                  rating={review.rating}
+                />
               </View>
             ))}
           </ScrollView>
@@ -172,22 +208,28 @@ export default function StoreHomepageScreen() {
           </View>
         </View>
 
+        {/* Search */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="gray" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search in shop"
+            placeholderTextColor="gray"
+          />
+        </View>
+
+
+
         {/* Popular Products */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.popularHeader}>
-              <Ionicons name="flame" size={24} color="#FF4500" />
-              <Text style={styles.sectionTitle}>Popular</Text>
-            </View>
-          </View>
-          {/* TODO: Product grid */}
+          <ProductGrid />
         </View>
       </ScrollView>
 
       {/* Floating Cart */}
       <TouchableOpacity
         style={styles.floatingCart}
-        onPress={() => router.push({ pathname: '/cart' })}
+        onPress={() => router.push('/(screens)/cart' as any)}
       >
         <Ionicons name="bag" size={24} color="white" />
       </TouchableOpacity>
@@ -247,23 +289,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   popularHeader: { flexDirection: 'row', alignItems: 'center' },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 8 },
-  seeAll: { color: '#1E90FF' },
-  reviewCard: {
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    marginLeft: 8 
+  },
+  seeAll: { 
+    color: '#1E90FF' 
+  },
+  reviewsContainer: {
+    paddingHorizontal: 16,
+  },
+  reviewWrapper: {
     width: width - 32,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
     marginRight: 16,
   },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  reviewUserName: { fontWeight: 'bold' },
-  reviewComment: { marginBottom: 8 },
-  reviewDate: { color: 'gray', fontSize: 12 },
   paginationDots: {
     flexDirection: 'row',
     justifyContent: 'center',

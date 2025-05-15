@@ -12,7 +12,9 @@ export default function HomeScreen() {
         <GreeterSection />
         <CategoryCarousel />
         <PromoBanner />
-        <ProductGrid />
+        <View style={styles.productsContainer}>
+          <ProductGrid />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -25,5 +27,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  productsContainer: {
+    marginHorizontal: 16,
   },
 });

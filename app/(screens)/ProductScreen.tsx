@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { View, Image, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Text } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import ReviewCard from '../../components/ReviewCard';
+import { mockProducts } from '../../components/ProductGrid';
 
 export default function ProductScreen() {
+  const { id } = useLocalSearchParams();
   const [quantity, setQuantity] = useState(1);
+  
+  const product = mockProducts.find((p) => p.id === id?.toString());
 
   const handleQuantityChange = (increment: boolean) => {
     setQuantity(prev => {
@@ -18,7 +23,7 @@ export default function ProductScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <Image
-          source={{ uri: 'https://placeholder.com/product-image' }}
+          source={product?.image}
           style={styles.productImage}
           resizeMode="cover"
         />
@@ -26,7 +31,7 @@ export default function ProductScreen() {
         <View style={styles.contentContainer}>
           {/* Product Name & Quantity Selector */}
           <View style={styles.nameQuantityRow}>
-            <Text style={styles.productName}>Product Name</Text>
+            <Text style={styles.productName}>{product?.name}</Text>
             <View style={styles.quantitySelector}>
               <Pressable
                 onPress={() => handleQuantityChange(false)}
@@ -46,8 +51,8 @@ export default function ProductScreen() {
 
           {/* Pricing Row */}
           <View style={styles.pricingRow}>
-            <Text style={styles.discountedPrice}>₱100</Text>
-            <Text style={styles.originalPrice}>₱150</Text>
+            <Text style={styles.discountedPrice}>₱{product?.price || 100}</Text>
+            <Text style={styles.originalPrice}>₱{product ? (product.price * (1 + product.discount/100)).toFixed(0) : 150}</Text>
           </View>
 
           {/* Description Section */}
