@@ -10,11 +10,9 @@ import {
   Image,
   TextInput,
   Dimensions,
-  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
 
 const { width, height } = Dimensions.get('window');
 const BANNER_HEIGHT = height * 0.25;
@@ -33,9 +31,15 @@ const DUMMY_REVIEWS: Review[] = [
     rating: 5,
     comment: "Great products and fast delivery!",
     userName: "John D.",
-    date: "2025-05-10"
+    date: "2025-05-10",
   },
-  // Add more dummy reviews as needed
+  {
+    id: '2',
+    rating: 4,
+    comment: "Good service and value for money.",
+    userName: "Anna B.",
+    date: "2025-05-09",
+  },
 ];
 
 export default function StoreHomepageScreen() {
@@ -44,39 +48,34 @@ export default function StoreHomepageScreen() {
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Auto-scroll reviews every 3 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       const nextIndex = (activeReviewIndex + 1) % DUMMY_REVIEWS.length;
       setActiveReviewIndex(nextIndex);
       scrollViewRef.current?.scrollTo({
         x: nextIndex * width,
-        animated: true
+        animated: true,
       });
     }, 3000);
-
     return () => clearInterval(interval);
   }, [activeReviewIndex]);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {/* Banner Section */}
+        {/* Banner */}
         <ImageBackground
           source={{ uri: 'https://placeholder-store-image.jpg' }}
           style={styles.banner}
-          resizeMode="cover"
         >
           <View style={styles.bannerOverlay}>
-            {/* Top Row */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.closeButton}
               onPress={() => router.back()}
             >
               <Ionicons name="close" size={24} color="white" />
             </TouchableOpacity>
 
-            {/* Bottom Row */}
             <View style={styles.bannerBottom}>
               <View style={styles.storeInfo}>
                 <Image
@@ -93,19 +92,19 @@ export default function StoreHomepageScreen() {
               </View>
 
               <View style={styles.actionButtons}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.circleButton}
                   onPress={() => setIsFavorited(!isFavorited)}
                 >
-                  <Ionicons 
-                    name={isFavorited ? "heart" : "heart-outline"} 
-                    size={24} 
-                    color={isFavorited ? Colors.light.tint : "black"}
+                  <Ionicons
+                    name={isFavorited ? 'heart' : 'heart-outline'}
+                    size={24}
+                    color={isFavorited ? 'tomato' : 'black'}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.circleButton, { marginTop: 8 }]}
-                  onPress={() => router.push('/chat')}
+                  onPress={() => router.push({ pathname: '/chat' })}
                 >
                   <Ionicons name="chatbubble-outline" size={24} color="black" />
                 </TouchableOpacity>
@@ -114,7 +113,7 @@ export default function StoreHomepageScreen() {
           </View>
         </ImageBackground>
 
-        {/* Search Bar */}
+        {/* Search */}
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="gray" />
           <TextInput
@@ -124,11 +123,11 @@ export default function StoreHomepageScreen() {
           />
         </View>
 
-        {/* Reviews Section */}
+        {/* Reviews */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Reviews</Text>
-            <TouchableOpacity onPress={() => router.push('/reviews')}>
+            <TouchableOpacity onPress={() => router.push({ pathname: '/reviews' })}>
               <Text style={styles.seeAll}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -145,7 +144,7 @@ export default function StoreHomepageScreen() {
               setActiveReviewIndex(newIndex);
             }}
           >
-            {DUMMY_REVIEWS.map((review, index) => (
+            {DUMMY_REVIEWS.map((review) => (
               <View key={review.id} style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
                   <Text style={styles.reviewUserName}>{review.userName}</Text>
@@ -173,7 +172,7 @@ export default function StoreHomepageScreen() {
           </View>
         </View>
 
-        {/* Popular Products Section */}
+        {/* Popular Products */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.popularHeader}>
@@ -181,14 +180,14 @@ export default function StoreHomepageScreen() {
               <Text style={styles.sectionTitle}>Popular</Text>
             </View>
           </View>
-          {/* ProductGrid component would go here */}
+          {/* TODO: Product grid */}
         </View>
       </ScrollView>
 
-      {/* Sticky Shopping Bag */}
-      <TouchableOpacity 
+      {/* Floating Cart */}
+      <TouchableOpacity
         style={styles.floatingCart}
-        onPress={() => router.push('/cart')}
+        onPress={() => router.push({ pathname: '/cart' })}
       >
         <Ionicons name="bag" size={24} color="white" />
       </TouchableOpacity>
@@ -197,16 +196,9 @@ export default function StoreHomepageScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  banner: {
-    height: BANNER_HEIGHT,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  scrollView: { flex: 1 },
+  banner: { height: BANNER_HEIGHT },
   bannerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.2)',
@@ -214,54 +206,28 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   bannerBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
-  storeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  storeInfo: { flexDirection: 'row', alignItems: 'center' },
   storeProfileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 8,
+    width: 40, height: 40, borderRadius: 20, marginRight: 8,
   },
-  storeTextInfo: {
-    justifyContent: 'center',
-  },
-  storeName: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    color: 'white',
-    marginLeft: 4,
-  },
-  actionButtons: {
-    alignItems: 'center',
-  },
+  storeTextInfo: { justifyContent: 'center' },
+  storeName: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center' },
+  ratingText: { color: 'white', marginLeft: 4 },
+  actionButtons: { alignItems: 'center' },
   circleButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -272,31 +238,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 20,
   },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-  },
-  section: {
-    padding: 16,
-  },
+  searchInput: { flex: 1, marginLeft: 8 },
+  section: { padding: 16 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  popularHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  seeAll: {
-    color: Colors.primary,
-  },
+  popularHeader: { flexDirection: 'row', alignItems: 'center' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 8 },
+  seeAll: { color: '#1E90FF' },
   reviewCard: {
     width: width - 32,
     padding: 16,
@@ -309,40 +261,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  reviewUserName: {
-    fontWeight: 'bold',
-  },
-  reviewComment: {
-    marginBottom: 8,
-  },
-  reviewDate: {
-    color: 'gray',
-    fontSize: 12,
-  },
+  reviewUserName: { fontWeight: 'bold' },
+  reviewComment: { marginBottom: 8 },
+  reviewDate: { color: 'gray', fontSize: 12 },
   paginationDots: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 16,
   },
   paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ddd',
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: '#ccc',
     marginHorizontal: 4,
   },
   paginationDotActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#1E90FF',
     transform: [{ scale: 1.2 }],
   },
   floatingCart: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: '#1E90FF',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,
