@@ -41,47 +41,75 @@ const GoogleIcon = () => null;
 
 export default function WelcomeScreen() {
   useWarmUpBrowser();
-
-  const { user } = useUser();
-  console.log("user: ", user);
-
   const { startSSOFlow } = useSSO();
   const [errors, setErrors] = useState<ClerkAPIError[]>([]);
   const router = useRouter();
+  const { user } = useUser();
 
-  useEffect(() => {
-    const result = WebBrowser.maybeCompleteAuthSession();
-    console.log("Auth session completion result:", result);
-  }, []);
+  // Check if user is already signed in
+  if (user) {
+    console.log("User is already signed in");
+    return <Redirect href="/(app)" />;
+  }
 
   // Handle Google Login Response
-
-  const handleFacebookLogin = () => {};
-
-  const handleGoogleLogin = async () => {
-    console.log("Redirect URL: ", AuthSession.makeRedirectUri());
+  const handleFacebookLogin = async () => {
     try {
-      console.log("Starting Google SSO flow");
       const { createdSessionId, setActive } = await startSSOFlow({
-        strategy: "oauth_google",
+        strategy: "oauth_facebook",
         redirectUrl: AuthSession.makeRedirectUri({
           scheme: "myapp",
           path: "(app)",
         }),
       });
-      console.log("createdSessionId: ", createdSessionId);
       if (createdSessionId) {
-        console.log("Google SSO flow completed successfully");
         setActive!({ session: createdSessionId });
-        return <Redirect href="/(app)" />;
+        router.replace("/(app)");
       } else {
-        console.log("User is not signed in");
-        // not signed in
+        console.log("User is not signed in after Facebook SSO");
       }
     } catch (error) {
       if (isClerkAPIResponseError(error)) {
         setErrors(error.errors);
+        error.errors.forEach((err) => {
+          Alert.alert("Authentication Error", err.message);
+        });
+        console.log("Clerk API error during Facebook login", error.errors);
       } else {
+        Alert.alert(
+          "Authentication Error",
+          "An unexpected error occurred. Please try again."
+        );
+        console.error(error);
+      }
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl: AuthSession.makeRedirectUri({
+          scheme: "myapp",
+          path: "/(app)",
+        }),
+      });
+      if (createdSessionId) {
+        setActive!({ session: createdSessionId });
+        router.replace("/(app)");
+      }
+    } catch (error) {
+      if (isClerkAPIResponseError(error)) {
+        setErrors(error.errors);
+        error.errors.forEach((err) => {
+          Alert.alert("Authentication Error", err.message);
+        });
+        console.log("Clerk API error during Google login", error.errors);
+      } else {
+        Alert.alert(
+          "Authentication Error",
+          "An unexpected error occurred. Please try again."
+        );
         console.error(error);
       }
     }

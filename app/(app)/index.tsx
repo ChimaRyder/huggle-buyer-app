@@ -1,29 +1,42 @@
 import React from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
+import { View, Text, Button, StyleSheet, Image, Alert } from "react-native";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 
 export default function Home() {
   const { isLoaded, userId, signOut } = useAuth();
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
+
+  console.log("Auth status: ", isSignedIn);
+  console.log("JWT: ", userId);
 
   if (!isLoaded || !user) {
     return <Text>Loading...</Text>;
   }
 
+  const handleLogout = async () => {
+    try {
+      console.log("User requested logout");
+      await signOut();
+      console.log("User successfully logged out");
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Logout Error", "An error occurred while logging out. Please try again.");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.greeting}>Welcome, {user.fullName || "User"}!</Text>
-      {user.profileImageUrl && (
+      {user.imageUrl && (
         <View style={styles.profileContainer}>
-          <Text>Profile Picture:</Text>
-          <img
-            src={user.profileImageUrl}
-            alt="Profile"
+          <Image
+            source={{ uri: user.imageUrl }}
             style={styles.profileImage}
+            resizeMode="cover"
           />
         </View>
       )}
-      <Button title="Logout" onPress={() => signOut()} />
+      <Button title="Logout" onPress={handleLogout} />
     </View>
   );
 }
