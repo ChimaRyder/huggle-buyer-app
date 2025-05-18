@@ -23,18 +23,23 @@ export default PageTitle;
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 30,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderWidth: 1,
-    borderRadius: 20,
+    backgroundColor: 'rgb(255, 255, 255)',
+    borderColor: 'rgba(197, 197, 197, 0.94)',
+    borderWidth: 0.5,
+    borderBottomRightRadius: 20,
+    borderTopRightRadius: 20,
     padding: 12,
     margin: 16,
+    left: -20,
+    alignSelf: 'flex-start', // This ensures the container wraps its content
     backdropFilter: 'blur(10px)', // works on web; fallback for mobile is semi-transparent bg
   },
   iconWrapper: {
     marginRight: 12,
+    marginLeft: 12,
   },
   titleWrapper: {
     flex: 1,

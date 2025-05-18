@@ -17,7 +17,7 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   const handleFacebookLogin = () => {
-    router.push("../(screens)/Orders");
+    router.push("../(screens)/OrderDetails");
   };
   // router.push("/(tabs)");
 

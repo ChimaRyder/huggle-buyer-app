@@ -40,6 +40,17 @@ const mockOrders = [
     status: 'Cancelled',
     image: require('../../assets/images/sample-store.jpg'),
   },
+  {
+    id: '4',
+    date: 'March 1, 2025',
+    productName: 'Veggie Sandwich',
+    price: '₱89.00',
+    description: 'Healthy and fresh with...',
+    storeName: 'Green Eats',
+    location: 'SM City Cebu',
+    status: 'Completed',
+    image: require('../../assets/images/sample-store.jpg'),
+  },
 ] as const;
 
 const Orders = () => {
@@ -80,7 +91,7 @@ export default Orders;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f8f8',
   },
   tabs: {
     flexDirection: 'row',
