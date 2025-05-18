@@ -17,12 +17,15 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   const handleFacebookLogin = () => {
-    router.push("/(tabs)");
+    router.push("../(screens)/Orders");
   };
+  // router.push("/(tabs)");
 
   const handleGoogleLogin = () => {
     router.push("/(tabs)");
+    //router.push("/(tabs)");
   };
+
 
   return (
     <ApplicationProvider {...eva} theme={eva.light}>
