@@ -1,125 +1,255 @@
-import React from 'react';
-import { StyleSheet, View, ImageBackground } from 'react-native';
-import { useRouter } from 'expo-router';
-import * as eva from '@eva-design/eva';
-import { ApplicationProvider, Layout, Text, Button } from '@ui-kitten/components';
-import { FontAwesome } from '@expo/vector-icons';
-import { Redirect } from 'expo-router';
+import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  View,
+  ImageBackground,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Dimensions,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { ClerkAPIError } from "@clerk/types";
+import { useUser } from "@clerk/clerk-expo";
+import { useClerk } from "@clerk/clerk-expo";
+import { isClerkAPIResponseError, useSSO } from "@clerk/clerk-expo";
+import * as WebBrowser from "expo-web-browser";
+import * as AuthSession from "expo-auth-session";
 
-const FacebookIcon = () => (
-  <FontAwesome name="facebook" size={20} color="white" style={{ marginRight: 10 }} />
-);
+// Initialize WebBrowser for auth
+WebBrowser.maybeCompleteAuthSession();
 
-const GoogleIcon = () => (
-  <FontAwesome name="google" size={20} color="#051D24" style={{ marginRight: 10 }} />
-);
+export const useWarmUpBrowser = () => {
+  useEffect(() => {
+    void WebBrowser.warmUpAsync();
+    return () => {
+      void WebBrowser.coolDownAsync();
+    };
+  }, []);
+};
 
-export default function WelcomeScreen() {
+export default function LoginScreen() {
+  useWarmUpBrowser();
+  const { startSSOFlow } = useSSO();
+  const [errors, setErrors] = useState<ClerkAPIError[]>([]);
   const router = useRouter();
+  const { user } = useUser();
+  const { signOut } = useClerk();
 
-  const handleFacebookLogin = () => {
-    router.push("../(screens)/OrderDetails");
+  // Check if user is already signed in
+  useEffect(() => {
+    if (user) {
+      router.replace("/(auth)");
+    }
+  }, [user]);
+
+  // Handle Google login
+  const handleGoogleSignIn = async () => {
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl: AuthSession.makeRedirectUri({
+          scheme: "myapp",
+          path: "(app)",
+        }),
+      });
+
+      if (createdSessionId && setActive) {
+        setActive({ session: createdSessionId });
+        router.replace("/(auth)");
+      }
+    } catch (error) {
+      handleAuthError(error);
+    }
   };
-  // router.push("/(tabs)");
 
-  const handleGoogleLogin = () => {
-    router.push("/(tabs)");
-    //router.push("/(tabs)");
+  // Handle Facebook login
+  const handleFacebookSignIn = async () => {
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: "oauth_facebook",
+        redirectUrl: AuthSession.makeRedirectUri({
+          scheme: "myapp",
+          path: "(app)",
+        }),
+      });
+
+      if (createdSessionId && setActive) {
+        setActive({ session: createdSessionId });
+        router.replace("/(auth)");
+      }
+    } catch (error) {
+      handleAuthError(error);
+    }
   };
 
+  // Error handling helper
+  const handleAuthError = (error: unknown) => {
+    if (isClerkAPIResponseError(error)) {
+      setErrors(error.errors);
+      console.log("Auth error:", error.errors);
+    } else {
+      console.error("Unexpected error:", error);
+    }
+  };
 
   return (
-    <ApplicationProvider {...eva} theme={eva.light}>
-      <ImageBackground 
-        source={require('../../assets/images/welcome-screen-background.jpg')} 
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <ImageBackground
+        source={require("../../assets/images/welcome-screen-background.jpg")}
         style={styles.backgroundImage}
       >
         <View style={styles.overlay} />
-        <Layout style={styles.container}>
-          <View style={styles.contentContainer}>
+
+        <View style={styles.contentContainer}>
+          {/* Headline Area */}
+          <View style={styles.headlineContainer}>
             <Text style={styles.headline}>Good Vibes. Great Finds.</Text>
-            <Text style={styles.subtext}>Find the best deals for the best meals.</Text>
-
-            <View style={styles.buttonContainer}>
-              <Button
-                style={styles.facebookButton}
-                accessoryLeft={FacebookIcon}
-                onPress={handleFacebookLogin}
-              >
-                Continue with Facebook
-              </Button>
-              
-              <Button
-                style={styles.googleButton}
-                accessoryLeft={GoogleIcon}
-                status='basic'
-                onPress={handleGoogleLogin}
-              >
-                Continue with Google
-              </Button>
-            </View>
-
-            <Text style={styles.termsText}>
-              By signing up, you agree to our Terms and Conditions.
+            <Text style={styles.subheadline}>
+              Find the best deals for the best meals.
             </Text>
           </View>
-        </Layout>
+
+          {/* Error messages */}
+          {errors.length > 0 && (
+            <View style={styles.errorContainer}>
+              {errors.map((error) => (
+                <Text key={error.code} style={styles.errorText}>
+                  {error.message}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          {/* Auth Buttons */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleSignIn}
+              activeOpacity={0.8}
+            >
+              <View style={styles.buttonContent}>
+                {/* Google icon placeholder */}
+                <View style={styles.iconPlaceholder} />
+                <Text style={styles.googleButtonText}>Sign in With Google</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.facebookButton}
+              onPress={handleFacebookSignIn}
+              activeOpacity={0.8}
+            >
+              <View style={styles.buttonContent}>
+                {/* Facebook icon placeholder */}
+                <View style={styles.iconPlaceholder} />
+                <Text style={styles.facebookButtonText}>
+                  Sign in With Facebook
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ImageBackground>
-    </ApplicationProvider>
+    </SafeAreaView>
   );
 }
 
+const { width, height } = Dimensions.get("window");
+
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   backgroundImage: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
+    justifyContent: "flex-end",
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(5,29,36,0.6)',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   contentContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 20,
-    paddingBottom: 50,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  headlineContainer: {
+    marginBottom: 40,
   },
   headline: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'left',
-    marginBottom: 10,
+    fontSize: 32,
+    fontWeight: "700",
+    color: "white",
+    marginBottom: 8,
+    lineHeight: 38,
   },
-  subtext: {
-    fontSize: 18,
-    fontWeight: '200',
-    color: 'white',
-    textAlign: 'left',
-    marginBottom: 70,
+  subheadline: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.9)",
+    lineHeight: 22,
   },
   buttonContainer: {
-    gap: 15,
-    marginBottom: 30,
+    width: "100%",
+    gap: 12,
   },
-  facebookButton: {
-    backgroundColor: '#3b5998',
-    borderColor: '#3b5998',
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconPlaceholder: {
+    width: 24,
+    height: 24,
+    marginRight: 12,
+    // You'll replace this with your actual icon
+    backgroundColor: "transparent",
   },
   googleButton: {
-    backgroundColor: 'white',
-    borderColor: '#051D24',
+    backgroundColor: "white",
+    borderRadius: 4,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  termsText: {
+  googleButtonText: {
+    color: "#333333",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  facebookButton: {
+    backgroundColor: "#1877F2",
+    borderRadius: 4,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  facebookButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  errorContainer: {
+    marginBottom: 20,
+    padding: 12,
+    backgroundColor: "rgba(255, 0, 0, 0.1)",
+    borderRadius: 4,
+  },
+  errorText: {
+    color: "#FF3B30",
     fontSize: 14,
-    fontWeight: '400',
-    color: 'white',
-    textAlign: 'center',
-    marginTop: 10,
   },
 });
