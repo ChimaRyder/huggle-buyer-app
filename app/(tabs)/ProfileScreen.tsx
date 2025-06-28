@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,27 @@ import {
   Dimensions,
   SafeAreaView,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { profileStyles } from '../../components/profileStyles';
+import { useRouter } from 'expo-router';
+import { useClerk } from '@clerk/clerk-expo';
 
 const ProfileScreen = () => {
+  const router = useRouter();
+  const { signOut } = useClerk();
   const userName = 'Karen Carpenter';
-  const profileImage = ''; // Empty string if user has not uploaded a photo
+  const profileImage = '';
+
+  // Define the label-route mapping
+  const tabs = [
+    { label: 'Orders', route: '../(screens)/Orders' as const },
+    //{ label: 'Chats', route: '/(tabs)/chats' },
+    { label: 'Settings', route: '../(screens)/settings' as const }, 
+    { label: 'Know secret discounts?', route: '../(screens)/secrets' as const },
+  ];
 
   return (
     <SafeAreaView style={profileStyles.container}>
@@ -31,88 +44,48 @@ const ProfileScreen = () => {
       </View>
 
       <View style={profileStyles.tabsWrapper}>
-        {['Orders', 'Chats', 'Settings', 'Know secret discounts?'].map((label) => (
-          <BlurView intensity={50} tint="light" style={profileStyles.glassTab} key={label}>
-            <Text style={profileStyles.tabText}>{label}</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#104911" />
-          </BlurView>
+        {tabs.map(({ label, route }) => (
+          <TouchableOpacity key={label} onPress={() => router.push(route)}>
+            <BlurView intensity={50} tint="light" style={profileStyles.glassTab}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                <Text style={profileStyles.tabText}>{label}</Text>
+                <MaterialIcons name="chevron-right" size={24} color="#104911" />
+              </View>
+            </BlurView>
+          </TouchableOpacity>
         ))}
       </View>
 
-      <BlurView intensity={40} tint="light" style={profileStyles.signOutButton}>
-        <Text style={profileStyles.signOutText}>Sign out</Text>
-        <MaterialIcons name="chevron-right" size={24} color="#AA2A2A" />
-      </BlurView>
+      <TouchableOpacity onPress={() => {
+        Alert.alert(
+          'Log Out',
+          'Are you sure you want to log out?',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Log Out',
+              style: 'destructive',
+              onPress: () => {
+                signOut();
+                router.replace("../(login)");
+              },
+            },
+          ],
+          { cancelable: true }
+        );
+      }}>
+        <BlurView intensity={40} tint="light" style={profileStyles.signOutButton}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+            <Text style={profileStyles.signOutText}>Sign out</Text>
+            <MaterialIcons name="chevron-right" size={24} color="#AA2A2A" />
+          </View>
+        </BlurView>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 export default ProfileScreen;
-const { width } = Dimensions.get('window');
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F8FA',
-    alignItems: 'center',
-  },
-  imageWrapper: {
-    alignItems: 'center',
-    marginTop: 105,
-  },
-  imageBorder: {
-    borderWidth: 7,
-    borderColor: '#F9A620',
-    borderRadius: 100,
-    padding: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 130,
-    height: 130,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  userName: {
-    marginTop: 12,
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#F9A620',
-  },
-  tabsWrapper: {
-    marginTop: 40,
-    width: width * 0.85,
-  },
-  glassTab: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#104911',
-    textAlign: 'left',
-  },
-  signOutButton: {
-    backgroundColor: 'rgba(255, 0, 0, 0.1)',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginTop: 40,
-    marginBottom: 40,
-    width: width * 0.85,
-    alignItems: 'center',
-  },
-  signOutText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#AA2A2A',
-  },
-});
-
-
