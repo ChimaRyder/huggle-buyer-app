@@ -49,7 +49,6 @@ const ProfileScreen = () => {
 
 export default ProfileScreen;
 const { width } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

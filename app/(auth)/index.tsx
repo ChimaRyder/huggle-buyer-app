@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useClerk } from "@clerk/clerk-expo";
 import Animated, {
-  useSharedValue,
+  useSharedValue, 
   useAnimatedStyle,
   withRepeat,
   withTiming,
@@ -36,13 +36,13 @@ export default function AuthScreen() {
         console.log(exists);
 
         if (exists === 200) {
-          // router.dismissTo("/(tabs)");
+          router.dismissTo("../(tabs)");
         } else if (exists === 404) {
           createBuyerAccount();
-          // router.dismissTo("/(tabs)");
+          //router.dismissTo("/(tabs)");
         }
       } else {
-        router.dismissTo("/(login)");
+        router.dismissTo("../(login)");
       }
     };
 
