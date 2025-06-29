@@ -4,15 +4,25 @@ import { Text } from '@ui-kitten/components';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-const PageTitle = ({ title }: { title: string }) => {
+interface PageTitleProps {
+  title: string;
+  showBackButton?: boolean;
+}
+
+const PageTitle = ({ title, showBackButton = true }: PageTitleProps) => {
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.iconWrapper}>
-        <Ionicons name="arrow-back" size={24} color="#051D24" />
-      </TouchableOpacity>
-      <View style={styles.titleWrapper}>
+      {showBackButton && (
+        <TouchableOpacity onPress={() => router.back()} style={styles.iconWrapper}>
+          <Ionicons name="arrow-back" size={24} color="#051D24" />
+        </TouchableOpacity>
+      )}
+      <View style={[
+        styles.titleWrapper,
+        !showBackButton && { marginLeft: 48 } // Add left margin when there's no back button
+      ]}>
         <Text category="h5" style={styles.title}>{title}</Text>
       </View>
     </View>
