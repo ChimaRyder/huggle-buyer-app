@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,16 +6,40 @@ import {
   Text,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { images, ImageSource } from '../assets';
+import { fetchAllProducts } from '../utils/api';
 
+// Backend product interface
+interface BackendProduct {
+  id: string;
+  name: string;
+  description: string;
+  productType: string;
+  coverImage: string;
+  additionalImages: string[];
+  originalPrice: number;
+  discountedPrice: number;
+  expirationDate: string;
+  storeId: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  stock: number;
+  rating: number;
+  ratingCount: number;
+  category: string[];
+}
+
+// Frontend product interface
 interface Product {
   id: string;
   name: string;
-  image: ImageSource;
+  image: ImageSource | { uri: string };
   rating: number;
   discount: number;
   distance: string;
@@ -24,6 +48,7 @@ interface Product {
   price: number;
 }
 
+// Fallback mock products
 export const mockProducts: Product[] = [
   {
     id: '1',
@@ -101,6 +126,37 @@ const getStyles = (cardWidth: number) =>
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
+    },
+    loadingContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+      height: 200,
+    },
+    loadingText: {
+      marginTop: 10,
+      color: '#666',
+      fontSize: 16,
+    },
+    errorContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+      height: 200,
+    },
+    errorText: {
+      color: '#FF6B6B',
+      fontSize: 16,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+      height: 200,
+    },
+    emptyText: {
+      color: '#666',
+      fontSize: 16,
     },
     card: {
       width: cardWidth,
@@ -184,6 +240,55 @@ const ProductGrid = () => {
   const cardWidth = (screenWidth - paddingHorizontal * 2 - cardGap) / 2; // 2 cards + margin in between + outer padding
   const styles = getStyles(cardWidth);
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        // Use our API utility function
+        const backendProducts: BackendProduct[] = await fetchAllProducts();
+        
+        // Transform backend products to match our frontend Product interface
+        const transformedProducts: Product[] = backendProducts.map(product => {
+          // Calculate discount percentage
+          const discountPercentage = product.originalPrice > 0 
+            ? Math.round(((product.originalPrice - product.discountedPrice) / product.originalPrice) * 100) 
+            : 0;
+          
+          return {
+            id: product.id,
+            name: product.name,
+            // Use cover image from backend if available, otherwise use placeholder
+            image: product.coverImage 
+              ? { uri: product.coverImage } 
+              : images.products.product1,
+            rating: product.rating || 4.5,
+            discount: discountPercentage,
+            // These fields don't exist in backend, use placeholders
+            distance: '3km',
+            time: '30mins',
+            availableItems: product.stock,
+            price: product.discountedPrice,
+          };
+        });
+        
+        setProducts(transformedProducts);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products');
+        // Fallback to mock products
+        setProducts(mockProducts);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   const renderProduct = (product: Product) => (
     <TouchableOpacity
       key={product.id}
@@ -222,7 +327,25 @@ const ProductGrid = () => {
           <Text style={styles.viewAllText}>See All</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.grid}>{mockProducts.map(renderProduct)}</View>
+      
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#548C2F" />
+          <Text style={styles.loadingText}>Loading products...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : products.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No products available</Text>
+        </View>
+      ) : (
+        <View style={styles.grid}>
+          {products.map(renderProduct)}
+        </View>
+      )}
     </View>
   );
 };
