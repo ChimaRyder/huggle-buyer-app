@@ -42,3 +42,16 @@ export const fetchProductById = async (productId: string) => {
     throw error;
   }
 };
+
+export const fetchStoreById = async (storeId: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/buyer/stores/${storeId}`);
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching store ${storeId}:`, error);
+    throw error;
+  }
+};
