@@ -1,49 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { View, Image, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
-import { Text } from 'react-native';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useLocalSearchParams } from 'expo-router';
-import ReviewCard from '../../components/ReviewCard';
-import { mockProducts } from '../../components/ProductGrid';
-import { TouchableOpacity } from 'react-native';
-import { fetchProductById, fetchStoreById } from '../../utils/api';
-import { BackendProduct, BackendStore, BackendReview } from '../../types/BackendModels';
-import { calculateDiscountPercentage, formatPrice, formatDate } from '../../utils/product';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Image,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { Text } from "react-native";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { useAuth } from "@clerk/clerk-expo";
+import ReviewCard from "../../components/ReviewCard";
+import { mockProducts } from "../../components/ProductGrid";
+import { TouchableOpacity } from "react-native";
+import { fetchProductById, fetchStoreById } from "../../utils/api";
+import {
+  BackendProduct,
+  BackendStore,
+  BackendReview,
+} from "../../types/BackendModels";
+import {
+  calculateDiscountPercentage,
+  formatPrice,
+  formatDate,
+} from "../../utils/product";
 
 export default function ProductScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { getToken } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<BackendProduct | null>(null);
   const [store, setStore] = useState<BackendStore | null>(null);
-  
+
   // Fallback to mock product if needed
   const mockProduct = mockProducts.find((p) => p.id === id?.toString());
 
   useEffect(() => {
     const loadProductData = async () => {
       if (!id) {
-        setError('Product ID not provided');
+        setError("Product ID not provided");
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        const productData = await fetchProductById(id.toString());
+        // Get auth token with the seller_app template
+        const token = await getToken({ template: "seller_app" });
+        const productData = await fetchProductById(id.toString(), token);
         setProduct(productData);
 
         // Once we have the product, fetch the store data
         if (productData.storeId) {
-          const storeData = await fetchStoreById(productData.storeId);
+          const storeData = await fetchStoreById(productData.storeId, token);
           setStore(storeData);
         }
       } catch (err) {
-        console.error('Error loading product data:', err);
-        setError('Failed to load product details');
+        console.error("Error loading product data:", err);
+        setError("Failed to load product details");
       } finally {
         setLoading(false);
       }
@@ -53,27 +73,24 @@ export default function ProductScreen() {
   }, [id]);
 
   const handleQuantityChange = (increment: boolean) => {
-    setQuantity(prev => {
+    setQuantity((prev) => {
       const newValue = increment ? prev + 1 : prev - 1;
       return Math.min(Math.max(newValue, 1), product?.stock || 5);
     });
   };
-  
+
   const navigateToStore = () => {
     if (store) {
-      // Navigate to home screen with store ID, we can create a proper StoreScreen later
-      router.push({
-        pathname: '/(tabs)',
-        params: { storeId: store.id }
-      });
+      // Navigate to StoreHomepageScreen with store ID
+      router.push(`/(screens)/StoreHomepageScreen?id=${store.id}`);
     }
   };
-  
+
   const handleAddToCart = () => {
     // This will be implemented once the cart system is ready
     Alert.alert(
       "Add to Cart",
-      `Added ${quantity} ${product?.name || 'item(s)'} to your cart`,
+      `Added ${quantity} ${product?.name || "item(s)"} to your cart`,
       [{ text: "OK" }]
     );
   };
@@ -88,7 +105,7 @@ export default function ProductScreen() {
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -101,9 +118,10 @@ export default function ProductScreen() {
             <View style={styles.imageContainer}>
               <Image
                 source={
-                  product?.coverImage 
-                    ? { uri: product.coverImage } 
-                    : mockProduct?.image || require('../../assets/products/product1.png')
+                  product?.coverImage
+                    ? { uri: product.coverImage }
+                    : mockProduct?.image ||
+                      require("../../assets/products/product1.png")
                 }
                 style={styles.productImage}
                 resizeMode="cover"
@@ -114,11 +132,15 @@ export default function ProductScreen() {
               >
                 <Ionicons name="close" size={24} color="white" />
               </TouchableOpacity>
-              
+
               {product && product.originalPrice > product.discountedPrice && (
                 <View style={styles.discountBadge}>
                   <Text style={styles.discountText}>
-                    {calculateDiscountPercentage(product.originalPrice, product.discountedPrice)}% OFF
+                    {calculateDiscountPercentage(
+                      product.originalPrice,
+                      product.discountedPrice
+                    )}
+                    % OFF
                   </Text>
                 </View>
               )}
@@ -127,7 +149,9 @@ export default function ProductScreen() {
             <View style={styles.contentContainer}>
               {/* Product Name & Quantity Selector */}
               <View style={styles.nameQuantityRow}>
-                <Text style={styles.productName}>{product?.name || mockProduct?.name}</Text>
+                <Text style={styles.productName}>
+                  {product?.name || mockProduct?.name}
+                </Text>
                 <View style={styles.quantitySelector}>
                   <Pressable
                     onPress={() => handleQuantityChange(false)}
@@ -148,10 +172,17 @@ export default function ProductScreen() {
               {/* Pricing Row */}
               <View style={styles.pricingRow}>
                 <Text style={styles.discountedPrice}>
-                  {formatPrice(product?.discountedPrice || (mockProduct?.price || 100))}
+                  {formatPrice(
+                    product?.discountedPrice || mockProduct?.price || 100
+                  )}
                 </Text>
                 <Text style={styles.originalPrice}>
-                  {formatPrice(product?.originalPrice || (mockProduct ? (mockProduct.price * (1 + mockProduct.discount/100)) : 150))}
+                  {formatPrice(
+                    product?.originalPrice ||
+                      (mockProduct
+                        ? mockProduct.price * (1 + mockProduct.discount / 100)
+                        : 150)
+                  )}
                 </Text>
               </View>
 
@@ -160,24 +191,29 @@ export default function ProductScreen() {
                 <Text style={styles.sectionTitle}>Description</Text>
                 <View style={styles.horizontalRule} />
                 <Text style={styles.description}>
-                  {product?.description || "This is a sample product description that might be longer than 50 characters..."}
+                  {product?.description ||
+                    "This is a sample product description that might be longer than 50 characters..."}
                 </Text>
               </View>
 
               {/* Store Info Row */}
-              <TouchableOpacity 
-                style={styles.storeInfoRow} 
+              <TouchableOpacity
+                style={styles.storeInfoRow}
                 onPress={navigateToStore}
                 disabled={!store}
               >
                 <View style={styles.storeSection}>
                   <FontAwesome name="shopping-bag" size={20} color="#548C2F" />
-                  <Text style={styles.storeName}>{store?.name || "Store Name"}</Text>
+                  <Text style={styles.storeName}>
+                    {store?.name || "Store Name"}
+                  </Text>
                 </View>
                 <View style={styles.locationSection}>
                   <FontAwesome name="map-marker" size={20} color="#548C2F" />
                   <Text style={styles.location}>
-                    {store ? `${store.city}, ${store.province}` : "Store Location"}
+                    {store
+                      ? `${store.city}, ${store.province}`
+                      : "Store Location"}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -186,7 +222,9 @@ export default function ProductScreen() {
               <View style={styles.additionalInfoSection}>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Available:</Text>
-                  <Text style={styles.infoValue}>{product?.stock || mockProduct?.availableItems || 0} items</Text>
+                  <Text style={styles.infoValue}>
+                    {product?.stock || mockProduct?.availableItems || 0} items
+                  </Text>
                 </View>
                 {product?.expirationDate && (
                   <View style={styles.infoItem}>
@@ -217,23 +255,20 @@ export default function ProductScreen() {
 
           {/* Bottom Action Buttons */}
           <View style={styles.bottomButtons}>
-            <Pressable 
+            <Pressable
               style={styles.chatButton}
-              onPress={() => router.push('/(screens)/chat')}
+              onPress={() => router.push("/(screens)/chat")}
             >
               <FontAwesome name="comment" size={25} color="#fff" />
             </Pressable>
-            
-            <Pressable 
-              style={styles.addToCartButton}
-              onPress={handleAddToCart}
-            >
+
+            <Pressable style={styles.addToCartButton} onPress={handleAddToCart}>
               <Text style={styles.addToCartText}>Add to Cart</Text>
             </Pressable>
-            
-            <Pressable 
+
+            <Pressable
               style={styles.cartButton}
-              onPress={() => router.push('/(screens)/cart')}
+              onPress={() => router.push("/(screens)/cart")}
             >
               <FontAwesome name="shopping-cart" size={25} color="#fff" />
             </Pressable>
@@ -247,233 +282,233 @@ export default function ProductScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     marginTop: 20,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   errorText: {
     fontSize: 16,
-    color: '#FF6B6B',
+    color: "#FF6B6B",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   backButton: {
-    backgroundColor: '#F9A620',
+    backgroundColor: "#F9A620",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
   },
   backButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: "Poppins-SemiBold",
   },
   scrollView: {
     flex: 1,
   },
   imageContainer: {
-    position: 'relative',
-    width: '100%',
+    position: "relative",
+    width: "100%",
     height: 300,
   },
   productImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   closeButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 20,
     left: 16,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 1,
   },
   discountBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 20,
     right: 16,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: "#FF6B6B",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 16,
   },
   discountText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: "Poppins-SemiBold",
   },
   contentContainer: {
     padding: 16,
   },
   nameQuantityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 10,
   },
   productName: {
     fontSize: 25,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: "Poppins-Bold",
     flex: 1,
   },
   quantitySelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
     borderRadius: 8,
     padding: 4,
   },
   quantityButton: {
     width: 32,
     height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderRadius: 16,
   },
   quantityButtonText: {
     fontSize: 20,
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: "Poppins-SemiBold",
   },
   quantityText: {
     marginHorizontal: 16,
     fontSize: 16,
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: "Poppins-SemiBold",
   },
   pricingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
   discountedPrice: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 20,
-    color: '#F9A620',
+    color: "#F9A620",
     marginRight: 8,
   },
   originalPrice: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 20,
-    color: '#979797',
-    textDecorationLine: 'line-through',
+    color: "#979797",
+    textDecorationLine: "line-through",
   },
   section: {
     marginBottom: 30,
   },
   sectionTitle: {
-    color: '#454B60',
+    color: "#454B60",
     fontSize: 18,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     marginBottom: 8,
   },
   horizontalRule: {
     height: 1,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
     marginBottom: 8,
   },
   description: {
     fontSize: 16,
-    color: '#666',
-    fontFamily: 'Poppins-Regular',
+    color: "#666",
+    fontFamily: "Poppins-Regular",
   },
   storeInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 20,
   },
   storeSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 16,
   },
   locationSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   storeName: {
     fontSize: 16,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     marginLeft: 8,
-    color: '#868889',
+    color: "#868889",
   },
   location: {
     fontSize: 16,
-    color: '#868889',
+    color: "#868889",
     marginLeft: 8,
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
   },
   additionalInfoSection: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
   },
   infoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
-    fontFamily: 'Poppins-Regular',
+    color: "#666",
+    fontFamily: "Poppins-Regular",
   },
   infoValue: {
     fontSize: 14,
-    color: '#333',
-    fontFamily: 'Poppins-SemiBold',
+    color: "#333",
+    fontFamily: "Poppins-SemiBold",
   },
   reviewsSection: {
     marginBottom: 100, // Extra space for bottom buttons
   },
   reviewsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
-    color: '#454B60',
+    color: "#454B60",
   },
   seeAllButton: {
-    color: '#104911',
+    color: "#104911",
     fontSize: 16,
   },
   bottomButtons: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 16,
     left: 16,
     right: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   chatButton: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#548C2F',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    backgroundColor: "#548C2F",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -483,10 +518,10 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#548C2F',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    backgroundColor: "#548C2F",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -495,20 +530,20 @@ const styles = StyleSheet.create({
   addToCartButton: {
     flex: 1,
     height: 60,
-    backgroundColor: '#F9A620',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F9A620",
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 30,
     marginHorizontal: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
   },
   addToCartText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: "Poppins-SemiBold",
   },
 });

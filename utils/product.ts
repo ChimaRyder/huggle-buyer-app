@@ -14,11 +14,16 @@ export const calculateDiscountPercentage = (
   discountedPrice: number,
   decimals: number = 0
 ): number => {
-  if (originalPrice <= 0 || discountedPrice <= 0 || discountedPrice >= originalPrice) {
+  if (
+    originalPrice <= 0 ||
+    discountedPrice <= 0 ||
+    discountedPrice >= originalPrice
+  ) {
     return 0;
   }
 
-  const discountPercent = ((originalPrice - discountedPrice) / originalPrice) * 100;
+  const discountPercent =
+    ((originalPrice - discountedPrice) / originalPrice) * 100;
   return Number(discountPercent.toFixed(decimals));
 };
 
@@ -31,7 +36,7 @@ export const calculateDiscountPercentage = (
  */
 export const formatPrice = (
   price: number,
-  currencySymbol: string = '₱',
+  currencySymbol: string = "₱",
   decimals: number = 2
 ): string => {
   return `${currencySymbol}${price.toFixed(decimals)}`;
@@ -45,17 +50,17 @@ export const formatPrice = (
  */
 export const formatDate = (
   dateString: string,
-  locale: string = 'en-US'
+  locale: string = "en-US"
 ): string => {
   try {
     const date = new Date(dateString);
     return date.toLocaleDateString(locale, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   } catch (error) {
-    console.error('Error formatting date:', error);
+    console.error("Error formatting date:", error);
     return dateString;
   }
 };

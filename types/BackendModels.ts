@@ -35,6 +35,8 @@ export interface BackendStore {
   zipCode: string;
   latitude: number;
   longitude: number;
+  rating?: number; // Optional rating for backend store
+  reviews?: number; // Optional review count
 }
 
 export interface BackendReview {
@@ -46,4 +48,19 @@ export interface BackendReview {
   rating: number;
   createdAt: string;
   updatedAt: string | null;
+}
+
+export interface BackendBuyer {
+  id: string;
+  name: string;
+  emailAddress: string;
+  createdAt: string;
+  favoriteStores: string[];
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface UpdateFavoriteStoreRequest {
+  storeId: string;
+  isAdd: boolean;
 }
