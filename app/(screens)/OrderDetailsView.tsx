@@ -6,16 +6,19 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Text, Button } from "@ui-kitten/components";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import PageTitle from "../../components/PageTitle";
+import ConfirmationModal from "../../components/ConfirmationModal";
 import {
   getOrderById,
   fetchProductById,
   fetchStoreById,
+  cancelOrder,
 } from "../../utils/api";
 import {
   BackendOrder,
@@ -24,25 +27,18 @@ import {
   OrderStatus,
 } from "../../types/BackendModels";
 
-interface OrderDetailsViewProps {
-  orderId?: string;
-  isReadOnly?: string;
-}
-
-const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
+const OrderDetailsView = () => {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const { orderId, isReadOnly } = useLocalSearchParams();
   const { getToken } = useAuth();
-
-  // Use props if provided, otherwise use params
-  const orderId = props.orderId || params.orderId;
-  const isReadOnly = props.isReadOnly || params.isReadOnly;
 
   const [order, setOrder] = useState<BackendOrder | null>(null);
   const [product, setProduct] = useState<BackendProduct | null>(null);
   const [store, setStore] = useState<BackendStore | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const readOnlyMode = isReadOnly === "true";
 
@@ -108,6 +104,51 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
       default:
         return "#ffc107";
     }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!order) return;
+
+    try {
+      setCancelling(true);
+      const token = await getToken({ template: "seller_app" });
+
+      await cancelOrder(order.id, token);
+
+      // Update the local order state
+      setOrder({ ...order, status: OrderStatus.Cancelled });
+      setShowCancelModal(false);
+
+      Alert.alert(
+        "Order Cancelled",
+        "Your order has been successfully cancelled.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Navigate back to orders list so user can see the updated status
+              router.back();
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error("Error cancelling order:", error);
+      Alert.alert(
+        "Error",
+        error.message || "Failed to cancel order. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const canCancelOrder = (orderStatus: OrderStatus): boolean => {
+    return (
+      orderStatus === OrderStatus.Pending ||
+      orderStatus === OrderStatus.Confirmed
+    );
   };
 
   const formatDate = (dateString: string): string => {
@@ -233,7 +274,31 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
             Back to Orders
           </Button>
         )}
+
+        {/* Cancel Order Button */}
+        {!readOnlyMode && order && canCancelOrder(order.status) && (
+          <Button
+            style={styles.cancelOrderButton}
+            status="danger"
+            onPress={() => setShowCancelModal(true)}
+          >
+            Cancel Order
+          </Button>
+        )}
       </ScrollView>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={showCancelModal}
+        title="Cancel Order"
+        message="Are you sure you want to cancel this order? This action cannot be undone."
+        confirmText="Cancel Order"
+        cancelText="Keep Order"
+        confirmButtonColor="#dc3545"
+        onConfirm={handleCancelOrder}
+        onCancel={() => setShowCancelModal(false)}
+        loading={cancelling}
+      />
     </>
   );
 };
@@ -362,6 +427,11 @@ const styles = StyleSheet.create({
   backButtonStyle: {
     backgroundColor: "#6c757d",
     borderColor: "#6c757d",
+    marginBottom: 16,
+  },
+  cancelOrderButton: {
+    backgroundColor: "#dc3545",
+    borderColor: "#dc3545",
     marginBottom: 16,
   },
 });

@@ -15,28 +15,8 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 
 import { images, ImageSource } from "../assets";
-import { fetchAllProducts } from "../utils/api";
-
-// Backend product interface
-interface BackendProduct {
-  id: string;
-  name: string;
-  description: string;
-  productType: string;
-  coverImage: string;
-  additionalImages: string[];
-  originalPrice: number;
-  discountedPrice: number;
-  expirationDate: string;
-  storeId: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  stock: number;
-  rating: number;
-  ratingCount: number;
-  category: string[];
-}
+import { fetchProductsByStoreId } from "../utils/api";
+import { BackendProduct } from "../types/BackendModels";
 
 // Frontend product interface
 interface Product {
@@ -49,7 +29,7 @@ interface Product {
   time: string;
   availableItems: number;
   price: number;
-  storeId: string; // Add storeId to allow store navigation
+  storeId: string;
 }
 
 // Fallback mock products
@@ -78,31 +58,12 @@ export const mockProducts: Product[] = [
     price: 150,
     storeId: "1",
   },
-  {
-    id: "3",
-    name: "Fruit Smoothie",
-    image: images.products.product3,
-    rating: 4.9,
-    discount: 20,
-    distance: "4km",
-    time: "35mins",
-    availableItems: 3,
-    price: 120,
-    storeId: "2",
-  },
-  {
-    id: "4",
-    name: "Veggie Pizza",
-    image: images.products.product4,
-    rating: 4.7,
-    discount: 10,
-    distance: "6km",
-    time: "40mins",
-    availableItems: 6,
-    price: 180,
-    storeId: "2",
-  },
 ];
+
+interface StoreProductGridProps {
+  storeId: string;
+  title?: string;
+}
 
 const getStyles = (cardWidth: number) =>
   StyleSheet.create({
@@ -234,18 +195,16 @@ const getStyles = (cardWidth: number) =>
       fontSize: 14,
       color: "#666",
     },
-    storeName: {
-      fontSize: 13,
-      color: "#548C2F",
-      marginBottom: 4,
-    },
     availableText: {
       fontSize: 12,
       color: "#999",
     },
   });
 
-const ProductGrid = () => {
+const StoreProductGrid: React.FC<StoreProductGridProps> = ({
+  storeId,
+  title = "Store Products",
+}) => {
   const router = useRouter();
   const { getToken } = useAuth();
   const screenWidth = Dimensions.get("window").width;
@@ -260,6 +219,13 @@ const ProductGrid = () => {
   const [error, setError] = useState<string | null>(null);
 
   const loadProducts = async () => {
+    if (!storeId) {
+      setError("Store ID not provided");
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
       if (!refreshing) {
         setLoading(true);
@@ -267,7 +233,10 @@ const ProductGrid = () => {
       // Get auth token with the seller_app template
       const token = await getToken({ template: "seller_app" });
       // Use our API utility function with the token
-      const backendProducts: BackendProduct[] = await fetchAllProducts(token);
+      const backendProducts: BackendProduct[] = await fetchProductsByStoreId(
+        storeId,
+        token
+      );
 
       // Transform backend products to match our frontend Product interface
       const transformedProducts: Product[] = backendProducts.map((product) => {
@@ -300,11 +269,12 @@ const ProductGrid = () => {
       });
 
       setProducts(transformedProducts);
+      setError(null);
     } catch (err) {
-      console.error("Error fetching products:", err);
-      setError("Failed to load products");
-      // Fallback to mock products
-      setProducts(mockProducts);
+      console.error(`Error fetching products for store ${storeId}:`, err);
+      setError("Failed to load store products");
+      // Fallback to mock products if the store ID matches
+      setProducts(mockProducts.filter((p) => p.storeId === storeId));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -318,7 +288,7 @@ const ProductGrid = () => {
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [storeId]);
 
   const renderProduct = (product: Product) => (
     <TouchableOpacity
@@ -343,13 +313,6 @@ const ProductGrid = () => {
           <MaterialIcons name="star" size={16} color="#FFD700" />
           <Text style={styles.ratingText}>{product.rating}</Text>
         </View>
-        <TouchableOpacity
-          onPress={() =>
-            router.push(`/(screens)/StoreHomepageScreen?id=${product.storeId}`)
-          }
-        >
-          <Text style={styles.storeName}>View Store</Text>
-        </TouchableOpacity>
         <Text style={styles.availableText}>
           {product.availableItems} items available
         </Text>
@@ -360,7 +323,7 @@ const ProductGrid = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Trending</Text>
+        <Text style={styles.title}>{title}</Text>
         <TouchableOpacity style={styles.viewAllButton}>
           <Text style={styles.viewAllText}>See All</Text>
         </TouchableOpacity>
@@ -378,7 +341,7 @@ const ProductGrid = () => {
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#548C2F" />
-            <Text style={styles.loadingText}>Loading products...</Text>
+            <Text style={styles.loadingText}>Loading store products...</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
@@ -386,7 +349,9 @@ const ProductGrid = () => {
           </View>
         ) : products.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No products available</Text>
+            <Text style={styles.emptyText}>
+              No products available for this store
+            </Text>
           </View>
         ) : (
           <View style={styles.grid}>{products.map(renderProduct)}</View>
@@ -396,4 +361,4 @@ const ProductGrid = () => {
   );
 };
 
-export default ProductGrid;
+export default StoreProductGrid;
