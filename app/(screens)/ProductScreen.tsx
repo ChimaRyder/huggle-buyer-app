@@ -16,7 +16,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import ReviewCard from "../../components/ReviewCard";
 import { mockProducts } from "../../components/ProductGrid";
 import { TouchableOpacity } from "react-native";
-import { fetchProductById, fetchStoreById } from "../../utils/api";
+import { fetchProductById, fetchStoreById, addToCart } from "../../utils/api";
 import {
   BackendProduct,
   BackendStore,
@@ -31,7 +31,7 @@ import {
 export default function ProductScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,13 +86,65 @@ export default function ProductScreen() {
     }
   };
 
-  const handleAddToCart = () => {
-    // This will be implemented once the cart system is ready
-    Alert.alert(
-      "Add to Cart",
-      `Added ${quantity} ${product?.name || "item(s)"} to your cart`,
-      [{ text: "OK" }]
-    );
+  const handleAddToCart = async () => {
+    if (!userId) {
+      Alert.alert("Error", "Please log in to add items to cart");
+      return;
+    }
+
+    try {
+      const token = await getToken({ template: "seller_app" });
+      const currentProduct = product || mockProduct;
+
+      if (!currentProduct) {
+        Alert.alert("Error", "Product information not available");
+        return;
+      }
+
+      await addToCart(currentProduct.id, quantity, token);
+
+      Alert.alert(
+        "Added to Cart",
+        `${quantity} ${currentProduct.name} added to your cart`,
+        [
+          { text: "Continue Shopping", style: "cancel" },
+          {
+            text: "View Cart",
+            onPress: () => router.push("/(screens)/cart" as any),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      Alert.alert("Error", "Failed to add item to cart. Please try again.");
+    }
+  };
+
+  const handleOrderNow = () => {
+    // Navigate to checkout/order details screen with product info
+    if (product) {
+      router.push({
+        pathname: "/(screens)/checkout" as any,
+        params: {
+          productId: product.id,
+          quantity: quantity.toString(),
+          price: product.discountedPrice.toString(),
+          productName: product.name,
+          storeId: product.storeId,
+        },
+      });
+    } else if (mockProduct) {
+      router.push({
+        pathname: "/(screens)/checkout" as any,
+        params: {
+          productId: mockProduct.id,
+          quantity: quantity.toString(),
+          price: mockProduct.price.toString(),
+          productName: mockProduct.name,
+          storeId: mockProduct.storeId || "mock-store",
+        },
+      });
+    }
   };
 
   return (
@@ -255,22 +307,12 @@ export default function ProductScreen() {
 
           {/* Bottom Action Buttons */}
           <View style={styles.bottomButtons}>
-            <Pressable
-              style={styles.chatButton}
-              onPress={() => router.push("/(screens)/chat")}
-            >
-              <FontAwesome name="comment" size={25} color="#fff" />
-            </Pressable>
-
             <Pressable style={styles.addToCartButton} onPress={handleAddToCart}>
               <Text style={styles.addToCartText}>Add to Cart</Text>
             </Pressable>
 
-            <Pressable
-              style={styles.cartButton}
-              onPress={() => router.push("/(screens)/cart")}
-            >
-              <FontAwesome name="shopping-cart" size={25} color="#fff" />
+            <Pressable style={styles.orderNowButton} onPress={handleOrderNow}>
+              <Text style={styles.orderNowText}>Order Now</Text>
             </Pressable>
           </View>
         </>
@@ -500,32 +542,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  },
-  chatButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#548C2F",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  cartButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#548C2F",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    gap: 12,
   },
   addToCartButton: {
     flex: 1,
@@ -534,7 +551,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 30,
-    marginHorizontal: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -542,6 +558,24 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   addToCartText: {
+    color: "#fff",
+    fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+  },
+  orderNowButton: {
+    flex: 1,
+    height: 60,
+    backgroundColor: "#548C2F",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  orderNowText: {
     color: "#fff",
     fontSize: 18,
     fontFamily: "Poppins-SemiBold",

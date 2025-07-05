@@ -64,3 +64,22 @@ export interface UpdateFavoriteStoreRequest {
   storeId: string;
   isAdd: boolean;
 }
+
+export interface BackendOrder {
+  id: string;
+  buyerId: string;
+  storeId: string;
+  productId: string;
+  quantity: number;
+  totalPrice: number;
+  createdAt: string;
+  updatedAt: string;
+  status: OrderStatus;
+}
+
+export enum OrderStatus {
+  Pending = 0,
+  Confirmed = 1,
+  Completed = 2,
+  Cancelled = 3,
+}
