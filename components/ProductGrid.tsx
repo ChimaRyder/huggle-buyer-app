@@ -50,6 +50,7 @@ interface Product {
   availableItems: number;
   price: number;
   storeId: string; // Add storeId to allow store navigation
+  expirationDate: string;
 }
 
 // Fallback mock products
@@ -65,6 +66,7 @@ export const mockProducts: Product[] = [
     availableItems: 5,
     price: 100,
     storeId: "1",
+    expirationDate: "2024-03-20T14:30:00.000Z",
   },
   {
     id: "2",
@@ -77,6 +79,7 @@ export const mockProducts: Product[] = [
     availableItems: 8,
     price: 150,
     storeId: "1",
+    expirationDate: "2024-03-22T14:30:00.000Z",
   },
   {
     id: "3",
@@ -89,6 +92,7 @@ export const mockProducts: Product[] = [
     availableItems: 3,
     price: 120,
     storeId: "2",
+    expirationDate: "2024-03-25T14:30:00.000Z",
   },
   {
     id: "4",
@@ -101,6 +105,7 @@ export const mockProducts: Product[] = [
     availableItems: 6,
     price: 180,
     storeId: "2",
+    expirationDate: "2024-03-28T14:30:00.000Z",
   },
 ];
 
@@ -131,9 +136,8 @@ const getStyles = (cardWidth: number) =>
       marginRight: 4,
     },
     grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      justifyContent: "space-between",
+      flexDirection: "column",
+      alignItems: "center",
     },
     loadingContainer: {
       alignItems: "center",
@@ -185,7 +189,7 @@ const getStyles = (cardWidth: number) =>
     },
     image: {
       width: cardWidth,
-      height: cardWidth,
+      height: cardWidth * 0.65, // Adjusted height to be 75% of width
       resizeMode: "cover",
     },
     discountBadge: {
@@ -198,9 +202,23 @@ const getStyles = (cardWidth: number) =>
       borderRadius: 5,
     },
     discountText: {
+      color: "#333",
+      fontSize: 12,
+      fontFamily: "Poppins-SemiBold",
+    },
+    timerBadge: {
+      position: "absolute",
+      top: 8,
+      left: 8,
+      backgroundColor: "rgba(84, 140, 47, 0.8)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 5,
+    },
+    timerText: {
       color: "#fff",
       fontSize: 12,
-      fontWeight: "bold",
+      fontFamily: "Poppins-SemiBold",
     },
     distanceContainer: {
       position: "absolute",
@@ -216,18 +234,19 @@ const getStyles = (cardWidth: number) =>
       fontSize: 12,
     },
     infoContainer: {
-      padding: 12,
+      padding: 16,
     },
     productName: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: "600",
+      fontFamily: "Poppins-Bold",
       color: "#333",
-      marginBottom: 4,
+      marginBottom: 8,
     },
     ratingContainer: {
       flexDirection: "row",
       alignItems: "center",
-      marginBottom: 4,
+      marginBottom: 8,
     },
     ratingText: {
       marginLeft: 4,
@@ -235,12 +254,12 @@ const getStyles = (cardWidth: number) =>
       color: "#666",
     },
     storeName: {
-      fontSize: 13,
+      fontSize: 14,
       color: "#548C2F",
-      marginBottom: 4,
+      marginBottom: 8,
     },
     availableText: {
-      fontSize: 12,
+      fontSize: 13,
       color: "#999",
     },
   });
@@ -251,7 +270,7 @@ const ProductGrid = () => {
   const screenWidth = Dimensions.get("window").width;
   const paddingHorizontal = 16;
   const cardGap = 12;
-  const cardWidth = (screenWidth - paddingHorizontal * 2 - cardGap) / 2; // 2 cards + margin in between + outer padding
+  const cardWidth = screenWidth - paddingHorizontal * 2; // Full width minus padding
   const styles = getStyles(cardWidth);
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -296,6 +315,7 @@ const ProductGrid = () => {
           availableItems: product.stock,
           price: product.discountedPrice,
           storeId: product.storeId,
+          expirationDate: product.expirationDate,
         };
       });
 
@@ -320,6 +340,25 @@ const ProductGrid = () => {
     loadProducts();
   }, []);
 
+  const calculateTimeUntilExpiration = (expirationDate: string) => {
+    const now = new Date();
+    const expiry = new Date(expirationDate);
+    const diffTime = expiry.getTime() - now.getTime();
+
+    // Calculate days, hours, and minutes
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (diffDays > 0) {
+      return `${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
+    } else if (diffHours > 0) {
+      return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'}`;
+    } else {
+      return `${diffMinutes} ${diffMinutes === 1 ? 'min' : 'mins'}`;
+    }
+  };
+
   const renderProduct = (product: Product) => (
     <TouchableOpacity
       key={product.id}
@@ -328,9 +367,20 @@ const ProductGrid = () => {
     >
       <View style={styles.imageContainer}>
         <Image source={product.image} style={styles.image} />
-        <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>{product.discount}% OFF</Text>
-        </View>
+        {product.discount > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountText}>
+              {product.discount}% off
+            </Text>
+          </View>
+        )}
+        {product.expirationDate && (
+          <View style={styles.timerBadge}>
+            <Text style={styles.timerText}>
+              {calculateTimeUntilExpiration(product.expirationDate)}
+            </Text>
+          </View>
+        )}
         <View style={styles.distanceContainer}>
           <Text style={styles.distanceText}>
             {product.distance} - {product.time}
