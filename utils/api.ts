@@ -17,6 +17,62 @@ const createHeaders = (token: string | null): HeadersInit => {
   return headers;
 };
 
+/**
+ * Fetch live search suggestions for products and stores by query
+ * @param query Partial search string
+ * @param token Optional auth token
+ * @returns { products: Product[], stores: Store[] }
+ */
+const fetchSearchSuggestions = async (
+  query: string,
+  token: string | null = null
+) => {
+  try {
+    const headers = createHeaders(token);
+    // Fetch products and stores in parallel
+    const [productsRes, storesRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/api/products/display?search=${encodeURIComponent(query)}`, { headers }),
+      fetch(`${API_BASE_URL}/api/stores/display?search=${encodeURIComponent(query)}`, { headers })
+    ]);
+    if (!productsRes.ok || !storesRes.ok) {
+      throw new Error(`Error: ${productsRes.status} / ${storesRes.status}`);
+    }
+    const [products, stores] = await Promise.all([
+      productsRes.json(),
+      storesRes.json()
+    ]);
+    return { products, stores };
+  } catch (error) {
+    console.error('Error fetching search suggestions:', error);
+    return { products: [], stores: [] };
+  }
+};
+
+// Fetch both stores and products matching the query
+export const fetchSearchResults = async (
+  query: string,
+  token: string | null = null
+) => {
+  try {
+    const headers = createHeaders(token);
+    const [storesRes, productsRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/api/stores/display?search=${encodeURIComponent(query)}`, { headers }),
+      fetch(`${API_BASE_URL}/api/products/display?search=${encodeURIComponent(query)}`, { headers }),
+    ]);
+    if (!storesRes.ok || !productsRes.ok) {
+      throw new Error('Failed to fetch search results');
+    }
+    const stores = await storesRes.json();
+    const products = await productsRes.json();
+    return { stores, products };
+  } catch (error) {
+    console.error('Error fetching search results:', error);
+    throw error;
+  }
+};
+
+export { fetchSearchSuggestions };
+
 export const fetchAllProducts = async (token: string | null = null) => {
   try {
     const headers = createHeaders(token);

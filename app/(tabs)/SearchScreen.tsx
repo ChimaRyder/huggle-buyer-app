@@ -1,14 +1,14 @@
-import React from 'react';
-import { SafeAreaView, StyleSheet, View, TextInput, Dimensions, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { SafeAreaView, StyleSheet, View, TextInput, Dimensions, Image, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { Text } from '@ui-kitten/components';
 import MasonryList from '@react-native-seoul/masonry-list';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { fetchSearchSuggestions } from '../../utils/api';
 
 const { width } = Dimensions.get('window');
 const numColumns = width > 400 ? 3 : 2;
 
-
-// Sample data - replace with your actual data
 const sampleData = [
   { id: '1', image: 'https://picsum.photos/200/300', height: 300 },
   { id: '2', image: 'https://picsum.photos/200/200', height: 200 },
@@ -18,6 +18,25 @@ const sampleData = [
 ];
 
 const SearchScreen = () => {
+  const [query, setQuery] = useState('');
+  const router = useRouter();
+
+  const handleSearch = () => {
+    if (!query.trim()) return;
+    router.push({
+      pathname: '/(screens)/SearchResultsScreen',
+      params: { query },
+    });
+  };
+
+  const handleSuggestionPress = (item: any) => {
+    if (!query.trim()) return;
+    router.push({
+      pathname: '/(screens)/SearchResultsScreen',
+      params: { query },
+    });
+  };
+
   const renderItem = ({ item }: any) => (
     <View style={styles.itemContainer}>
       <Image
@@ -34,16 +53,22 @@ const SearchScreen = () => {
         <MaterialIcons name="search" size={24} color="#666" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search for goods and groceries"
+          placeholder="Search for anything..."
           placeholderTextColor="#666"
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
         />
       </View>
+      <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
+        <Text style={styles.searchBtnText}>Search</Text>
+      </TouchableOpacity>
 
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Recommended for you</Text>
         <View style={styles.divider} />
       </View>
-
       <MasonryList
         data={sampleData}
         keyExtractor={(item) => item.id}
@@ -55,6 +80,7 @@ const SearchScreen = () => {
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -84,6 +110,36 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#333',
+  },
+  suggestionsDropdown: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    zIndex: 10,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    elevation: 6,
+    marginHorizontal: 0,
+  },
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  suggestionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  noSuggestions: {
+    padding: 14,
+    color: '#999',
+    textAlign: 'center',
   },
   titleContainer: {
     marginTop: 60,
@@ -115,6 +171,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  typeToggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  typeToggleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: '#eee',
+    marginHorizontal: 5,
+  },
+  typeToggleBtnActive: {
+    backgroundColor: '#333',
+  },
+  typeToggleText: {
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  typeToggleTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  searchBtn: {
+    marginTop: 12,
+    alignSelf: 'center',
+    backgroundColor: '#333',
+    paddingHorizontal: 32,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  searchBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   image: {
     width: '100%',
