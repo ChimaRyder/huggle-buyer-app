@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import ReviewCard from "../../components/ReviewCard";
-import { mockProducts } from "../../components/ProductGrid";
+
 import { TouchableOpacity } from "react-native";
 import { fetchProductById, fetchStoreById, addToCart } from "../../utils/api";
 import {
@@ -37,9 +37,6 @@ export default function ProductScreen() {
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<BackendProduct | null>(null);
   const [store, setStore] = useState<BackendStore | null>(null);
-
-  // Fallback to mock product if needed
-  const mockProduct = mockProducts.find((p) => p.id === id?.toString());
 
   useEffect(() => {
     const loadProductData = async () => {
@@ -94,18 +91,16 @@ export default function ProductScreen() {
 
     try {
       const token = await getToken({ template: "seller_app" });
-      const currentProduct = product || mockProduct;
-
-      if (!currentProduct) {
+      if (!product) {
         Alert.alert("Error", "Product information not available");
         return;
       }
 
-      await addToCart(currentProduct.id, quantity, token);
+      await addToCart(product.id, quantity, token);
 
       Alert.alert(
         "Added to Cart",
-        `${quantity} ${currentProduct.name} added to your cart`,
+        `${quantity} ${product.name} added to your cart`,
         [
           { text: "Continue Shopping", style: "cancel" },
           {
@@ -131,17 +126,6 @@ export default function ProductScreen() {
           price: product.discountedPrice.toString(),
           productName: product.name,
           storeId: product.storeId,
-        },
-      });
-    } else if (mockProduct) {
-      router.push({
-        pathname: "/(screens)/checkout" as any,
-        params: {
-          productId: mockProduct.id,
-          quantity: quantity.toString(),
-          price: mockProduct.price.toString(),
-          productName: mockProduct.name,
-          storeId: mockProduct.storeId || "mock-store",
         },
       });
     }
@@ -172,8 +156,7 @@ export default function ProductScreen() {
                 source={
                   product?.coverImage
                     ? { uri: product.coverImage }
-                    : mockProduct?.image ||
-                      require("../../assets/products/product1.png")
+                    : require("../../assets/products/product1.png")
                 }
                 style={styles.productImage}
                 resizeMode="cover"
@@ -202,7 +185,7 @@ export default function ProductScreen() {
               {/* Product Name & Quantity Selector */}
               <View style={styles.nameQuantityRow}>
                 <Text style={styles.productName}>
-                  {product?.name || mockProduct?.name}
+                  {product?.name || "Product Name"}
                 </Text>
                 <View style={styles.quantitySelector}>
                   <Pressable
@@ -225,15 +208,12 @@ export default function ProductScreen() {
               <View style={styles.pricingRow}>
                 <Text style={styles.discountedPrice}>
                   {formatPrice(
-                    product?.discountedPrice || mockProduct?.price || 100
+                    product?.discountedPrice || 100
                   )}
                 </Text>
                 <Text style={styles.originalPrice}>
                   {formatPrice(
-                    product?.originalPrice ||
-                      (mockProduct
-                        ? mockProduct.price * (1 + mockProduct.discount / 100)
-                        : 150)
+                    product?.originalPrice || 150
                   )}
                 </Text>
               </View>
@@ -275,7 +255,7 @@ export default function ProductScreen() {
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Available:</Text>
                   <Text style={styles.infoValue}>
-                    {product?.stock || mockProduct?.availableItems || 0} items
+                    {product?.stock || 0} items
                   </Text>
                 </View>
                 {product?.expirationDate && (

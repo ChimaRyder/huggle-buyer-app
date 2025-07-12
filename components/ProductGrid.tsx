@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   View,
   StyleSheet,
@@ -11,9 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
-
 import { images, ImageSource } from "../assets";
 import { fetchAllProducts } from "../utils/api";
 
@@ -111,6 +110,7 @@ const getStyles = (width: number) =>
       paddingHorizontal: 16,
     },
     card: {
+      width: width - 40, // full width minus paddingHorizontal * 2
       flexDirection: "row",
       backgroundColor: "#fff",
       borderRadius: 12,
@@ -123,8 +123,8 @@ const getStyles = (width: number) =>
       elevation: 3,
     },
     image: {
-      width: 120,
-      height: 120,
+      width: 125,
+      height: 125,
       resizeMode: "cover",
     },
     infoContainer: {
@@ -171,7 +171,7 @@ const getStyles = (width: number) =>
     },
   });
 
-const ProductGrid = () => {
+function ProductGrid() {
   const router = useRouter();
   const { getToken } = useAuth();
   const screenWidth = Dimensions.get("window").width;
@@ -181,6 +181,27 @@ const ProductGrid = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const calculateTimeUntilExpiration = (expirationDate: string) => {
+    const now = new Date();
+    const expiry = new Date(expirationDate);
+    const diffTime = expiry.getTime() - now.getTime();
+  
+    if (diffTime <= 0) return "Expired";
+  
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+  
+    if (diffDays > 0) {
+      return `${diffDays} ${diffDays === 1 ? "day" : "days"} left`;
+    } else if (diffHours > 0) {
+      return `${diffHours} ${diffHours === 1 ? "hour" : "hours"} left`;
+    } else {
+      return `${diffMinutes} ${diffMinutes === 1 ? "min" : "mins"} left`;
+    }
+  };
+  
 
   const loadProducts = async () => {
     try {
@@ -230,6 +251,8 @@ const ProductGrid = () => {
     await loadProducts();
   };
 
+  
+
   useEffect(() => {
     loadProducts();
   }, []);
@@ -256,7 +279,7 @@ const ProductGrid = () => {
         <View style={styles.metaRow}>
           <MaterialIcons name="star" size={16} color="#FFD700" />
           <Text style={styles.metaText}>{product.rating}</Text>
-          <Text style={styles.metaText}>{product.distance} - {product.time}</Text>
+          <Text style={styles.metaText}>{calculateTimeUntilExpiration(product.expirationDate)}</Text>
         </View>
         <TouchableOpacity
           onPress={() => router.push(`/(screens)/StoreHomepageScreen?id=${product.storeId}`)}

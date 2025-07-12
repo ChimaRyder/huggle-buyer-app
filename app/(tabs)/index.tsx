@@ -29,6 +29,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productsContainer: {
-    marginHorizontal: 16,
+    marginHorizontal: 12,
   },
 });

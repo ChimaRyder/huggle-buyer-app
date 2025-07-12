@@ -29,15 +29,29 @@ const GreeterSection = () => {
         setLocation('Location permission denied');
         return;
       }
-
-      let loc = await Location.getCurrentPositionAsync({});
-      const address = await Location.reverseGeocodeAsync(loc.coords);
-      if (address.length > 0) {
-        const { street, city } = address[0];
-        setLocation(`${street}, ${city}`);
+  
+      try {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+  
+        const address = await Location.reverseGeocodeAsync(loc.coords);
+        if (address.length > 0) {
+          const { name, street, district, subregion, city, region, country } = address[0];
+          const parts = [name, street, district, subregion, city, region, country]
+            .filter(Boolean)
+            .slice(0, 3); // adjust how many parts to show
+          setLocation(parts.join(', '));
+        } else {
+          setLocation('Unknown location');
+        }
+      } catch (error) {
+        console.error('Error getting location:', error);
+        setLocation('Failed to fetch location');
       }
     })();
   }, []);
+  
 
   return (
     <View style={styles.container}>

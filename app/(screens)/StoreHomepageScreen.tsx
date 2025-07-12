@@ -48,31 +48,6 @@ interface Store {
   bannerImage: any;
 }
 
-const MOCK_STORES: Store[] = [
-  {
-    id: "1",
-    name: "Baked Bliss",
-    category: "Pastries",
-    rating: 4.7,
-    reviews: 120,
-    distance: "1.2km",
-    image: require("../../assets/images/sample-store.jpg"),
-    profileImage: require("../../assets/images/sample-store.jpg"),
-    bannerImage: require("../../assets/images/sample-store.jpg"),
-  },
-  {
-    id: "2",
-    name: "Snack Shack",
-    category: "Burgers",
-    rating: 4.5,
-    reviews: 98,
-    distance: "0.8km",
-    image: require("../../assets/images/sample-store.jpg"),
-    profileImage: require("../../assets/images/sample-store.jpg"),
-    bannerImage: require("../../assets/images/sample-store.jpg"),
-  },
-];
-
 const DUMMY_REVIEWS: Review[] = [
   {
     id: "1",
@@ -101,8 +76,34 @@ export default function StoreHomepageScreen() {
   const [error, setError] = useState<string | null>(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
+  // Fallback mock stores
+  const MOCK_STORES: Store[] = [
+    {
+      id: "1",
+      name: "Baked Bliss",
+      category: "Pastries",
+      rating: 4.7,
+      reviews: 120,
+      distance: "1.2km",
+      image: require("../../assets/images/sample-store.jpg"),
+      profileImage: require("../../assets/images/sample-store.jpg"),
+      bannerImage: require("../../assets/images/sample-store.jpg"),
+    },
+    {
+      id: "2",
+      name: "Snack Shack",
+      category: "Burgers",
+      rating: 4.5,
+      reviews: 98,
+      distance: "0.8km",
+      image: require("../../assets/images/sample-store.jpg"),
+      profileImage: require("../../assets/images/sample-store.jpg"),
+      bannerImage: require("../../assets/images/sample-store.jpg"),
+    },
+  ];
+
   // Fallback to mock store if needed
-  const mockStore = MOCK_STORES.find((s) => s.id === id?.toString());
+  const mockStore = id && MOCK_STORES.find((s) => s.id === id.toString()) || null;
 
   const [isFavorited, setIsFavorited] = useState(false);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
