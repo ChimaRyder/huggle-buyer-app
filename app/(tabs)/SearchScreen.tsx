@@ -9,17 +9,27 @@ import { fetchSearchSuggestions } from '../../utils/api';
 const { width } = Dimensions.get('window');
 const numColumns = width > 400 ? 3 : 2;
 
-const sampleData = [
-  { id: '1', image: 'https://picsum.photos/200/300', height: 300 },
-  { id: '2', image: 'https://picsum.photos/200/200', height: 200 },
-  { id: '3', image: 'https://picsum.photos/200/400', height: 400 },
-  { id: '4', image: 'https://picsum.photos/200/250', height: 250 },
-  { id: '5', image: 'https://picsum.photos/200/350', height: 350 },
-];
+// Removed sampleData. We'll fetch real posts from the backend.
 
 const SearchScreen = () => {
   const [query, setQuery] = useState('');
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchBackendPosts = async () => {
+      try {
+        const postsData = await import('../../utils/api').then(mod => mod.fetchPosts());
+        setPosts(postsData);
+      } catch (error) {
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBackendPosts();
+  }, []);
 
   const handleSearch = () => {
     if (!query.trim()) return;
@@ -37,15 +47,21 @@ const SearchScreen = () => {
     });
   };
 
-  const renderItem = ({ item }: any) => (
-    <View style={styles.itemContainer}>
-      <Image
-        source={{ uri: item.image }}
-        style={[styles.image, { aspectRatio: 2 / 3 }]} // You can try 1 / 1 or 3 / 4 too
-        resizeMode="cover"
-      />
-    </View>
-  );
+  const renderItem = ({ item }: any) => {
+    // Use the first imageUrl if available, fallback to a placeholder
+    const imageUrl = Array.isArray(item.imageUrls) && item.imageUrls.length > 0
+      ? item.imageUrls[0]
+      : 'https://via.placeholder.com/200x300?text=No+Image';
+    return (
+      <View style={styles.itemContainer}>
+        <Image
+          source={{ uri: imageUrl }}
+          style={[styles.image, { aspectRatio: 2 / 3 }]}
+          resizeMode="cover"
+        />
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -69,14 +85,18 @@ const SearchScreen = () => {
         <Text style={styles.title}>Recommended for you</Text>
         <View style={styles.divider} />
       </View>
-      <MasonryList
-        data={sampleData}
-        keyExtractor={(item) => item.id}
-        numColumns={numColumns}
-        showsVerticalScrollIndicator={false}
-        renderItem={renderItem}
-        contentContainerStyle={styles.masonryContainer}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#333" style={{ marginTop: 40 }} />
+      ) : (
+        <MasonryList
+          data={posts}
+          keyExtractor={(item) => item.id}
+          numColumns={numColumns}
+          showsVerticalScrollIndicator={false}
+          renderItem={renderItem}
+          contentContainerStyle={styles.masonryContainer}
+        />
+      )}
     </SafeAreaView>
   );
 };

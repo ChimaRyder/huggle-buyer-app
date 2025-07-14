@@ -24,7 +24,7 @@ import {
   fetchProductById,
   fetchStoreById,
   createOrder,
-  createMultipleOrders,
+  createMultipleOrders, // TODO: implement this
   clearCart,
 } from "../../utils/api";
 import { BackendProduct, BackendStore } from "../../types/BackendModels";
