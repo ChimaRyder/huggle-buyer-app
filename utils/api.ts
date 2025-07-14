@@ -21,22 +21,33 @@ const createHeaders = (token: string | null): HeadersInit => {
 // Fetch both stores and products matching the query
 export const fetchSearchResults = async (
   query: string,
+  isProduct: boolean,
   token: string | null = null
 ) => {
   try {
     const headers = createHeaders(token);
-    const response = await fetch(`${API_BASE_URL}/api/products/display?search=${encodeURIComponent(query)}`, { headers });
+    const searchParams = new URLSearchParams({
+      searchTerm: query,
+      searchProducts: isProduct.toString(),
+    });
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/products/display/search?${searchParams}`,
+      {
+        method: "GET",
+        headers,
+      }
+    );
     if (!response.ok) {
-      throw new Error('Failed to fetch search results');
+      throw new Error("Failed to fetch search results");
     }
     const products = await response.json();
     return { products };
   } catch (error) {
-    console.error('Error fetching search results:', error);
+    console.error("Error fetching search results:", error);
     throw error;
   }
 };
-
 
 export const fetchAllProducts = async (token: string | null = null) => {
   try {
@@ -66,7 +77,7 @@ export const updateBuyerLocation = async (
     const response = await fetch(
       `${API_BASE_URL}/api/buyer/${buyerId}/location`,
       {
-        method: 'PUT',
+        method: "PUT",
         headers,
         body: JSON.stringify({ longitude, latitude }),
       }
@@ -91,7 +102,7 @@ export const fetchPosts = async () => {
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching posts:', error);
+    console.error("Error fetching posts:", error);
     throw error;
   }
 };
