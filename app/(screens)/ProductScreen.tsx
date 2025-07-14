@@ -207,14 +207,10 @@ export default function ProductScreen() {
               {/* Pricing Row */}
               <View style={styles.pricingRow}>
                 <Text style={styles.discountedPrice}>
-                  {formatPrice(
-                    product?.discountedPrice || 100
-                  )}
+                  {formatPrice(product?.discountedPrice || 100)}
                 </Text>
                 <Text style={styles.originalPrice}>
-                  {formatPrice(
-                    product?.originalPrice || 150
-                  )}
+                  {formatPrice(product?.originalPrice || 150)}
                 </Text>
               </View>
 

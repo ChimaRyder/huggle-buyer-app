@@ -69,8 +69,8 @@ export interface BackendOrder {
   id: string;
   buyerId: string;
   storeId: string;
-  productId: string;
-  quantity: number;
+  productId: string[];
+  quantity: number[];
   totalPrice: number;
   createdAt: string;
   updatedAt: string;
