@@ -51,12 +51,11 @@ const SearchResultsScreen = () => {
     setError(null);
     (async () => {
       try {
-        const { stores, products } = await fetchSearchResults(query);
+        const { products } = await fetchSearchResults(query);
         // Mark type for each
-        const storeItems: SearchResult[] = (stores || []).map((s: BackendStore) => ({ ...s, _type: 'store' }));
         const productItems: SearchResult[] = (products || []).map((p: BackendProduct) => ({ ...p, _type: 'product' }));
         // Score and sort
-        const all = [...storeItems, ...productItems].map(item => ({ ...item, _score: computeScore(item) }));
+        const all = productItems.map(item => ({ ...item, _score: computeScore(item) }));
         all.sort((a, b) => (b._score || 0) - (a._score || 0));
         setResults(all);
       } catch (err) {

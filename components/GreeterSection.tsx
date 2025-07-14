@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -19,39 +21,62 @@ const getGreetingTime = () => {
   return 'evening!';
 };
 
-const GreeterSection = () => {
+interface GreeterSectionProps {
+  onLocationPress?: () => void;
+}
+
+const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
   const [location, setLocation] = useState<string>('Fetching location...');
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocation('Location permission denied');
-        return;
-      }
-  
-      try {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-  
-        const address = await Location.reverseGeocodeAsync(loc.coords);
-        if (address.length > 0) {
-          const { name, street, district, subregion, city, region, country } = address[0];
-          const parts = [name, street, district, subregion, city, region, country]
-            .filter(Boolean)
-            .slice(0, 3); // adjust how many parts to show
-          setLocation(parts.join(', '));
-        } else {
-          setLocation('Unknown location');
+  // Fetch and display the last pinned location from AsyncStorage if available
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+      (async () => {
+        try {
+          const stored = await AsyncStorage.getItem('userLocation');
+          if (stored) {
+            const coords = JSON.parse(stored);
+            // Reverse geocode the pinned coordinates
+            const address = await Location.reverseGeocodeAsync(coords);
+            if (address.length > 0) {
+              const { name, street, district, subregion, city, region, country } = address[0];
+              const parts = [name, street, district, subregion, city, region, country]
+                .filter(Boolean)
+                .slice(0, 3);
+              if (isActive) setLocation(parts.join(', '));
+            } else {
+              if (isActive) setLocation('Unknown pinned location');
+            }
+          } else {
+            // Fallback to device location
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+              if (isActive) setLocation('Location permission denied');
+              return;
+            }
+            const loc = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.High,
+            });
+            const address = await Location.reverseGeocodeAsync(loc.coords);
+            if (address.length > 0) {
+              const { name, street, district, subregion, city, region, country } = address[0];
+              const parts = [name, street, district, subregion, city, region, country]
+                .filter(Boolean)
+                .slice(0, 3);
+              if (isActive) setLocation(parts.join(', '));
+            } else {
+              if (isActive) setLocation('Unknown location');
+            }
+          }
+        } catch (error) {
+          console.error('Error getting location:', error);
+          if (isActive) setLocation('Failed to fetch location');
         }
-      } catch (error) {
-        console.error('Error getting location:', error);
-        setLocation('Failed to fetch location');
-      }
-    })();
-  }, []);
-  
+      })();
+      return () => { isActive = false; };
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -63,10 +88,17 @@ const GreeterSection = () => {
               {getGreeting()} <Text style={styles.highlight}>{getGreetingTime()}</Text>
             </Text>
           </View>
-          <View style={styles.locationRow}>
-            <Image source={require('../assets/icons/location.png')} style={styles.locationIcon} />
-            <Text style={styles.locationText}>{location}</Text>
-          </View>
+          {onLocationPress ? (
+            <TouchableOpacity style={styles.locationRow} onPress={onLocationPress} activeOpacity={0.7}>
+              <Image source={require('../assets/icons/location.png')} style={styles.locationIcon} />
+              <Text style={[styles.locationText, { textDecorationLine: 'underline', color: '#0d2329' }]}>{location}</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.locationRow}>
+              <Image source={require('../assets/icons/location.png')} style={styles.locationIcon} />
+              <Text style={styles.locationText}>{location}</Text>
+            </View>
+          )}
         </View>
         <Image source={require('../assets/icons/bell.png')} style={styles.notificationIcon} />
       </View>

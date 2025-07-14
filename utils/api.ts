@@ -1,8 +1,9 @@
 // API utility functions
-const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
+// const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
 //const API_BASE_URL = "http://192.168.1.43:5132";
 // const API_BASE_URL = "http://localhost:5132";
-// const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
+const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
+// const API_BASE_URL = "http://[::1]:5132/";
 
 // Helper function to create headers with auth token if available
 const createHeaders = (token: string | null): HeadersInit => {
@@ -17,37 +18,6 @@ const createHeaders = (token: string | null): HeadersInit => {
   return headers;
 };
 
-/**
- * Fetch live search suggestions for products and stores by query
- * @param query Partial search string
- * @param token Optional auth token
- * @returns { products: Product[], stores: Store[] }
- */
-const fetchSearchSuggestions = async (
-  query: string,
-  token: string | null = null
-) => {
-  try {
-    const headers = createHeaders(token);
-    // Fetch products and stores in parallel
-    const [productsRes, storesRes] = await Promise.all([
-      fetch(`${API_BASE_URL}/api/products/display?search=${encodeURIComponent(query)}`, { headers }),
-      fetch(`${API_BASE_URL}/api/stores/display?search=${encodeURIComponent(query)}`, { headers })
-    ]);
-    if (!productsRes.ok || !storesRes.ok) {
-      throw new Error(`Error: ${productsRes.status} / ${storesRes.status}`);
-    }
-    const [products, stores] = await Promise.all([
-      productsRes.json(),
-      storesRes.json()
-    ]);
-    return { products, stores };
-  } catch (error) {
-    console.error('Error fetching search suggestions:', error);
-    return { products: [], stores: [] };
-  }
-};
-
 // Fetch both stores and products matching the query
 export const fetchSearchResults = async (
   query: string,
@@ -55,23 +25,18 @@ export const fetchSearchResults = async (
 ) => {
   try {
     const headers = createHeaders(token);
-    const [storesRes, productsRes] = await Promise.all([
-      fetch(`${API_BASE_URL}/api/stores/display?search=${encodeURIComponent(query)}`, { headers }),
-      fetch(`${API_BASE_URL}/api/products/display?search=${encodeURIComponent(query)}`, { headers }),
-    ]);
-    if (!storesRes.ok || !productsRes.ok) {
+    const response = await fetch(`${API_BASE_URL}/api/products/display?search=${encodeURIComponent(query)}`, { headers });
+    if (!response.ok) {
       throw new Error('Failed to fetch search results');
     }
-    const stores = await storesRes.json();
-    const products = await productsRes.json();
-    return { stores, products };
+    const products = await response.json();
+    return { products };
   } catch (error) {
     console.error('Error fetching search results:', error);
     throw error;
   }
 };
 
-export { fetchSearchSuggestions };
 
 export const fetchAllProducts = async (token: string | null = null) => {
   try {
@@ -85,6 +50,34 @@ export const fetchAllProducts = async (token: string | null = null) => {
     return await response.json();
   } catch (error) {
     console.error("Error fetching products:", error);
+    throw error;
+  }
+};
+
+// Update buyer location
+export const updateBuyerLocation = async (
+  buyerId: string,
+  longitude: number,
+  latitude: number,
+  token: string | null = null
+) => {
+  try {
+    const headers = createHeaders(token);
+    const response = await fetch(
+      `${API_BASE_URL}/api/buyer/${buyerId}/location`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ longitude, latitude }),
+      }
+    );
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error: ${response.status} - ${errorText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error updating buyer location:`, error);
     throw error;
   }
 };
