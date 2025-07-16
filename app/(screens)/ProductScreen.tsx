@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import AddToCartModal from "../../components/AddToCartModal";
 import { Text } from "react-native";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -83,37 +84,38 @@ export default function ProductScreen() {
     }
   };
 
-  const handleAddToCart = async () => {
-    if (!userId) {
-      Alert.alert("Error", "Please log in to add items to cart");
+  const [cartModalVisible, setCartModalVisible] = useState(false);
+
+const handleAddToCart = async () => {
+  if (!userId) {
+    // Still use Alert for login error
+    Alert.alert("Error", "Please log in to add items to cart");
+    return;
+  }
+
+  try {
+    const token = await getToken({ template: "seller_app" });
+    if (!product) {
+      Alert.alert("Error", "Product information not available");
       return;
     }
 
-    try {
-      const token = await getToken({ template: "seller_app" });
-      if (!product) {
-        Alert.alert("Error", "Product information not available");
-        return;
-      }
+    await addToCart(product.id, quantity, token);
+    setCartModalVisible(true);
+  } catch (error) {
+    console.error("Error adding to cart:", error);
+    Alert.alert("Error", "Failed to add item to cart. Please try again.");
+  }
+};
 
-      await addToCart(product.id, quantity, token);
+const handleContinueShopping = () => {
+  setCartModalVisible(false);
+};
 
-      Alert.alert(
-        "Added to Cart",
-        `${quantity} ${product.name} added to your cart`,
-        [
-          { text: "Continue Shopping", style: "cancel" },
-          {
-            text: "View Cart",
-            onPress: () => router.push("/(screens)/cart" as any),
-          },
-        ]
-      );
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      Alert.alert("Error", "Failed to add item to cart. Please try again.");
-    }
-  };
+const handleViewCart = () => {
+  setCartModalVisible(false);
+  router.push("/(screens)/cart" as any);
+};
 
   const handleOrderNow = () => {
     // Navigate to checkout/order details screen with product info
@@ -133,6 +135,15 @@ export default function ProductScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Add to Cart Success Modal */}
+      <AddToCartModal
+        visible={cartModalVisible}
+        productName={product?.name || ''}
+        quantity={quantity}
+        onContinue={handleContinueShopping}
+        onViewCart={handleViewCart}
+        onClose={handleContinueShopping}
+      />
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#F9A620" />
