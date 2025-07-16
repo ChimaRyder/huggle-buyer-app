@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Modal,
 } from "react-native";
-import { Text, Button } from "@ui-kitten/components";
+import { Text, Button, Input } from "@ui-kitten/components";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
@@ -40,6 +41,13 @@ const OrderDetailsView = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
+  // Review modal and form state
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewContent, setReviewContent] = useState("");
+  const [reviewImageUrl, setReviewImageUrl] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   const readOnlyMode = isReadOnly === "true";
 
   useEffect(() => {
@@ -63,7 +71,7 @@ const OrderDetailsView = () => {
 
       // Fetch product and store details
       const [productData, storeData] = await Promise.all([
-        fetchProductById(orderData.productId, token),
+        fetchProductById(orderData.productId[0], token),
         fetchStoreById(orderData.storeId, token),
       ]);
 
@@ -299,6 +307,94 @@ const OrderDetailsView = () => {
         onCancel={() => setShowCancelModal(false)}
         loading={cancelling}
       />
+
+      {/* Review Modal */}
+      <Modal
+        visible={showReviewModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowReviewModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '90%' }}>
+            <Text category="h6" style={{ marginBottom: 16 }}>Write a Review</Text>
+            <Input
+              placeholder="Share your experience..."
+              multiline
+              value={reviewContent}
+              onChangeText={setReviewContent}
+              style={{ marginBottom: 12 }}
+            />
+            <Input
+              placeholder="Image URL (optional)"
+              value={reviewImageUrl}
+              onChangeText={setReviewImageUrl}
+              style={{ marginBottom: 12 }}
+            />
+            <Text style={{ marginBottom: 4 }}>Rating:</Text>
+            <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+              {[1,2,3,4,5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setReviewRating(star)}>
+                  <Ionicons
+                    name={star <= reviewRating ? 'star' : 'star-outline'}
+                    size={28}
+                    color={star <= reviewRating ? '#FFD700' : '#ccc'}
+                    style={{ marginHorizontal: 2 }}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <Button
+                appearance="ghost"
+                status="basic"
+                onPress={() => setShowReviewModal(false)}
+                style={{ marginRight: 12 }}
+                disabled={submittingReview}
+              >
+                Cancel
+              </Button>
+              <Button
+                status="success"
+                onPress={async () => {
+                  if (!product || !order) return;
+                  setSubmittingReview(true);
+                  try {
+                    const token = await getToken({ template: "seller_app" });
+                    const body = {
+                      productId: product.id,
+                      buyerId: order.buyerId,
+                      content: reviewContent,
+                      imageUrls: reviewImageUrl ? [reviewImageUrl] : [],
+                      rating: reviewRating,
+                    };
+                    await fetch("/api/reviews", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify(body),
+                    });
+                    setShowReviewModal(false);
+                    setReviewContent("");
+                    setReviewImageUrl("");
+                    setReviewRating(5);
+                    Alert.alert("Review Submitted", "Thank you for your feedback!");
+                  } catch (err) {
+                    Alert.alert("Error", "Failed to submit review. Please try again.");
+                  } finally {
+                    setSubmittingReview(false);
+                  }
+                }}
+                disabled={submittingReview || !reviewContent.trim() || !reviewRating}
+              >
+                {submittingReview ? "Submitting..." : "Submit"}
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };

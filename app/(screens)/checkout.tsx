@@ -24,7 +24,7 @@ import {
   fetchProductById,
   fetchStoreById,
   createOrder,
-  createMultipleOrders, // TODO: implement this
+  createMultipleOrders,
   clearCart,
 } from "../../utils/api";
 import { BackendProduct, BackendStore } from "../../types/BackendModels";
@@ -131,16 +131,7 @@ export default function CheckoutScreen() {
 
       if (isCartCheckout === "true") {
         // Handle multiple orders from cart
-        const orderDataArray = parsedCartItems.map((item: any) => ({
-          buyerId: userId,
-          storeId: item.storeId,
-          productId: item.productId,
-          quantity: item.quantity,
-          totalPrice: item.price * item.quantity,
-          status: 0, // Pending status
-        }));
-
-        await createMultipleOrders(orderDataArray, token);
+        await createMultipleOrders(parsedCartItems, Array.isArray(storeId) ? storeId[0] : storeId as string, getTotalPrice(), token);
 
         // Clear cart after successful orders
         await clearCart(token);
@@ -200,6 +191,23 @@ export default function CheckoutScreen() {
     <>
       <PageTitle title="Order Details" />
       <ScrollView contentContainerStyle={styles.container}>
+        {/* Cart Summary for Multi-Product Orders */}
+        {isCartCheckout === "true" && parsedCartItems.length > 0 && (
+          <View style={styles.card}>
+            <Text style={{fontWeight: 'bold', fontSize: 16, marginBottom: 8}}>Cart Summary</Text>
+            {parsedCartItems.map((item: any, idx: number) => (
+              <View key={idx} style={{marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 6}}>
+                <Text style={{fontSize: 15}}>{item.productName || item.name}</Text>
+                <Text style={{color: '#666'}}>Quantity: {item.quantity}</Text>
+                <Text style={{color: '#666'}}>Price: ₱{item.price}</Text>
+                <Text style={{color: '#548C2F'}}>Subtotal: ₱{(item.price * item.quantity).toFixed(2)}</Text>
+              </View>
+            ))}
+            <Text style={{fontWeight: 'bold', fontSize: 16, marginTop: 8}}>
+              Total: ₱{getTotalPrice().toFixed(2)}
+            </Text>
+          </View>
+        )}
         {/* Order Items */}
         <View style={styles.card}>
           {isCartCheckout === "true" ? (

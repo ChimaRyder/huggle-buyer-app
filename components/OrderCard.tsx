@@ -12,7 +12,7 @@ interface OrderCardProps {
     description: string;
     storeName: string;
     location: string;
-    status: "Pending" | "Confirmed" | "Completed" | "Cancelled";
+    status: "Pending" | "Confirmed" | "Ready for Pickup" | "Completed" | "Cancelled";
     image: any;
   };
   onCancel?: () => void;

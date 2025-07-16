@@ -404,7 +404,7 @@ export const createOrder = async (orderData: any, token: string | null) => {
 };
 
 // Add a new function specifically for creating orders from cart items
-export const createOrderFromCart = async (
+export const createMultipleOrders = async (
   cartItems: any[],
   storeId: string,
   totalPrice: number,

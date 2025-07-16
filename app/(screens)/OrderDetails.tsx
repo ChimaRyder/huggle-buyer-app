@@ -39,7 +39,7 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
   const isReadOnly = props.isReadOnly || params.isReadOnly;
 
   const [order, setOrder] = useState<BackendOrder | null>(null);
-  const [product, setProduct] = useState<BackendProduct | null>(null);
+  const [products, setProducts] = useState<BackendProduct[]>([]);
   const [store, setStore] = useState<BackendStore | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,13 +65,13 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
       );
       setOrder(orderData);
 
-      // Fetch product and store details
-      const [productData, storeData] = await Promise.all([
-        fetchProductById(orderData.productId, token),
-        fetchStoreById(orderData.storeId, token),
-      ]);
+      // Fetch all products and store details
+      const productsData = await Promise.all(
+        orderData.productId.map((id) => fetchProductById(id, token))
+      );
+      const storeData = await fetchStoreById(orderData.storeId, token);
 
-      setProduct(productData);
+      setProducts(productsData);
       setStore(storeData);
     } catch (error) {
       console.error("Error loading order details:", error);
@@ -170,25 +170,29 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
         </View>
 
         {/* Order Items */}
-        <View style={styles.card}>
-          <View style={styles.itemContainer}>
-            <Image
-              source={
-                product?.coverImage
-                  ? { uri: product.coverImage }
-                  : require("../../assets/images/sample-store.jpg")
-              }
-              style={styles.image}
-            />
-            <View style={styles.details}>
-              <Text style={styles.itemName}>
-                {product?.name || "Unknown Product"}
-              </Text>
-              <Text category="c1">Quantity: {order.quantity}</Text>
-              <Text style={styles.price}>₱{order.totalPrice.toFixed(2)}</Text>
+        {/* List all products in the order */}
+        {products.map((product, idx) => (
+          <View style={styles.card} key={product.id}>
+            <View style={styles.itemContainer}>
+              <Image
+                source={{ uri: product.coverImage }}
+                resizeMode="cover"
+                style={styles.image}
+              />
+              <View style={styles.details}>
+                <Text style={styles.itemName}>
+                  {product.name || "Unknown Product"}
+                </Text>
+                <Text category="c1">
+                  Quantity: {Array.isArray(order.quantity) ? order.quantity[idx] : order.quantity}
+                </Text>
+                <Text style={styles.price}>
+                  ₱{product.discountedPrice.toFixed(2)}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        ))}
 
         {/* Total */}
         <Text style={styles.total}>TOTAL: ₱{order.totalPrice.toFixed(2)}</Text>

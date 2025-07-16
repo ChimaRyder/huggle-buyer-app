@@ -28,7 +28,15 @@ import {
   OrderStatus,
 } from "../../types/BackendModels";
 
-const tabs = ["Pending", "Confirmed", "Completed", "Cancelled"] as const;
+const tabs = [
+  "Pending",
+  "Confirmed",
+  "Ready for Pickup",
+  "Completed",
+  "Cancelled",
+] as const;
+
+type TabType = typeof tabs[number];
 
 interface EnrichedOrder extends BackendOrder {
   productName?: string;
@@ -42,23 +50,20 @@ const Orders = () => {
   const router = useRouter();
   const { getToken, userId } = useAuth();
   const [selectedTab, setSelectedTab] = useState<
-    "Pending" | "Confirmed" | "Completed" | "Cancelled"
+    "Pending" | "Confirmed" | "Ready for Pickup" | "Completed" | "Cancelled"
   >("Pending");
   const [orders, setOrders] = useState<EnrichedOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [orderToCancel, setOrderToCancel] = useState<EnrichedOrder | null>(
-    null
-  );
+  const [orderToCancel, setOrderToCancel] = useState<EnrichedOrder | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     loadOrders();
   }, []);
 
-  // Refresh orders when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       if (!loading) {
@@ -79,12 +84,14 @@ const Orders = () => {
       const token = await getToken({ template: "seller_app" });
       const ordersData: BackendOrder[] = await getOrders(token);
 
-      // Enrich orders with product and store information
       const enrichedOrders = await Promise.all(
         ordersData.map(async (order) => {
           try {
             const [productData, storeData] = await Promise.all([
-              fetchProductById(order.productId, token),
+              fetchProductById(
+                Array.isArray(order.productId) ? order.productId[0] : order.productId,
+                token
+              ),
               fetchStoreById(order.storeId, token),
             ]);
 
@@ -159,6 +166,8 @@ const Orders = () => {
         return "Pending";
       case OrderStatus.Confirmed:
         return "Confirmed";
+      case OrderStatus.ReadyForPickup:
+        return "Ready for Pickup";
       case OrderStatus.Completed:
         return "Completed";
       case OrderStatus.Cancelled:
@@ -191,7 +200,6 @@ const Orders = () => {
 
       await cancelOrder(orderToCancel.id, token);
 
-      // Update the local orders state
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === orderToCancel.id
@@ -223,7 +231,8 @@ const Orders = () => {
   const canCancelOrder = (orderStatus: OrderStatus): boolean => {
     return (
       orderStatus === OrderStatus.Pending ||
-      orderStatus === OrderStatus.Confirmed
+      orderStatus === OrderStatus.Confirmed ||
+      orderStatus === OrderStatus.ReadyForPickup
     );
   };
 
@@ -262,12 +271,18 @@ const Orders = () => {
     <Layout style={styles.container}>
       <PageTitle title="Orders" />
 
-      <View style={styles.tabs}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsScrollContainer}
+        style={styles.tabsScroll}
+      >
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setSelectedTab(tab)}
             style={[styles.tab, selectedTab === tab && styles.activeTab]}
+            activeOpacity={0.7}
           >
             <Text
               style={[
@@ -279,7 +294,7 @@ const Orders = () => {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
@@ -311,12 +326,13 @@ const Orders = () => {
                   date: order.formattedDate || "Unknown date",
                   productName: order.productName || "Unknown Product",
                   price: `₱${order.totalPrice.toFixed(2)}`,
-                  description: `Quantity: ${order.quantity}`,
+                  description: `Quantity: ${Array.isArray(order.quantity) ? order.quantity[0] : order.quantity}`,
                   storeName: order.storeName || "Unknown Store",
                   location: order.storeLocation || "Unknown Location",
                   status: getStatusFromEnum(order.status) as
                     | "Pending"
                     | "Confirmed"
+                    | "Ready for Pickup"
                     | "Completed"
                     | "Cancelled",
                   image: order.productImage
@@ -331,7 +347,6 @@ const Orders = () => {
         )}
       </ScrollView>
 
-      {/* Confirmation Modal */}
       <ConfirmationModal
         visible={showCancelModal}
         title="Cancel Order"
@@ -390,15 +405,23 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
-  tabs: {
-    flexDirection: "row",
-    justifyContent: "space-around",
+  tabsScrollContainer: {
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  tabsScroll: {
     marginBottom: 27,
+    maxHeight: 52,
   },
   tab: {
     borderBottomWidth: 2,
     borderBottomColor: "#104911",
     paddingBottom: 6,
+    marginHorizontal: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
   },
   activeTab: {
     borderBottomColor: "#F9A620",
