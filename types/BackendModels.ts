@@ -18,6 +18,7 @@ export interface BackendProduct {
   rating: number;
   ratingCount: number;
   category: string[];
+  analytics?: object[];
 }
 
 export interface BackendStore {
