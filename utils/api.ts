@@ -4,6 +4,7 @@
 // const API_BASE_URL = "http://localhost:5132";
 // const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
 // const API_BASE_URL = "http://[::1]:5132/";
+// const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
 const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
 
 // Helper function to create headers with auth token if available
@@ -53,12 +54,10 @@ export const fetchSearchResults = async (
 export const fetchAllProducts = async (token: string | null = null) => {
   try {
     const headers = createHeaders(token);
-    const response = await fetch(`${API_BASE_URL}/api/products/display/all`, {
+    const response = await fetch(`${API_BASE_URL}/api/products/display`, {
       headers,
     });
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
-    }
+
     return await response.json();
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -95,9 +94,14 @@ export const updateBuyerLocation = async (
 };
 
 // Fetch all posts from the backend
-export const fetchPosts = async () => {
+// TODO ADD product type prop and add it to params para sa homepage
+export const fetchPosts = async (token: string | null = null) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/posts`);
+    const headers = createHeaders(token);
+    const response = await fetch(`${API_BASE_URL}/api/products/display/posts`, {
+      method: "GET",
+      headers,
+    });
     if (!response.ok) {
       throw new Error(`Error: ${response.status}`);
     }
@@ -107,23 +111,6 @@ export const fetchPosts = async () => {
     throw error;
   }
 };
-
-// export const fetchNearbyProducts = async (latitude: number, longitude: number, token: string | null = null) => {
-//   try {
-//     const headers = createHeaders(token);
-//     const response = await fetch(
-//       `${API_BASE_URL}/api/products/display/nearby?latitude=${latitude}&longitude=${longitude}`,
-//       { headers }
-//     );
-//     if (!response.ok) {
-//       throw new Error(`Error: ${response.status}`);
-//     }
-//     return await response.json();
-//   } catch (error) {
-//     console.error('Error fetching nearby products:', error);
-//     throw error;
-//   }
-// };
 
 export const fetchProductById = async (
   productId: string,

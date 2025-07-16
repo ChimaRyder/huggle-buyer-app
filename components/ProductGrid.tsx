@@ -186,13 +186,15 @@ function ProductGrid() {
     const now = new Date();
     const expiry = new Date(expirationDate);
     const diffTime = expiry.getTime() - now.getTime();
-  
+
     if (diffTime <= 0) return "Expired";
-  
+
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffHours = Math.floor(
+      (diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    );
     const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
-  
+
     if (diffDays > 0) {
       return `${diffDays} ${diffDays === 1 ? "day" : "days"} left`;
     } else if (diffHours > 0) {
@@ -201,7 +203,6 @@ function ProductGrid() {
       return `${diffMinutes} ${diffMinutes === 1 ? "min" : "mins"} left`;
     }
   };
-  
 
   const loadProducts = async () => {
     try {
@@ -212,18 +213,21 @@ function ProductGrid() {
       const backendProducts: BackendProduct[] = await fetchAllProducts(token);
 
       const transformedProducts: Product[] = backendProducts.map((product) => {
-        const discountPercentage = product.originalPrice > 0
-          ? Math.round(
-              ((product.originalPrice - product.discountedPrice) /
-                product.originalPrice) *
-                100
-            )
-          : 0;
+        const discountPercentage =
+          product.originalPrice > 0
+            ? Math.round(
+                ((product.originalPrice - product.discountedPrice) /
+                  product.originalPrice) *
+                  100
+              )
+            : 0;
 
         return {
           id: product.id,
           name: product.name,
-          image: product.coverImage ? { uri: product.coverImage } : images.products.product1,
+          image: product.coverImage
+            ? { uri: product.coverImage }
+            : images.products.product1,
           rating: product.rating || 4.5,
           discount: discountPercentage,
           distance: "3km",
@@ -251,8 +255,6 @@ function ProductGrid() {
     await loadProducts();
   };
 
-  
-
   useEffect(() => {
     loadProducts();
   }, []);
@@ -279,10 +281,14 @@ function ProductGrid() {
         <View style={styles.metaRow}>
           <MaterialIcons name="star" size={16} color="#FFD700" />
           <Text style={styles.metaText}>{product.rating}</Text>
-          <Text style={styles.metaText}>{calculateTimeUntilExpiration(product.expirationDate)}</Text>
+          <Text style={styles.metaText}>
+            {calculateTimeUntilExpiration(product.expirationDate)}
+          </Text>
         </View>
         <TouchableOpacity
-          onPress={() => router.push(`/(screens)/StoreHomepageScreen?id=${product.storeId}`)}
+          onPress={() =>
+            router.push(`/(screens)/StoreHomepageScreen?id=${product.storeId}`)
+          }
         >
           <Text style={styles.priceText}>₱{product.price} • View Store</Text>
         </TouchableOpacity>
@@ -321,6 +327,6 @@ function ProductGrid() {
       </ScrollView>
     </View>
   );
-};
+}
 
 export default ProductGrid;

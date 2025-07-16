@@ -34,8 +34,11 @@ const SearchResultsScreen = () => {
   const route = useRoute();
   const router = useRouter();
   const { getToken } = useAuth();
-  const { query, searchProducts } = route.params as { query: string; searchProducts?: string };
-  const isProduct = searchProducts === 'true';
+  const { query, searchProducts } = route.params as {
+    query: string;
+    searchProducts?: string;
+  };
+  const isProduct = searchProducts === "true";
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
