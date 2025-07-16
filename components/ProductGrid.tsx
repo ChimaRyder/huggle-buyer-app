@@ -300,9 +300,6 @@ function ProductGrid() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Trending</Text>
-        <TouchableOpacity style={styles.viewAllButton}>
-          <Text style={styles.viewAllText}>See All</Text>
-        </TouchableOpacity>
       </View>
       <ScrollView
         refreshControl={

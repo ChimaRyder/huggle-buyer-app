@@ -2,9 +2,6 @@
 // const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
 //const API_BASE_URL = "http://192.168.1.43:5132";
 // const API_BASE_URL = "http://localhost:5132";
-// const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
-// const API_BASE_URL = "http://[::1]:5132/";
-// const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
 const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
 
 // Helper function to create headers with auth token if available
@@ -161,7 +158,7 @@ export const fetchProductsByStoreId = async (
   try {
     const headers = createHeaders(token);
     const response = await fetch(
-      `${API_BASE_URL}/api/products/display?storeId=${storeId}`,
+      `${API_BASE_URL}/api/products/store/${storeId}`,
       {
         headers,
       }
