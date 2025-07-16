@@ -2,8 +2,9 @@
 // const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
 //const API_BASE_URL = "http://192.168.1.43:5132";
 // const API_BASE_URL = "http://localhost:5132";
-const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
+// const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
 // const API_BASE_URL = "http://[::1]:5132/";
+const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
 
 // Helper function to create headers with auth token if available
 const createHeaders = (token: string | null): HeadersInit => {

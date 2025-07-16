@@ -34,7 +34,8 @@ const SearchResultsScreen = () => {
   const route = useRoute();
   const router = useRouter();
   const { getToken } = useAuth();
-  const { query } = route.params as { query: string };
+  const { query, searchProducts } = route.params as { query: string; searchProducts?: string };
+  const isProduct = searchProducts === 'true';
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +71,7 @@ const SearchResultsScreen = () => {
     (async () => {
       try {
         const token = await getToken({ template: "seller_app" });
-        const { products } = await fetchSearchResults(query, true, token);
+        const { products } = await fetchSearchResults(query, isProduct, token);
         // Mark type for each
         const productItems: SearchResult[] = (products || []).map(
           (p: BackendProduct) => ({ ...p, _type: "product" })
