@@ -29,6 +29,9 @@ import {
   formatDate,
 } from "../../utils/product";
 
+import { Animated, Platform } from 'react-native';
+const AnimatedPressable = Platform.OS === 'web' ? Pressable : Animated.createAnimatedComponent(Pressable);
+
 export default function ProductScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
@@ -38,6 +41,14 @@ export default function ProductScreen() {
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<BackendProduct | null>(null);
   const [store, setStore] = useState<BackendStore | null>(null);
+
+  // Expiration check
+  const isExpired = (() => {
+    if (!product?.expirationDate) return false;
+    const now = new Date(); // Use local time
+    const exp = new Date(product.expirationDate);
+    return exp < now;
+  })();
 
   useEffect(() => {
     const loadProductData = async () => {
@@ -86,36 +97,36 @@ export default function ProductScreen() {
 
   const [cartModalVisible, setCartModalVisible] = useState(false);
 
-const handleAddToCart = async () => {
-  if (!userId) {
-    // Still use Alert for login error
-    Alert.alert("Error", "Please log in to add items to cart");
-    return;
-  }
-
-  try {
-    const token = await getToken({ template: "seller_app" });
-    if (!product) {
-      Alert.alert("Error", "Product information not available");
+  const handleAddToCart = async () => {
+    if (!userId) {
+      // Still use Alert for login error
+      Alert.alert("Error", "Please log in to add items to cart");
       return;
     }
 
-    await addToCart(product.id, quantity, token);
-    setCartModalVisible(true);
-  } catch (error) {
-    console.error("Error adding to cart:", error);
-    Alert.alert("Error", "Failed to add item to cart. Please try again.");
-  }
-};
+    try {
+      const token = await getToken({ template: "seller_app" });
+      if (!product) {
+        Alert.alert("Error", "Product information not available");
+        return;
+      }
 
-const handleContinueShopping = () => {
-  setCartModalVisible(false);
-};
+      await addToCart(product.id, quantity, token);
+      setCartModalVisible(true);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      Alert.alert("Error", "Failed to add item to cart. Please try again.");
+    }
+  };
 
-const handleViewCart = () => {
-  setCartModalVisible(false);
-  router.push("/(screens)/cart" as any);
-};
+  const handleContinueShopping = () => {
+    setCartModalVisible(false);
+  };
+
+  const handleViewCart = () => {
+    setCartModalVisible(false);
+    router.push("/(screens)/cart" as any);
+  };
 
   const handleOrderNow = () => {
     // Navigate to checkout/order details screen with product info
@@ -294,13 +305,34 @@ const handleViewCart = () => {
 
           {/* Bottom Action Buttons */}
           <View style={styles.bottomButtons}>
-            <Pressable style={styles.addToCartButton} onPress={handleAddToCart}>
-              <Text style={styles.addToCartText}>Add to Cart</Text>
-            </Pressable>
-
-            <Pressable style={styles.orderNowButton} onPress={handleOrderNow}>
-              <Text style={styles.orderNowText}>Order Now</Text>
-            </Pressable>
+            {isExpired ? (
+              <View style={{flex: 1, backgroundColor: '#eee', borderRadius: 20, justifyContent: 'center', alignItems: 'center', height: 60}}>
+                <Text style={{color: '#d32f2f', fontWeight: 'bold', fontSize: 18}}>Product Expired</Text>
+              </View>
+            ) : (
+              <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <AnimatedPressable
+                  style={({ pressed }) => [
+                    styles.addToCartButton,
+                    pressed && { transform: [{ scale: 0.96 }], opacity: 0.85 }
+                  ]}
+                  onPress={handleAddToCart}
+                  disabled={isExpired}
+                >
+                  <Text style={styles.addToCartText}>Add to Cart</Text>
+                </AnimatedPressable>
+                <AnimatedPressable
+                  style={({ pressed }) => [
+                    styles.orderNowButton,
+                    pressed && { transform: [{ scale: 0.96 }], opacity: 0.85 }
+                  ]}
+                  onPress={handleOrderNow}
+                  disabled={isExpired}
+                >
+                  <Text style={styles.orderNowText}>Order Now</Text>
+                </AnimatedPressable>
+              </View>
+            )}
           </View>
         </>
       )}
