@@ -232,9 +232,12 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
         </View>
 
         {/* Back Button for read-only mode */}
-        {readOnlyMode && (
-          <Button style={styles.backButtonStyle} onPress={() => router.back()}>
-            Back to Orders
+        {readOnlyMode && store && (
+          <Button
+            style={styles.backButtonStyle}
+            onPress={() => router.push({ pathname: '/(screens)/StoreHomepageScreen', params: { id: store.id } })}
+          >
+            Back to Store
           </Button>
         )}
       </ScrollView>

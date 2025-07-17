@@ -292,9 +292,29 @@ export default function CheckoutScreen() {
               }
               style={styles.input}
             >
-              {availablePickupTimes.map((time) => (
-                <SelectItem key={time} title={time} />
-              ))}
+              {availablePickupTimes.map((time) => {
+                // Assume time is in format 'HH:mm' or 'h:mm A' or similar
+                // You may need to adjust parsing logic for your actual format
+                const now = new Date();
+                let optionDate = null;
+                // Try to parse time as today with the current date
+                if (/\d{1,2}:\d{2}/.test(time)) {
+                  const [h, m] = time.split(':');
+                  optionDate = new Date(now);
+                  optionDate.setHours(Number(h), Number(m), 0, 0);
+                }
+                // If parsing fails, fallback to not disabling
+                const isPast = optionDate && optionDate < now;
+                return (
+                  <SelectItem
+                    key={time}
+                    title={(props: any) => (
+                      <Text style={isPast ? { color: '#aaa' } : undefined}>{time}</Text>
+                    )}
+                    disabled={!!isPast}
+                  />
+                );
+              })}
             </Select>
           </View>
         </View>

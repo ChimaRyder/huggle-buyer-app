@@ -49,10 +49,10 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
           {/* Buttons */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.continueButton} onPress={onContinue}>
+            <TouchableOpacity style={[styles.continueButton, styles.button]} onPress={onContinue}>
               <Text style={styles.continueButtonText}>Continue Shopping</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.viewCartButton} onPress={onViewCart}>
+            <TouchableOpacity style={[styles.viewCartButton, styles.button]} onPress={onViewCart}>
               <Text style={styles.viewCartButtonText}>View Cart</Text>
             </TouchableOpacity>
           </View>
@@ -111,6 +111,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     width: "100%",
     gap: 12,
+    flexWrap: "wrap",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  button: {
+    flex: 1,
+    minWidth: 140,
+    marginVertical: 4,
   },
   continueButton: {
     flex: 1,
