@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View, SafeAreaView, Modal, Text, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, View, SafeAreaView, Modal, Text, TouchableOpacity, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import CategoryCarousel from '../../components/CategoryCarousel';
@@ -31,6 +31,16 @@ export default function HomeScreen() {
     router.push('/screens/MapsScreen');
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Optionally, trigger refresh on ProductGrid via ref or context if needed
+    // For now, just wait a bit (simulate network call)
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setRefreshing(false);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <Modal visible={showModal} transparent animationType="fade">
@@ -43,7 +53,17 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#548C2F"]}
+          />
+        }
+      >
         <GreeterSection onLocationPress={handleLocationPress} />
         <CategoryCarousel />
         <PromoBanner />

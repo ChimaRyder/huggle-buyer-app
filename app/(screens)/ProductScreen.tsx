@@ -219,7 +219,8 @@ export default function ProductScreen() {
                   <Text style={styles.quantityText}>{quantity}</Text>
                   <Pressable
                     onPress={() => handleQuantityChange(true)}
-                    style={styles.quantityButton}
+                    style={[styles.quantityButton, (quantity >= (product?.stock || 5)) && { opacity: 0.5 }]}
+                    disabled={quantity >= (product?.stock || 5)}
                   >
                     <Text style={styles.quantityButtonText}>+</Text>
                   </Pressable>
