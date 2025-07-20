@@ -1,5 +1,5 @@
 {
-  "name": "huggle-buyer-app",
+  "name": "huggle",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -24,11 +24,13 @@
     "expo": "^53.0.13",
     "expo-blur": "~14.1.4",
     "expo-constants": "~17.1.6",
+    "expo-device": "^7.1.4",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
     "expo-image": "^2.3.0",
     "expo-linking": "~7.1.5",
     "expo-location": "~18.1.6",
+    "expo-notifications": "^0.31.4",
     "expo-router": "^5.1.1",
     "expo-secure-store": "~14.2.3",
     "expo-splash-screen": "~0.30.8",

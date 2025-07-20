@@ -38,7 +38,7 @@ export default function AuthScreen() {
         if (exists === 200) {
           router.dismissTo("/(tabs)");
         } else if (exists === 404) {
-          createBuyerAccount();
+          await createBuyerAccount();
           router.dismissTo("/(tabs)");
         }
       } else {
@@ -67,12 +67,11 @@ export default function AuthScreen() {
       name: user?.firstName + " " + user?.lastName,
       emailAddress: user?.primaryEmailAddress?.emailAddress,
     };
-    console.log(data);
     try {
       const token = await getToken();
       console.log("Bearer " + token);
       const response = await axios.post(
-        `https://huggle-backend-jh2l.onrender.com/api/buyers`,
+        `https://l4f9xg2c-5132.asse.devtunnels.ms/api/buyer`,
         {
           ...data,
         },
@@ -83,7 +82,7 @@ export default function AuthScreen() {
         }
       );
 
-      console.log(response.data);
+      console.log("response: ", response.data);
     } catch (error) {
       console.error(error);
     }

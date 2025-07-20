@@ -16,6 +16,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "../utils/cache";
 import Constants from "expo-constants";
+import { registerForPushNotificationsAsync } from "@/utils/Notifications";
 
 SplashScreen.preventAutoHideAsync();
 

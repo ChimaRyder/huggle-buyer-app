@@ -1,8 +1,8 @@
+import { tokenCache } from "./cache";
+
 // API utility functions
-// const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
-//const API_BASE_URL = "http://192.168.1.43:5132";
-// const API_BASE_URL = "http://localhost:5132";
-const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
+const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
+// const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
 
 // Helper function to create headers with auth token if available
 const createHeaders = (token: string | null): HeadersInit => {
@@ -505,6 +505,45 @@ export const cancelOrder = async (orderId: string, token: string | null) => {
     return await response.json();
   } catch (error) {
     console.error("Error cancelling order:", error);
+    throw error;
+  }
+};
+
+export const addPushToken = async (token: string | null, pushToken: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/PushToken`, {
+      method: "POST",
+      headers: createHeaders(token),
+      body: JSON.stringify({ pushToken }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error adding push token:", error);
+    throw error;
+  }
+};
+
+export const deactivatePushToken = async (token: string | null) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/PushToken/deactivate`, {
+      method: "PUT",
+      headers: createHeaders(token),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error deactivating push token:", error);
     throw error;
   }
 };
