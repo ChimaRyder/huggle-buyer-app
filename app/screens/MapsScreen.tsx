@@ -25,20 +25,27 @@ const MapsScreen = ({ route }: any) => {
   };
 
   const handleConfirm = async () => {
+    console.log('[MapsScreen] handleConfirm triggered');
     try {
       if (!userId) {
+        console.log('[MapsScreen] No userId');
         Alert.alert('Error', 'User not logged in.');
         return;
       }
       const token = await getToken({ template: 'seller_app' });
       if (!token) {
+        console.log('[MapsScreen] No token');
         Alert.alert('Error', 'Unable to get authentication token.');
         return;
       }
+      console.log('[MapsScreen] Calling updateBuyerLocation', { userId, longitude: marker.longitude, latitude: marker.latitude });
       await updateBuyerLocation(userId, marker.longitude, marker.latitude, token);
+      console.log('[MapsScreen] Location updated, saving to AsyncStorage');
       await AsyncStorage.setItem('userLocation', JSON.stringify(marker));
+      console.log('[MapsScreen] Location saved, navigating back');
       router.back();
     } catch (error: any) {
+      console.log('[MapsScreen] Error in handleConfirm', error);
       Alert.alert('Error', error.message || 'Failed to update location.');
     }
   };
