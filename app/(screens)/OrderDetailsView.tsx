@@ -19,8 +19,11 @@ import {
   getOrderById,
   fetchProductById,
   fetchStoreById,
+  getOrders,
+  fetchBuyerById,
   cancelOrder,
 } from "../../utils/api";
+import { tokenCache } from "../../utils/cache";
 import {
   BackendOrder,
   BackendProduct,
@@ -34,7 +37,7 @@ const OrderDetailsView = () => {
   const { getToken } = useAuth();
 
   const [order, setOrder] = useState<BackendOrder | null>(null);
-  const [product, setProduct] = useState<BackendProduct | null>(null);
+  const [products, setProducts] = useState<BackendProduct[]>([]);
   const [store, setStore] = useState<BackendStore | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +50,7 @@ const OrderDetailsView = () => {
   const [reviewImageUrl, setReviewImageUrl] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [selectedProductForReview, setSelectedProductForReview] = useState<BackendProduct | null>(null);
 
   const readOnlyMode = isReadOnly === "true";
 
@@ -69,13 +73,13 @@ const OrderDetailsView = () => {
       );
       setOrder(orderData);
 
-      // Fetch product and store details
-      const [productData, storeData] = await Promise.all([
-        fetchProductById(orderData.productId[0], token),
-        fetchStoreById(orderData.storeId, token),
-      ]);
+      // Fetch all products and store details
+      const productsData = await Promise.all(
+        orderData.productId.map((id) => fetchProductById(id, token))
+      );
+      const storeData = await fetchStoreById(orderData.storeId, token);
 
-      setProduct(productData);
+      setProducts(productsData);
       setStore(storeData);
     } catch (error) {
       console.error("Error loading order details:", error);
@@ -219,25 +223,31 @@ const OrderDetailsView = () => {
         </View>
 
         {/* Order Items */}
-        <View style={styles.card}>
-          <View style={styles.itemContainer}>
-            <Image
-              source={
-                product?.coverImage
-                  ? { uri: product.coverImage }
-                  : require("../../assets/images/sample-store.jpg")
-              }
-              style={styles.image}
-            />
-            <View style={styles.details}>
-              <Text style={styles.itemName}>
-                {product?.name || "Unknown Product"}
-              </Text>
-              <Text category="c1">Quantity: {order.quantity}</Text>
-              <Text style={styles.price}>₱{order.totalPrice.toFixed(2)}</Text>
+        {products.map((product, idx) => (
+          <View style={styles.card} key={product.id}>
+            <View style={styles.itemContainer}>
+              <Image
+                source={product.coverImage ? { uri: product.coverImage } : require("../../assets/images/sample-store.jpg")}
+                style={styles.image}
+              />
+              <View style={styles.details}>
+                <Text style={styles.itemName}>{product.name || "Unknown Product"}</Text>
+                <Text category="c1">Quantity: {Array.isArray(order.quantity) ? order.quantity[idx] : order.quantity}</Text>
+                <Text style={styles.price}>₱{product.discountedPrice ? product.discountedPrice.toFixed(2) : order.totalPrice.toFixed(2)}</Text>
+                {/* Write a Review Button (conditional, per product) */}
+                <WriteReviewButton 
+  productId={product.id} 
+  orderStatus={String(order.status)}
+  onPress={() => {
+    setSelectedProductForReview(product);
+    setShowReviewModal(true);
+  }}
+/>
+              </View>
             </View>
           </View>
-        </View>
+        ))}
+
 
         {/* Total */}
         <Text style={styles.total}>TOTAL: ₱{order.totalPrice.toFixed(2)}</Text>
@@ -348,27 +358,19 @@ const OrderDetailsView = () => {
               <Button
                 appearance="ghost"
                 status="basic"
-                onPress={() => setShowReviewModal(false)}
                 style={{ marginRight: 12 }}
-                disabled={submittingReview}
-              >
-                Cancel
-              </Button>
-              <Button
-                status="success"
                 onPress={async () => {
-                  if (!product || !order) return;
                   setSubmittingReview(true);
                   try {
                     const token = await getToken({ template: "seller_app" });
                     const body = {
-                      productId: product.id,
-                      buyerId: order.buyerId,
                       content: reviewContent,
-                      imageUrls: reviewImageUrl ? [reviewImageUrl] : [],
+                      imageUrl: reviewImageUrl,
                       rating: reviewRating,
+                      orderId: order?.id,
+                      // add other fields as needed
                     };
-                    await fetch("/api/reviews", {
+                    await fetch("/api/review", {
                       method: "POST",
                       headers: {
                         "Content-Type": "application/json",
@@ -398,6 +400,62 @@ const OrderDetailsView = () => {
     </>
   );
 };
+
+// --- WriteReviewButton ---
+function WriteReviewButton({ productId, orderStatus, onPress }: { productId: string, orderStatus: string, onPress?: () => void }) {
+  const router = useRouter();
+  const [eligible, setEligible] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!productId || orderStatus !== "Completed") {
+        setEligible(false);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      let token;
+      try {
+        token = await tokenCache.getToken("accessToken");
+      } catch {
+        setLoading(false);
+        return;
+      }
+      let buyerId = null;
+      try {
+        const user = await fetchBuyerById("me", token);
+        buyerId = user.id;
+      } catch {
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(`https://huggle-backend-jh2l.onrender.com/api/reviews?productId=${productId}`);
+      const reviews = await res.json();
+      const hasReviewed = reviews.some((rev: any) => rev.buyerId === buyerId);
+      setEligible(!hasReviewed);
+      setLoading(false);
+    };
+    checkEligibility();
+  }, [productId, orderStatus]);
+
+  if (loading || !productId) return null;
+  if (!eligible) return null;
+  return (
+    <TouchableOpacity
+      style={{
+        backgroundColor: "#548C2F",
+        padding: 8,
+        borderRadius: 8,
+        alignItems: "center",
+        marginTop: 8,
+      }}
+      onPress={onPress ? onPress : () => router.push({ pathname: "/(screens)/ReviewProductScreen", params: { productId } })}
+    >
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>Write a Review</Text>
+    </TouchableOpacity>
+  );
+}
 
 export default OrderDetailsView;
 

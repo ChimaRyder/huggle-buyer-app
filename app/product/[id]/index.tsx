@@ -4,6 +4,8 @@ import { Text } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import ReviewCard from '../../../components/ReviewCard';
+import { fetchReviews } from '../../../utils/api';
+import { BackendReview } from '../../../types/BackendModels';
 import { images } from '../../../assets';
 
 // Mock product data - in a real app, this would come from an API
@@ -65,6 +67,26 @@ const mockProducts = {
 export default function ProductScreen() {
   const { id } = useLocalSearchParams();
   const [quantity, setQuantity] = React.useState(1);
+  const [reviews, setReviews] = React.useState<BackendReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadReviews = async () => {
+      if (!id) return;
+      setReviewsLoading(true);
+      try {
+        // TODO: Replace with real token logic if needed
+        const token = undefined;
+        const res = await fetchReviews(token, { productId: id.toString() });
+        setReviews(res);
+      } catch (err) {
+        setReviews([]);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+    loadReviews();
+  }, [id]);
   
   const product = mockProducts[id as keyof typeof mockProducts];
 
@@ -141,16 +163,25 @@ export default function ProductScreen() {
           {/* Reviews Section */}
           <View style={styles.reviewsSection}>
             <Text style={styles.sectionTitle}>Reviews</Text>
-            <ReviewCard 
-              reviewerName="John Doe"
-              message="Great product! Would definitely order again."
-              rating={5}
-            />
-            <ReviewCard 
-              reviewerName="Jane Smith"
-              message="Good quality and fast delivery."
-              rating={4}
-            />
+            {reviewsLoading ? (
+              <View style={{ paddingVertical: 16 }}>
+                <Text>Loading reviews...</Text>
+              </View>
+            ) : reviews.length === 0 ? (
+              <View style={{ paddingVertical: 16 }}>
+                <Text>No reviews yet.</Text>
+              </View>
+            ) : (
+              reviews.map((review) => (
+                <ReviewCard
+                  key={review.id}
+                  reviewerName={review.buyerId ? String(review.buyerId) : "Anonymous"}
+                  message={review.content ?? ""}
+                  rating={review.rating}
+                  
+                />
+              ))
+            )}
           </View>
         </View>
       </ScrollView>

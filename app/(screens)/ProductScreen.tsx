@@ -2,22 +2,25 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Image,
-  StyleSheet,
-  ScrollView,
+  Text,
   Pressable,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
+  Animated,
 } from "react-native";
 import AddToCartModal from "../../components/AddToCartModal";
-import { Text } from "react-native";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import ReviewCard from "../../components/ReviewCard";
 
-import { TouchableOpacity } from "react-native";
-import { fetchProductById, fetchStoreById, addToCart } from "../../utils/api";
+import { fetchProductById, fetchStoreById, addToCart, getOrders, fetchBuyerById } from "../../utils/api";
+import { tokenCache } from "../../utils/cache";
 import {
   BackendProduct,
   BackendStore,
@@ -29,8 +32,60 @@ import {
   formatDate,
 } from "../../utils/product";
 
-import { Animated, Platform } from 'react-native';
 const AnimatedPressable = Platform.OS === 'web' ? Pressable : Animated.createAnimatedComponent(Pressable);
+
+function WriteReviewButton({ productId }: { productId?: string }) {
+  const router = useRouter();
+  const [eligible, setEligible] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!productId) return;
+      setLoading(true);
+      const token = await tokenCache.getToken("accessToken");
+      let buyerId = null;
+      try {
+        const user = await fetchBuyerById("me", token);
+        buyerId = user.id;
+      } catch {
+        setLoading(false);
+        return;
+      }
+      const orders = await getOrders(token ?? null);
+      const completedOrder = orders.find((order: any) =>
+        order.status === "Completed" &&
+        order.productId &&
+        (Array.isArray(order.productId)
+          ? order.productId.includes(productId)
+          : order.productId === productId)
+      );
+      const res = await fetch(`https://huggle-backend-jh2l.onrender.com/api/reviews?productId=${productId}`);
+      const reviews = await res.json();
+      const hasReviewed = reviews.some((rev: any) => rev.buyerId === buyerId);
+      setEligible(!!completedOrder && !hasReviewed);
+      setLoading(false);
+    };
+    checkEligibility();
+  }, [productId]);
+
+  if (loading || !productId) return null;
+  if (!eligible) return null;
+  return (
+    <Pressable
+      style={{
+        backgroundColor: "#548C2F",
+        padding: 12,
+        borderRadius: 8,
+        alignItems: "center",
+        marginTop: 12,
+      }}
+      onPress={() => router.push({ pathname: "/(screens)/ReviewProductScreen", params: { productId } })}
+    >
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>Write a Review</Text>
+    </Pressable>
+  );
+}
 
 export default function ProductScreen() {
   const router = useRouter();
@@ -300,7 +355,10 @@ export default function ProductScreen() {
                   message="Great product! Highly recommended."
                   rating={product?.rating || 4}
                 />
+                {/* Write a Review Button (conditional) */}
+                <WriteReviewButton productId={product?.id} />
               </View>
+
             </View>
           </ScrollView>
 

@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  Pressable
 } from "react-native";
 import { Text, Button } from "@ui-kitten/components";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,7 +17,10 @@ import {
   getOrderById,
   fetchProductById,
   fetchStoreById,
+  getOrders,
+  fetchBuyerById
 } from "../../utils/api";
+import { tokenCache } from "../../utils/cache";
 import {
   BackendOrder,
   BackendProduct,
@@ -189,6 +193,8 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
                 <Text style={styles.price}>
                   ₱{product.discountedPrice.toFixed(2)}
                 </Text>
+                {/* Write a Review Button (conditional, per product) */}
+                <WriteReviewButton productId={product.id} orderStatus={String(order.status)} />
               </View>
             </View>
           </View>
@@ -244,6 +250,61 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
     </>
   );
 };
+
+function WriteReviewButton({ productId, orderStatus }: { productId: string, orderStatus: string }) {
+  const router = useRouter();
+  const [eligible, setEligible] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!productId || orderStatus !== "Completed") {
+        setEligible(false);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      let token;
+      try {
+        token = await tokenCache.getToken("accessToken");
+      } catch {
+        setLoading(false);
+        return;
+      }
+      let buyerId = null;
+      try {
+        const user = await fetchBuyerById("me", token);
+        buyerId = user.id;
+      } catch {
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(`https://huggle-backend-jh2l.onrender.com/api/reviews?productId=${productId}`);
+      const reviews = await res.json();
+      const hasReviewed = reviews.some((rev: any) => rev.buyerId === buyerId);
+      setEligible(!hasReviewed);
+      setLoading(false);
+    };
+    checkEligibility();
+  }, [productId, orderStatus]);
+
+  if (loading || !productId) return null;
+  if (!eligible) return null;
+  return (
+    <Pressable
+      style={{
+        backgroundColor: "#548C2F",
+        padding: 8,
+        borderRadius: 8,
+        alignItems: "center",
+        marginTop: 8,
+      }}
+      onPress={() => router.push({ pathname: "/(screens)/ReviewProductScreen", params: { productId } })}
+    >
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>Write a Review</Text>
+    </Pressable>
+  );
+}
 
 export default OrderDetailsView;
 
