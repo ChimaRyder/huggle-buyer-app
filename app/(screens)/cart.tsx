@@ -15,12 +15,8 @@ import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, CheckBox } from "@ui-kitten/components";
 import PageTitle from "../../components/PageTitle";
-import {
-  fetchProductById,
-  getCart,
-  updateCartItem,
-  removeFromCart,
-} from "../../utils/api";
+import { fetchProductById } from "../../utils/products";
+import { getCart, updateCartItem, removeFromCart } from "../../utils/cart";
 import { BackendProduct } from "../../types/BackendModels";
 
 interface CartItem {

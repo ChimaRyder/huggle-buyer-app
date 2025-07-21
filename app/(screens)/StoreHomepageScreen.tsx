@@ -18,11 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { ReviewCard } from "../../components/ReviewCard";
 import StoreProductGrid from "../../components/StoreProductGrid";
-import {
-  fetchStoreById,
-  fetchBuyerById,
-  updateFavoriteStore,
-} from "../../utils/api";
+import { fetchStoreById, updateFavoriteStore } from "../../utils/stores";
+import { fetchBuyerById } from "@/utils/user";
 import { BackendStore, BackendBuyer } from "../../types/BackendModels";
 
 const { width, height } = Dimensions.get("window");
@@ -103,7 +100,8 @@ export default function StoreHomepageScreen() {
   ];
 
   // Fallback to mock store if needed
-  const mockStore = id && MOCK_STORES.find((s) => s.id === id.toString()) || null;
+  const mockStore =
+    (id && MOCK_STORES.find((s) => s.id === id.toString())) || null;
 
   const [isFavorited, setIsFavorited] = useState(false);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);

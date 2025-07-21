@@ -35,6 +35,7 @@ export default function HomeScreen() {
   // }, []);
 
   // TODO: Check from backend not in AsyncStorage
+  // get buyer nya check if location is null
   useEffect(() => {
     const checkLocation = async () => {
       // You can replace this with a backend check if needed
@@ -120,7 +121,6 @@ export default function HomeScreen() {
       >
         <GreeterSection onLocationPress={handleLocationPress} />
         <CategoryCarousel />
-        {/* <PromoBanner /> */}
         <View style={styles.productsContainer}>
           <ProductGrid />
         </View>

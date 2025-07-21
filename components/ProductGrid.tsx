@@ -171,7 +171,12 @@ const getStyles = (width: number) =>
     },
   });
 
-function ProductGrid() {
+interface ProductGridProps {
+  productType?: string;
+  showHeader?: boolean;
+}
+
+function ProductGrid({ productType, showHeader = true }: ProductGridProps) {
   const router = useRouter();
   const { getToken } = useAuth();
   const screenWidth = Dimensions.get("window").width;
@@ -210,7 +215,10 @@ function ProductGrid() {
         setLoading(true);
       }
       const token = await getToken({ template: "seller_app" });
-      const backendProducts: BackendProduct[] = await fetchAllProducts(token);
+      const backendProducts: BackendProduct[] = await fetchAllProducts(
+        token,
+        productType || undefined
+      );
 
       const transformedProducts: Product[] = backendProducts.map((product) => {
         const discountPercentage =
@@ -257,7 +265,8 @@ function ProductGrid() {
 
   useEffect(() => {
     loadProducts();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productType]);
 
   const renderProduct = (product: Product) => (
     <TouchableOpacity
@@ -298,9 +307,11 @@ function ProductGrid() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Trending</Text>
-      </View>
+      {showHeader && (
+        <View style={styles.header}>
+          <Text style={styles.title}>Trending</Text>
+        </View>
+      )}
       <ScrollView
         refreshControl={
           <RefreshControl

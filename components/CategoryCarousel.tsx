@@ -53,6 +53,7 @@ const categories: Category[] = [
 ];
 
 const CategoryCarousel = () => {
+  const router = require("expo-router").useRouter();
   return (
     <ScrollView
       horizontal
@@ -64,7 +65,10 @@ const CategoryCarousel = () => {
           key={category.id}
           style={styles.categoryButton}
           onPress={() => {
-            /* Handle category selection */
+            router.push({
+              pathname: "/(screens)/TrendingProductsScreen",
+              params: { productType: category.id },
+            });
           }}
         >
           <View style={styles.imageContainer}>

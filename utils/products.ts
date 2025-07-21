@@ -1,9 +1,13 @@
 import { API_BASE_URL } from "./api";
 
-export const fetchAllProducts = async (token: string) => {
+export const fetchAllProducts = async (token: string, productType?: string) => {
   try {
     console.log("Bearer", token);
-    const response = await fetch(`${API_BASE_URL}/api/products/display`, {
+    let url = `${API_BASE_URL}/api/products/display`;
+    if (productType) {
+      url += `?productCategory=${encodeURIComponent(productType)}`;
+    }
+    const response = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + token,

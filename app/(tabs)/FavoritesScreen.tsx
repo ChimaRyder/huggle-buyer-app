@@ -13,7 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { TouchableOpacity } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
-import { fetchBuyerById, fetchStoreById } from "../../utils/api";
+import { fetchStoreById } from "@/utils/stores";
+import { fetchBuyerById } from "@/utils/user";
 import { BackendStore, BackendBuyer } from "../../types/BackendModels";
 
 interface Store {
