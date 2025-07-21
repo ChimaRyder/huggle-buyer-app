@@ -14,7 +14,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { images, ImageSource } from "../assets";
-import { fetchAllProducts } from "../utils/api";
+import { fetchAllProducts } from "../utils/products";
 
 interface BackendProduct {
   id: string;

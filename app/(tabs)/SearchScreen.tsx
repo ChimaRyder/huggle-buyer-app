@@ -14,7 +14,7 @@ import { Text } from "@ui-kitten/components";
 import MasonryList from "@react-native-seoul/masonry-list";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { fetchPosts } from "../../utils/api";
+import { fetchPosts } from "@/utils/posts";
 import { useAuth } from "@clerk/clerk-expo";
 
 const { width } = Dimensions.get("window");
@@ -52,9 +52,7 @@ const SearchScreen = () => {
     const fetchBackendPosts = async () => {
       try {
         const token = await getToken({ template: "seller_app" });
-        const postsData = await import("../../utils/api").then((mod) =>
-          mod.fetchPosts(token)
-        );
+        const postsData = await fetchPosts(token);
         setPosts(postsData);
       } catch (error) {
         setPosts([]);

@@ -13,8 +13,8 @@ import { useRoute } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { MaterialIcons, Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { fetchSearchResults } from "../../utils/api";
-import { formatPrice } from "../../utils/product";
+import { fetchSearchResults } from "@/utils/stores";
+import { formatPrice } from "../../utils/productHelper";
 
 // Use backend models for type safety
 import { BackendProduct, BackendStore } from "../../types/BackendModels";

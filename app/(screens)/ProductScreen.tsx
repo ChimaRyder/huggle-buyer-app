@@ -19,7 +19,12 @@ import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import ReviewCard from "../../components/ReviewCard";
 
-import { fetchProductById, fetchStoreById, addToCart, getOrders, fetchBuyerById } from "../../utils/api";
+import { fetchStoreById } from "../../utils/stores";
+import { fetchProductById } from "@/utils/products";
+import { addToCart } from "@/utils/cart";
+import { getOrders } from "@/utils/orders";
+import { fetchBuyerById } from "@/utils/user";
+
 import { tokenCache } from "../../utils/cache";
 import {
   BackendProduct,
@@ -30,9 +35,12 @@ import {
   calculateDiscountPercentage,
   formatPrice,
   formatDate,
-} from "../../utils/product";
+} from "../../utils/productHelper";
 
-const AnimatedPressable = Platform.OS === 'web' ? Pressable : Animated.createAnimatedComponent(Pressable);
+const AnimatedPressable =
+  Platform.OS === "web"
+    ? Pressable
+    : Animated.createAnimatedComponent(Pressable);
 
 function WriteReviewButton({ productId }: { productId?: string }) {
   const router = useRouter();
@@ -53,14 +61,17 @@ function WriteReviewButton({ productId }: { productId?: string }) {
         return;
       }
       const orders = await getOrders(token ?? null);
-      const completedOrder = orders.find((order: any) =>
-        order.status === "Completed" &&
-        order.productId &&
-        (Array.isArray(order.productId)
-          ? order.productId.includes(productId)
-          : order.productId === productId)
+      const completedOrder = orders.find(
+        (order: any) =>
+          order.status === "Completed" &&
+          order.productId &&
+          (Array.isArray(order.productId)
+            ? order.productId.includes(productId)
+            : order.productId === productId)
       );
-      const res = await fetch(`https://huggle-backend-jh2l.onrender.com/api/reviews?productId=${productId}`);
+      const res = await fetch(
+        `https://huggle-backend-jh2l.onrender.com/api/reviews?productId=${productId}`
+      );
       const reviews = await res.json();
       const hasReviewed = reviews.some((rev: any) => rev.buyerId === buyerId);
       setEligible(!!completedOrder && !hasReviewed);
@@ -80,7 +91,12 @@ function WriteReviewButton({ productId }: { productId?: string }) {
         alignItems: "center",
         marginTop: 12,
       }}
-      onPress={() => router.push({ pathname: "/(screens)/ReviewProductScreen", params: { productId } })}
+      onPress={() =>
+        router.push({
+          pathname: "/(screens)/ReviewProductScreen",
+          params: { productId },
+        })
+      }
     >
       <Text style={{ color: "#fff", fontWeight: "bold" }}>Write a Review</Text>
     </Pressable>
@@ -115,7 +131,6 @@ export default function ProductScreen() {
 
       try {
         setLoading(true);
-        // Get auth token with the seller_app template
         const token = await getToken({ template: "seller_app" });
         const productData = await fetchProductById(id.toString(), token);
         setProduct(productData);
@@ -204,7 +219,7 @@ export default function ProductScreen() {
       {/* Add to Cart Success Modal */}
       <AddToCartModal
         visible={cartModalVisible}
-        productName={product?.name || ''}
+        productName={product?.name || ""}
         quantity={quantity}
         onContinue={handleContinueShopping}
         onViewCart={handleViewCart}
@@ -274,7 +289,10 @@ export default function ProductScreen() {
                   <Text style={styles.quantityText}>{quantity}</Text>
                   <Pressable
                     onPress={() => handleQuantityChange(true)}
-                    style={[styles.quantityButton, (quantity >= (product?.stock || 5)) && { opacity: 0.5 }]}
+                    style={[
+                      styles.quantityButton,
+                      quantity >= (product?.stock || 5) && { opacity: 0.5 },
+                    ]}
                     disabled={quantity >= (product?.stock || 5)}
                   >
                     <Text style={styles.quantityButtonText}>+</Text>
@@ -358,22 +376,39 @@ export default function ProductScreen() {
                 {/* Write a Review Button (conditional) */}
                 <WriteReviewButton productId={product?.id} />
               </View>
-
             </View>
           </ScrollView>
 
           {/* Bottom Action Buttons */}
           <View style={styles.bottomButtons}>
             {isExpired ? (
-              <View style={{flex: 1, backgroundColor: '#eee', borderRadius: 20, justifyContent: 'center', alignItems: 'center', height: 60}}>
-                <Text style={{color: '#d32f2f', fontWeight: 'bold', fontSize: 18}}>Product Expired</Text>
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: "#eee",
+                  borderRadius: 20,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: 60,
+                }}
+              >
+                <Text
+                  style={{ color: "#d32f2f", fontWeight: "bold", fontSize: 18 }}
+                >
+                  Product Expired
+                </Text>
               </View>
             ) : (
-              <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                }}
+              >
                 <AnimatedPressable
                   style={({ pressed }) => [
                     styles.addToCartButton,
-                    pressed && { transform: [{ scale: 0.96 }], opacity: 0.85 }
+                    pressed && { transform: [{ scale: 0.96 }], opacity: 0.85 },
                   ]}
                   onPress={handleAddToCart}
                   disabled={isExpired}
@@ -383,7 +418,7 @@ export default function ProductScreen() {
                 <AnimatedPressable
                   style={({ pressed }) => [
                     styles.orderNowButton,
-                    pressed && { transform: [{ scale: 0.96 }], opacity: 0.85 }
+                    pressed && { transform: [{ scale: 0.96 }], opacity: 0.85 },
                   ]}
                   onPress={handleOrderNow}
                   disabled={isExpired}
