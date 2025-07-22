@@ -3,7 +3,8 @@ import { View, Text, TextInput, Button, StyleSheet, Alert, Image, TouchableOpaci
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { getOrders } from '../../utils/api';
-import { fetchBuyerById } from '../../utils/api';
+import { useAuth } from '@clerk/clerk-expo';
+import { fetchReviews } from '../../utils/reviews';
 import { tokenCache } from '../../utils/cache';
 
 const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
@@ -17,35 +18,40 @@ const ReviewProductScreen = () => {
   const [isEligible, setIsEligible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [storeReviews, setStoreReviews] = useState<any[]>([]);
+  const { userId } = useAuth();
 
   useEffect(() => {
     const checkEligibility = async () => {
       setLoading(true);
       const token = await tokenCache.getToken('accessToken');
-      // Fetch buyerId from token or user context
-      let buyerId = null;
+      // Use Clerk userId as buyerId
+      const buyerId = userId;
+      let orders = [];
       try {
-        const user = await fetchBuyerById('me', token); // Assuming 'me' returns current user
-        buyerId = user.id;
+        orders = await getOrders(token ?? null);
       } catch (e) {
-        setLoading(false);
-        return;
+        console.log('Error fetching orders:', e);
       }
-      // Fetch all orders and check if any completed order contains this product
-      const orders = await getOrders(token ?? null);
-      const completedOrder = orders.find((order: any) =>
-        order.status === 'Completed' &&
-        order.productId &&
-        (Array.isArray(order.productId)
+      // Case-insensitive check for completed orders containing this product
+      const completedOrder = orders.find((order: any) => {
+        const isCompleted = String(order.status).toLowerCase() === 'completed';
+        const hasProduct = order.productId && (Array.isArray(order.productId)
           ? order.productId.includes(productId)
-          : order.productId === productId)
-      );
+          : order.productId === productId);
+        return isCompleted && hasProduct;
+      });
       // Fetch reviews for this product to check if already reviewed
-      const res = await fetch(`${API_BASE_URL}/api/reviews?productId=${productId}`);
-      const reviews = await res.json();
+      let reviews = [];
+      try {
+        reviews = await fetchReviews(token, { productId });
+      } catch (e) {
+        console.log('Error fetching reviews:', e);
+      }
+      setStoreReviews(reviews);
       const hasReviewed = reviews.some((rev: any) => rev.buyerId === buyerId);
       setAlreadyReviewed(hasReviewed);
-      setIsEligible(!!completedOrder && !hasReviewed);
+      setIsEligible(!!completedOrder); // Allow review even if already reviewed
       setLoading(false);
     };
     checkEligibility();
@@ -72,19 +78,31 @@ const ReviewProductScreen = () => {
     }
     setLoading(true);
     const token = await tokenCache.getToken('accessToken');
-    let buyerId = null;
+    // Use Clerk userId as buyerId
+    const buyerId = userId;
+    // Find the completed order for this product
+    let orderId = null;
+    let orders = [];
     try {
-      const user = await fetchBuyerById('me', token);
-      buyerId = user.id;
+      orders = await getOrders(token ?? null);
     } catch (e) {
-      Alert.alert('Could not get user info.');
-      setLoading(false);
-      return;
+      console.log('Error fetching orders for review submit:', e);
+    }
+    const completedOrder = orders.find((order: any) => {
+      const isCompleted = String(order.status).toLowerCase() === 'completed';
+      const hasProduct = order.productId && (Array.isArray(order.productId)
+        ? order.productId.includes(productId)
+        : order.productId === productId);
+      return isCompleted && hasProduct;
+    });
+    if (completedOrder) {
+      orderId = completedOrder.id;
     }
     // TODO: Upload images and get URLs if needed
     const reviewData = {
-      productId,
+      productId: typeof productId === 'string' ? productId : (Array.isArray(productId) ? productId[0] : ''),
       buyerId,
+      orderId,
       content,
       imageUrls: [], // For now, skip image upload
       rating,
@@ -113,15 +131,13 @@ const ReviewProductScreen = () => {
     <View style={styles.center}><Text>Loading...</Text></View>
   );
 
-  if (!isEligible) return (
-    <View style={styles.center}>
-      <Text>
-        {alreadyReviewed
-          ? 'You have already reviewed this product.'
-          : 'You can only review products you have ordered and completed.'}
-      </Text>
-    </View>
-  );
+  if (!isEligible) {
+    return (
+      <View style={styles.center}>
+        <Text>You can only review products you have ordered and completed.</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -152,6 +168,19 @@ const ReviewProductScreen = () => {
         </TouchableOpacity>
       </View>
       <Button title="Submit Review" onPress={handleSubmit} disabled={loading} />
+      {/* Store Reviews Section */}
+      <Text style={[styles.label, { marginTop: 32 }]}>Store Reviews</Text>
+      {storeReviews.length === 0 ? (
+        <Text style={{ color: '#666', marginTop: 8 }}>No reviews yet.</Text>
+      ) : (
+        storeReviews.map((rev, idx) => (
+          <View key={idx} style={{ marginTop: 12 }}>
+            <Text style={{ fontWeight: 'bold' }}>{rev.buyerName || 'Anonymous'}</Text>
+            <Text style={{ color: '#444' }}>{rev.content}</Text>
+            <Text style={{ color: '#FFD700' }}>Rating: {rev.rating}</Text>
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 };

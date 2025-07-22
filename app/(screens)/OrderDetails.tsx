@@ -15,6 +15,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import PageTitle from "../../components/PageTitle";
 import {
   getOrderById,
+  cancelOrder,
   fetchProductById,
   fetchStoreById,
   getOrders,
@@ -30,12 +31,51 @@ import {
 import ProductListCard from "../../components/ProductListCard";
 import OrderMap from "../../components/OrderMap";
 
+
 interface OrderDetailsViewProps {
   orderId?: string;
   isReadOnly?: string;
 }
 
-const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
+const OrderDetails: React.FC<OrderDetailsViewProps> = (props) => {
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const canCancelOrder = (orderStatus: OrderStatus): boolean => {
+    return (
+      orderStatus === OrderStatus.Pending ||
+      orderStatus === OrderStatus.Confirmed
+    );
+  };
+
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    try {
+      setCancelling(true);
+      const token = await getToken({ template: "seller_app" });
+      await cancelOrder(order.id, token);
+      setOrder({ ...order, status: OrderStatus.Cancelled });
+      setShowCancelModal(false);
+      // Show alert and go back
+      if (typeof window === "undefined") {
+        // Native
+        alert("Order Cancelled\nYour order has been successfully cancelled.");
+        router.back();
+      } else {
+        // Web
+        window.alert("Order Cancelled\nYour order has been successfully cancelled.");
+        router.back();
+      }
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      if (typeof window === "undefined") {
+        alert("Error\nFailed to cancel order. Please try again.");
+      } else {
+        window.alert("Error\nFailed to cancel order. Please try again.");
+      }
+    } finally {
+      setCancelling(false);
+    }
+  };
   const router = useRouter();
   const params = useLocalSearchParams();
   const { getToken } = useAuth();
@@ -157,38 +197,65 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
     <>
       <PageTitle title="Order Details" />
       <ScrollView contentContainerStyle={styles.container}>
+        {/* Order Status Badge */}
+        {order && (
+          <View
+            style={[
+              styles.statusCard,
+              { backgroundColor: getStatusColor(order.status) + "20" },
+            ]}
+          >
+            <Text
+              style={[styles.statusText, { color: getStatusColor(order.status) }]}
+            >
+              Order Status: {getStatusFromEnum(order.status)}
+            </Text>
+            <Text style={styles.orderIdText}>Order ID: {order.id}</Text>
+            <Text style={styles.orderDateText}>
+              Placed: {formatDate(order.createdAt)}
+            </Text>
+          </View>
+        )}
         {/* Product Cards */}
         <View style={{ marginBottom: 16 }}>
           {products.map((product, idx) => (
-            <ProductListCard
-              key={product.id}
-              id={product.id}
-              name={product.name}
-              image={
-                product.coverImage ? { uri: product.coverImage } : undefined
-              }
-              discount={
-                product.originalPrice > 0
-                  ? Math.round(
-                      ((product.originalPrice - product.discountedPrice) /
-                        product.originalPrice) *
+            <View key={product.id} style={{ marginBottom: 12 }}>
+              <ProductListCard
+                id={product.id}
+                name={product.name}
+                image={
+                  product.coverImage ? { uri: product.coverImage } : undefined
+                }
+                discount={
+                  product.originalPrice > 0
+                    ? Math.round(
+                        ((product.originalPrice - product.discountedPrice) /
+                          product.originalPrice) *
                         100
-                    )
-                  : 0
-              }
-              availableItems={product.stock}
-              rating={product.rating || 4.5}
-              expirationDate={product.expirationDate}
-              price={product.discountedPrice}
-              storeId={product.storeId}
-              onPress={() => {}}
-              onStorePress={() =>
-                router.push({
-                  pathname: "/(screens)/StoreHomepageScreen",
-                  params: { id: product.storeId },
-                })
-              }
-            />
+                      )
+                    : 0
+                }
+                availableItems={product.stock}
+                rating={product.rating || 4.5}
+                expirationDate={product.expirationDate}
+                price={product.discountedPrice}
+                storeId={product.storeId}
+                onPress={() => {}}
+                onStorePress={() =>
+                  router.push({
+                    pathname: "/(screens)/StoreHomepageScreen",
+                    params: { id: product.storeId },
+                  })
+                }
+              />
+              {/* Write Review Button for completed orders */}
+              {order && (
+                <WriteReviewButton
+                  productId={product.id}
+                  orderStatus={getStatusFromEnum(order.status)}
+                />
+              )}
+            </View>
           ))}
         </View>
 
@@ -256,16 +323,42 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
         )}
 
         {/* Confirm Order Button */}
-        {!readOnlyMode && (
-          <View style={{ marginTop: 32, marginBottom: 16 }}>
-            <Button
-              style={{ borderRadius: 10, paddingVertical: 12 }}
-              onPress={() => {
-                /* Confirm order logic here */
-              }}
-            >
-              Confirm Order
-            </Button>
+        {/* Cancel Order Button */}
+        {!readOnlyMode && order && canCancelOrder(order.status) && (
+          <Button
+            style={styles.cancelOrderButton}
+            status="danger"
+            onPress={() => setShowCancelModal(true)}
+            disabled={cancelling}
+          >
+            {cancelling ? "Cancelling..." : "Cancel Order"}
+          </Button>
+        )}
+        {/* Confirmation Modal */}
+        {showCancelModal && (
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}>
+            <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 24, width: '90%' }}>
+              <Text style={{ fontWeight: "bold", fontSize: 18, marginBottom: 16 }}>Cancel Order</Text>
+              <Text style={{ marginBottom: 16 }}>Are you sure you want to cancel this order? This action cannot be undone.</Text>
+              <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+                <Button
+                  appearance="ghost"
+                  status="basic"
+                  style={{ marginRight: 12 }}
+                  onPress={() => setShowCancelModal(false)}
+                  disabled={cancelling}
+                >
+                  Keep Order
+                </Button>
+                <Button
+                  status="danger"
+                  onPress={handleCancelOrder}
+                  disabled={cancelling}
+                >
+                  {cancelling ? "Cancelling..." : "Cancel Order"}
+                </Button>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -281,45 +374,8 @@ function WriteReviewButton({
   orderStatus: string;
 }) {
   const router = useRouter();
-  const [eligible, setEligible] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const checkEligibility = async () => {
-      if (!productId || orderStatus !== "Completed") {
-        setEligible(false);
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      let token;
-      try {
-        token = await tokenCache.getToken("accessToken");
-      } catch {
-        setLoading(false);
-        return;
-      }
-      let buyerId = null;
-      try {
-        const user = await fetchBuyerById("me", token);
-        buyerId = user.id;
-      } catch {
-        setLoading(false);
-        return;
-      }
-      const res = await fetch(
-        `https://huggle-backend-jh2l.onrender.com/api/reviews?productId=${productId}`
-      );
-      const reviews = await res.json();
-      const hasReviewed = reviews.some((rev: any) => rev.buyerId === buyerId);
-      setEligible(!hasReviewed);
-      setLoading(false);
-    };
-    checkEligibility();
-  }, [productId, orderStatus]);
-
-  if (loading || !productId) return null;
-  if (!eligible) return null;
+  // Show button if order is completed
+  if (orderStatus !== "Completed") return null;
   return (
     <Pressable
       style={{
@@ -341,7 +397,8 @@ function WriteReviewButton({
   );
 }
 
-export default OrderDetailsView;
+
+export default OrderDetails;
 
 const styles = StyleSheet.create({
   container: {
@@ -465,6 +522,11 @@ const styles = StyleSheet.create({
   backButtonStyle: {
     backgroundColor: "#6c757d",
     borderColor: "#6c757d",
+    marginBottom: 16,
+  },
+  cancelOrderButton: {
+    backgroundColor: "#dc3545",
+    borderColor: "#dc3545",
     marginBottom: 16,
   },
   storeCard: {

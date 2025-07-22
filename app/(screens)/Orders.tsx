@@ -183,7 +183,7 @@ const Orders = () => {
 
   const handleOrderPress = (order: EnrichedOrder) => {
     router.push({
-      pathname: "/(screens)/OrderDetailsView" as any,
+      pathname: "/(screens)/OrderDetails" as any,
       params: {
         orderId: order.id,
         isReadOnly: "true",
