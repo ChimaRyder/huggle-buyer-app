@@ -103,7 +103,8 @@ const OrderDetails: React.FC<OrderDetailsViewProps> = (props) => {
       setLoading(true);
       setError(null);
       const token = await getToken({ template: "seller_app" });
-
+      console.log("Token:", token);
+      
       // Fetch order details
       const orderData: BackendOrder = await getOrderById(
         orderId as string,
@@ -209,13 +210,18 @@ const OrderDetails: React.FC<OrderDetailsViewProps> = (props) => {
               style={[styles.statusText, { color: getStatusColor(order.status) }]}
             >
               Order Status: {getStatusFromEnum(order.status)}
+              
             </Text>
+    
             <Text style={styles.orderIdText}>Order ID: {order.id}</Text>
             <Text style={styles.orderDateText}>
               Placed: {formatDate(order.createdAt)}
             </Text>
+            
           </View>
+          
         )}
+        
         {/* Product Cards */}
         <View style={{ marginBottom: 16 }}>
           {products.map((product, idx) => (
