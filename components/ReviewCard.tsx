@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import React from "react";
+import { View, StyleSheet, Text } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
+import { fontSizes, spacing, radii, shadows } from "../constants/theme";
 
 interface ReviewCardProps {
   reviewerName: string;
@@ -8,17 +9,36 @@ interface ReviewCardProps {
   rating: number;
 }
 
-export const ReviewCard: React.FC<ReviewCardProps> = ({ reviewerName, message, rating }) => {
+export const ReviewCard: React.FC<ReviewCardProps> = ({
+  reviewerName,
+  message,
+  rating,
+}) => {
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessibilityLabel={`Review by ${reviewerName}`}
+    >
       <View style={styles.accentLine} />
       <View style={styles.content}>
-        <Text style={styles.reviewerName}>{reviewerName}</Text>
-        <Text style={styles.message} numberOfLines={2}>
+        <Text style={styles.reviewerName} accessibilityRole="text">
+          {reviewerName}
+        </Text>
+        <Text style={styles.message} numberOfLines={2} accessibilityRole="text">
           {message}
         </Text>
-        <View style={styles.ratingContainer}>
-          <FontAwesome name="star" size={16} color="#FFD700" style={styles.star} />
+        <View
+          style={styles.ratingContainer}
+          accessibilityRole="text"
+          accessibilityLabel={`Rating: ${rating.toFixed(1)} out of 5`}
+        >
+          <FontAwesome
+            name="star"
+            size={16}
+            color="#FFD700"
+            style={styles.star}
+            accessibilityLabel="Star icon"
+          />
           <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
         </View>
       </View>
@@ -28,46 +48,48 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ reviewerName, message, r
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    marginVertical: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: radii.md,
+    marginVertical: spacing.sm,
+    ...shadows.card,
+    minHeight: 80,
+    alignItems: "stretch",
   },
   accentLine: {
     width: 4,
-    backgroundColor: '#104911',
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+    backgroundColor: "#104911",
+    borderTopLeftRadius: radii.md,
+    borderBottomLeftRadius: radii.md,
   },
   content: {
     flex: 1,
-    padding: 12,
+    padding: spacing.lg,
+    justifyContent: "center",
   },
   reviewerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: fontSizes.md,
+    fontWeight: "600",
+    marginBottom: spacing.xs,
+    color: "#222",
   },
   message: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: fontSizes.sm,
+    color: "#444",
+    marginBottom: spacing.sm,
   },
   ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: spacing.xs,
   },
   star: {
-    marginRight: 4,
+    marginRight: spacing.xs,
   },
   ratingText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: fontSizes.sm,
+    color: "#104911",
+    fontWeight: "bold",
   },
 });
 

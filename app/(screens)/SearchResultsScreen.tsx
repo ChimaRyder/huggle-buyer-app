@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,14 +7,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-  TextInput,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { MaterialIcons, Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { fetchSearchResults } from "@/utils/stores";
-import { formatPrice } from "../../utils/productHelper";
+import ProductGrid from "../../components/ProductGrid";
+import ProductListCard from "../../components/ProductListCard";
 
 // Use backend models for type safety
 import { BackendProduct, BackendStore } from "../../types/BackendModels";
@@ -43,31 +43,6 @@ const SearchResultsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Simple scoring: prioritize name/category match, then rating
-  const computeScore = useCallback(
-    (item: BackendProduct | BackendStore): number => {
-      let score = 0;
-      const q = query.toLowerCase();
-      // For products
-      if ("productType" in item) {
-        if (item.name?.toLowerCase().includes(q)) score += 10;
-        if (item.productType?.toLowerCase().includes(q)) score += 6;
-        if (item.category?.some((cat) => cat.toLowerCase().includes(q)))
-          score += 5;
-        score += item.rating || 0;
-      } else {
-        // For stores
-        if (item.name?.toLowerCase().includes(q)) score += 10;
-        if (item.storeCategory?.toLowerCase().includes(q)) score += 6;
-        if (item.tags?.some((tag: string) => tag.toLowerCase().includes(q)))
-          score += 3;
-        score += item.rating || 0;
-      }
-      return score;
-    },
-    [query]
-  );
-
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -77,15 +52,12 @@ const SearchResultsScreen = () => {
         const { products } = await fetchSearchResults(query, isProduct, token);
         // Mark type for each
         const productItems: SearchResult[] = (products || []).map(
-          (p: BackendProduct) => ({ ...p, _type: "product" })
+          (p: BackendProduct) => ({
+            ...p,
+            _type: isProduct ? "product" : "store",
+          })
         );
-        // Score and sort
-        const all = productItems.map((item) => ({
-          ...item,
-          _score: computeScore(item),
-        }));
-        all.sort((a, b) => (b._score || 0) - (a._score || 0));
-        setResults(all);
+        setResults(productItems);
       } catch (err) {
         setResults([]);
         setError("Failed to fetch search results.");
@@ -93,7 +65,7 @@ const SearchResultsScreen = () => {
         setLoading(false);
       }
     })();
-  }, [query, computeScore]);
+  }, [query, isProduct]);
 
   const handlePress = (item: SearchResult) => {
     if (item._type === "product") {
@@ -109,14 +81,13 @@ const SearchResultsScreen = () => {
     }
   };
 
-  // Top result
-  const topResult = results.length > 0 ? results[0] : null;
-  const secondaryResults = results.slice(1);
-
   // Render pill search bar
   const renderSearchBar = () => (
     <View style={styles.searchBarContainer}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
+      <TouchableOpacity
+        onPress={() => router.push("/(tabs)/SearchScreen")}
+        style={styles.iconButton}
+      >
         <Ionicons name="arrow-back" size={22} color="#333" />
       </TouchableOpacity>
       <View style={styles.searchBarPill}>
@@ -124,128 +95,119 @@ const SearchResultsScreen = () => {
           {query}
         </Text>
       </View>
-      <TouchableOpacity style={styles.iconButton}>
-        <Ionicons name="filter" size={22} color="#333" />
+      <TouchableOpacity
+        style={styles.iconButton}
+        onPress={() => router.push("/(tabs)/SearchScreen")}
+      >
+        <Ionicons name="search" size={22} color="#333" />
       </TouchableOpacity>
     </View>
   );
 
-  // Render best match
-  const renderTopResult = () => {
-    if (!topResult) return null;
-    const isProduct = topResult._type === "product";
-    const imageUrl = isProduct ? topResult.coverImage : topResult.storeImageUrl;
-    const name = topResult.name;
-    const tags = isProduct
-      ? topResult.category
-      : [topResult.storeCategory, ...(topResult.tags || [])];
-    const rating = topResult.rating || 0;
-    const distance = "240m"; // TODO: Replace with real geo distance if available
+  // Render filter bar (only for products)
+  const renderFilters = () => {
+    if (!isProduct) return null;
     return (
-      <TouchableOpacity
-        style={styles.topCard}
-        onPress={() => handlePress(topResult)}
+      <View
+        style={{ flexDirection: "row", paddingHorizontal: 16, marginBottom: 8 }}
       >
-        <Image
-          source={imageUrl ? { uri: imageUrl } : undefined}
-          style={styles.topCardImage}
-          resizeMode="cover"
-        />
-        <View style={styles.topCardContent}>
+        {FILTERS.map((filter) => (
           <View
+            key={filter.key}
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
+              marginRight: 12,
+              backgroundColor: "#eee",
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
             }}
           >
-            <Text style={styles.topCardTitle}>{name}</Text>
-            <TouchableOpacity>
-              <FontAwesome name="heart-o" size={22} color="#e74c3c" />
-            </TouchableOpacity>
+            <Text style={{ fontSize: 13, color: "#555" }}>{filter.label}</Text>
           </View>
-          <Text style={styles.topCardTags} numberOfLines={1}>
-            {Array.isArray(tags) ? tags.filter(Boolean).join(" · ") : tags}
-          </Text>
-          <View style={styles.topCardRow}>
-            <MaterialIcons name="location-on" size={16} color="#888" />
-            <Text style={styles.topCardDistance}>{distance}</Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginLeft: 16,
-              }}
-            >
-              <MaterialIcons name="star" size={16} color="#fbc02d" />
-              <Text style={styles.topCardRating}>{rating.toFixed(1)}</Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
+        ))}
+      </View>
     );
   };
 
-  // Render secondary matches
-  const renderSecondaryItem = ({ item }: { item: SearchResult }) => {
-    const isProduct = item._type === "product";
-    const imageUrl = isProduct ? item.coverImage : item.storeImageUrl;
-    const name = item.name;
-    const tags = isProduct
-      ? item.category
-      : [item.storeCategory, ...(item.tags || [])];
-    const rating = item.rating || 0;
-    const distance = "240m"; // TODO: Replace with real geo distance if available
-    return (
-      <TouchableOpacity
-        style={styles.secondaryCard}
-        onPress={() => handlePress(item)}
-      >
-        <Image
-          source={imageUrl ? { uri: imageUrl } : undefined}
-          style={styles.secondaryCardImage}
-          resizeMode="cover"
+  // Render result item
+  const renderResultItem = ({ item }: { item: SearchResult }) => {
+    if (item._type === "product") {
+      return (
+        <ProductListCard
+          id={item.id}
+          name={item.name}
+          image={item.coverImage ? { uri: item.coverImage } : undefined}
+          discount={
+            item.originalPrice > 0
+              ? Math.round(
+                  ((item.originalPrice - item.discountedPrice) /
+                    item.originalPrice) *
+                    100
+                )
+              : 0
+          }
+          availableItems={item.stock}
+          rating={item.rating || 4.5}
+          expirationDate={item.expirationDate}
+          price={item.discountedPrice}
+          storeId={item.storeId}
+          onPress={() => handlePress(item)}
+          onStorePress={() =>
+            router.push(`/(screens)/StoreHomepageScreen?id=${item.storeId}`)
+          }
         />
-        <View style={styles.secondaryCardContent}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Text style={styles.secondaryCardTitle}>{name}</Text>
-            <TouchableOpacity>
-              <FontAwesome name="heart-o" size={18} color="#e74c3c" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.secondaryCardTags} numberOfLines={1}>
-            {Array.isArray(tags) ? tags.filter(Boolean).join(" · ") : tags}
-          </Text>
-          <View style={styles.topCardRow}>
-            <MaterialIcons name="location-on" size={14} color="#888" />
-            <Text style={styles.secondaryCardDistance}>{distance}</Text>
+      );
+    } else {
+      const imageUrl = item.storeImageUrl;
+      const name = item.name;
+      const tags = [item.storeCategory, ...(item.tags || [])];
+      const rating = item.rating || 0;
+      return (
+        <TouchableOpacity
+          style={styles.secondaryCard}
+          onPress={() => handlePress(item)}
+        >
+          <Image
+            source={imageUrl ? { uri: imageUrl } : undefined}
+            style={styles.secondaryCardImage}
+            resizeMode="cover"
+          />
+          <View style={styles.secondaryCardContent}>
             <View
               style={{
                 flexDirection: "row",
+                justifyContent: "space-between",
                 alignItems: "center",
-                marginLeft: 12,
               }}
             >
-              <MaterialIcons name="star" size={14} color="#fbc02d" />
-              <Text style={styles.secondaryCardRating}>
-                {rating.toFixed(1)}
-              </Text>
+              <Text style={styles.secondaryCardTitle}>{name}</Text>
+            </View>
+            <Text style={styles.secondaryCardTags} numberOfLines={1}>
+              {Array.isArray(tags) ? tags.filter(Boolean).join(" · ") : tags}
+            </Text>
+            <View style={styles.topCardRow}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <MaterialIcons name="star" size={14} color="#fbc02d" />
+                <Text style={styles.secondaryCardRating}>
+                  {rating.toFixed(1)}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
-      </TouchableOpacity>
-    );
+        </TouchableOpacity>
+      );
+    }
   };
 
   return (
     <View style={styles.container}>
       {renderSearchBar()}
+      {renderFilters()}
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -257,22 +219,18 @@ const SearchResultsScreen = () => {
           {error}
         </Text>
       ) : (
-        <>
-          <Text style={styles.sectionTitle}>Best Match</Text>
-          {renderTopResult()}
-          <Text style={styles.sectionTitle}>Similar stuff near you</Text>
-          <FlatList
-            data={secondaryResults}
-            keyExtractor={(item) => item.id}
-            renderItem={renderSecondaryItem}
-            ListEmptyComponent={
-              <Text style={{ textAlign: "center", marginTop: 16 }}>
-                No similar results found.
-              </Text>
-            }
-            contentContainerStyle={{ paddingBottom: 32 }}
-          />
-        </>
+        <FlatList
+          style={{ marginHorizontal: 16, marginTop: 16 }}
+          data={results}
+          keyExtractor={(item) => item.id}
+          renderItem={renderResultItem}
+          ListEmptyComponent={
+            <Text style={{ textAlign: "center", marginTop: 32, color: "#888" }}>
+              No results found.
+            </Text>
+          }
+          contentContainerStyle={{ paddingBottom: 32 }}
+        />
       )}
     </View>
   );
@@ -418,6 +376,10 @@ const styles = StyleSheet.create({
     color: "#222",
     fontWeight: "bold",
     fontSize: 13,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F7F8FA", //F7F8FA
   },
 });
 

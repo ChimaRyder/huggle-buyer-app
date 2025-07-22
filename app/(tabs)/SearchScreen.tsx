@@ -99,7 +99,7 @@ const SearchScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
       <View style={{ position: "relative" }}>
         <View style={styles.searchContainer}>
           <MaterialIcons
@@ -118,36 +118,42 @@ const SearchScreen = () => {
               if (debouncedQuery) setShowDropdown(true);
             }}
             onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
+            returnKeyType="done"
           />
         </View>
         {showDropdown && debouncedQuery.trim() !== "" && (
-          <View style={styles.suggestionsDropdown}>
+          <View style={[styles.suggestionsDropdown]}>
             <TouchableOpacity
               style={styles.suggestionItem}
               onPress={() => handleDropdownPress(false)}
             >
-              <Text style={styles.suggestionText}>
-                {debouncedQuery} <Text style={{ color: "#666" }}>[stores]</Text>
+              <Text
+                style={styles.suggestionText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                <Text style={{ color: "#666" }}>
+                  Search {debouncedQuery} in Stores
+                </Text>
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.suggestionItem}
               onPress={() => handleDropdownPress(true)}
             >
-              <Text style={styles.suggestionText}>
-                {debouncedQuery}{" "}
-                <Text style={{ color: "#666" }}>[products]</Text>
+              <Text
+                style={styles.suggestionText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                <Text style={{ color: "#666" }}>
+                  Search {debouncedQuery} in Products
+                </Text>
               </Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
-      <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-        <Text style={styles.searchBtnText}>Search</Text>
-      </TouchableOpacity>
-
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Recommended for you</Text>
         <View style={styles.divider} />
@@ -168,7 +174,7 @@ const SearchScreen = () => {
           contentContainerStyle={styles.masonryContainer}
         />
       )}
-    </SafeAreaView>
+    </>
   );
 };
 
@@ -202,20 +208,10 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   suggestionsDropdown: {
-    position: "absolute",
-    top: 50,
-    left: 0,
-    right: 0,
     backgroundColor: "#fff",
-    zIndex: 10,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
-    elevation: 6,
-    marginHorizontal: 0,
+    zIndex: 1000,
+    borderRadius: 8,
+    margin: 16,
   },
   suggestionItem: {
     padding: 12,
@@ -232,7 +228,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   titleContainer: {
-    marginTop: 60,
+    marginTop: 32,
     paddingHorizontal: 16,
   },
   title: {
@@ -286,12 +282,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   searchBtn: {
+    marginHorizontal: 16,
     marginTop: 12,
-    alignSelf: "center",
-    backgroundColor: "#333",
-    paddingHorizontal: 32,
-    paddingVertical: 10,
-    borderRadius: 20,
+    backgroundColor: "#222",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 2,
   },
   searchBtnText: {
     color: "#fff",

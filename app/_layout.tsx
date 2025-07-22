@@ -16,6 +16,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "../utils/cache";
 import Constants from "expo-constants";
+import { StyleSheet, SafeAreaView } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -46,18 +47,28 @@ export default function RootLayout() {
         publishableKey={publishableKey || ""}
         tokenCache={tokenCache}
       >
-        <ApplicationProvider
-          {...eva}
-          theme={colorScheme === "dark" ? eva.dark : eva.light}
-        >
-          <ThemeProvider
-            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        <SafeAreaView style={styles.container}>
+          <ApplicationProvider
+            {...eva}
+            theme={colorScheme === "dark" ? eva.dark : eva.light}
           >
-            <Slot />
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </ApplicationProvider>
+            <ThemeProvider
+              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+            >
+              <Slot />
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </ApplicationProvider>
+        </SafeAreaView>
       </ClerkProvider>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#F7F8FA", //F7F8FA
+    marginTop: 24,
+    flex: 1,
+  },
+});

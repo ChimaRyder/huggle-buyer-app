@@ -16,6 +16,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { fetchStoreById } from "@/utils/stores";
 import { fetchBuyerById } from "@/utils/user";
 import { BackendStore, BackendBuyer } from "../../types/BackendModels";
+import { fontSizes, spacing, radii, shadows } from "../../constants/theme";
 
 interface Store {
   id: string;
@@ -157,38 +158,13 @@ const FavoritesScreen = () => {
 
   return (
     <Layout style={[styles.container, { paddingTop: insets.top }]}>
-      <Input
-        placeholder="Search in Favorites"
-        value={search}
-        onChangeText={setSearch}
-        accessoryLeft={() => (
-          <Ionicons name="search-outline" size={20} color="#8F9BB3" />
-        )}
-        style={styles.searchBar}
-      />
-
       <View style={styles.headerRow}>
         <Text category="h5" style={styles.headerTitle}>
           Favorites
         </Text>
-        <Button
-          appearance="ghost"
-          status="basic"
-          accessoryLeft={() => (
-            <Ionicons name="funnel-outline" size={24} color="#104911" />
-          )}
-          onPress={() => {
-            const next =
-              sortOption === "Recents"
-                ? "A-Z"
-                : sortOption === "A-Z"
-                ? "Z-A"
-                : "Recents";
-            setSortOption(next);
-          }}
-        />
       </View>
 
+      {/* Add empty state illustration and message if no favorites */}
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#548C2F" />
@@ -196,6 +172,12 @@ const FavoritesScreen = () => {
         </View>
       ) : error && favoriteStores.length === 0 ? (
         <View style={styles.emptyContainer}>
+          <Ionicons
+            name="heart-dislike"
+            size={48}
+            color="#E0E0E0"
+            style={{ marginBottom: 12 }}
+          />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : (
@@ -213,6 +195,12 @@ const FavoritesScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
+              <Ionicons
+                name="heart-outline"
+                size={48}
+                color="#E0E0E0"
+                style={{ marginBottom: 12 }}
+              />
               <Text style={styles.emptyText}>No favorite stores found</Text>
             </View>
           }
@@ -228,21 +216,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    marginTop: 25,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xl,
   },
   searchBar: {
-    marginTop: 10,
-    marginBottom: 20,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   headerTitle: {
     fontWeight: "bold",
+    fontSize: fontSizes.lg,
   },
   list: {
     paddingBottom: 100,
@@ -251,51 +240,51 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: spacing.lg,
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: spacing.sm,
+    fontSize: fontSizes.md,
     color: "#666",
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: spacing.lg,
     minHeight: 200,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: fontSizes.md,
     color: "#666",
     textAlign: "center",
   },
   errorText: {
-    fontSize: 16,
+    fontSize: fontSizes.md,
     color: "#FF6B6B",
     textAlign: "center",
   },
   storeItem: {
     flexDirection: "row",
-    marginBottom: 20,
+    marginBottom: spacing.lg,
     alignItems: "center",
   },
   storeImageWrapper: {
     position: "relative",
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   storeImage: {
     width: 100,
     height: 100,
-    borderRadius: 20,
+    borderRadius: radii.xl,
   },
   heartContainer: {
     position: "absolute",
-    top: 6,
-    right: 6,
+    top: spacing.sm,
+    right: spacing.sm,
     backgroundColor: "#104911",
-    borderRadius: 12,
-    padding: 4,
+    borderRadius: radii.md,
+    padding: spacing.xs,
   },
   storeTextSection: {
     flex: 1,
@@ -306,7 +295,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   rating: {
-    marginLeft: 10,
+    marginLeft: spacing.md,
   },
   distanceRow: {
     flexDirection: "row",
@@ -314,10 +303,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   distanceText: {
-    marginLeft: 4,
+    marginLeft: spacing.xs,
   },
   testButton: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
     backgroundColor: "#FF5757",
   },
 });

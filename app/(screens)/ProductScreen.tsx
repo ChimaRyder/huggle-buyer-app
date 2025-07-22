@@ -11,6 +11,8 @@ import {
   Alert,
   Platform,
   Animated,
+  Modal,
+  TextInput,
 } from "react-native";
 import AddToCartModal from "../../components/AddToCartModal";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
@@ -18,6 +20,7 @@ import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import ReviewCard from "../../components/ReviewCard";
+import { MaterialIcons } from "@expo/vector-icons";
 
 import { fetchStoreById } from "../../utils/stores";
 import { fetchProductById } from "@/utils/products";
@@ -214,8 +217,104 @@ export default function ProductScreen() {
     }
   };
 
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
+
+  const handleReportProduct = async () => {
+    if (!userId || !product) {
+      Alert.alert("Error", "You must be logged in to report a product.");
+      return;
+    }
+    if (!reportReason) {
+      Alert.alert("Error", "Please select a reason for reporting.");
+      return;
+    }
+    setReportLoading(true);
+    try {
+      const token = await getToken({ template: "seller_app" });
+      const res = await fetch("https://huggle-backend-jh2l.onrender.com/api/reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          reporterId: userId,
+          targetId: product.id,
+          reason: reportReason,
+          description: reportDescription,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to submit report.");
+      }
+      setReportModalVisible(false);
+      setReportReason("");
+      setReportDescription("");
+      Alert.alert("Report Submitted", "Thank you for helping keep Huggle safe.");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to submit report.");
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {/* Report Product Modal */}
+      <Modal visible={reportModalVisible} transparent animationType="slide" onRequestClose={() => setReportModalVisible(false)}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.3)" }}>
+          <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, width: "85%" }}>
+            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>Report Product</Text>
+            <Text style={{ marginBottom: 8 }}>Reason</Text>
+            <View style={{ flexDirection: "row", marginBottom: 12 }}>
+              {["Inappropriate", "Fraud", "Spam", "Other"].map((reason) => (
+                <Pressable
+                  key={reason}
+                  style={{
+                    backgroundColor: reportReason === reason ? "#F9A620" : "#eee",
+                    padding: 8,
+                    borderRadius: 8,
+                    marginRight: 8,
+                  }}
+                  onPress={() => setReportReason(reason)}
+                >
+                  <Text style={{ color: reportReason === reason ? "#fff" : "#333" }}>{reason}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={{ marginBottom: 8 }}>Description (optional)</Text>
+            <TextInput
+              style={{ minHeight: 60, padding: 8, borderWidth: 1, borderColor: "#ccc", borderRadius: 8, marginBottom: 16 }}
+              multiline
+              numberOfLines={3}
+              value={reportDescription}
+              onChangeText={setReportDescription}
+              placeholder="Describe the issue..."
+            />
+            <Pressable
+              style={{
+                backgroundColor: reportLoading ? "#ccc" : "#F9A620",
+                padding: 12,
+                borderRadius: 8,
+                alignItems: "center",
+              }}
+              onPress={handleReportProduct}
+              disabled={reportLoading}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                {reportLoading ? "Submitting..." : "Submit Report"}
+              </Text>
+            </Pressable>
+            <Pressable style={{ marginTop: 12, alignItems: "center" }} onPress={() => setReportModalVisible(false)}>
+              <Text style={{ color: "#F9A620" }}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
       {/* Add to Cart Success Modal */}
       <AddToCartModal
         visible={cartModalVisible}
@@ -253,13 +352,21 @@ export default function ProductScreen() {
                 style={styles.productImage}
                 resizeMode="cover"
               />
+              {/* Report Product Button */}
+              <TouchableOpacity
+                style={{ position: "absolute", top: 20, right: 60, zIndex: 2, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 20, padding: 8 }}
+                onPress={() => setReportModalVisible(true)}
+              >
+                <MaterialIcons name="flag" size={24} color="#fff" />
+              </TouchableOpacity>
+              {/* Close Button */}
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => router.back()}
               >
                 <Ionicons name="close" size={24} color="white" />
               </TouchableOpacity>
-
+              {/* Discount Badge */}
               {product && product.originalPrice > product.discountedPrice && (
                 <View style={styles.discountBadge}>
                   <Text style={styles.discountText}>

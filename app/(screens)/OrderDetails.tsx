@@ -6,7 +6,7 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Pressable
+  Pressable,
 } from "react-native";
 import { Text, Button } from "@ui-kitten/components";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,7 +18,7 @@ import {
   fetchProductById,
   fetchStoreById,
   getOrders,
-  fetchBuyerById
+  fetchBuyerById,
 } from "../../utils/api";
 import { tokenCache } from "../../utils/cache";
 import {
@@ -27,6 +27,8 @@ import {
   BackendStore,
   OrderStatus,
 } from "../../types/BackendModels";
+import ProductListCard from "../../components/ProductListCard";
+import OrderMap from "../../components/OrderMap";
 
 interface OrderDetailsViewProps {
   orderId?: string;
@@ -155,103 +157,129 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = (props) => {
     <>
       <PageTitle title="Order Details" />
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Order Status Badge */}
-        <View
-          style={[
-            styles.statusCard,
-            { backgroundColor: getStatusColor(order.status) + "20" },
-          ]}
-        >
-          <Text
-            style={[styles.statusText, { color: getStatusColor(order.status) }]}
-          >
-            Order Status: {getStatusFromEnum(order.status)}
-          </Text>
-          <Text style={styles.orderIdText}>Order ID: {order.id}</Text>
-          <Text style={styles.orderDateText}>
-            Placed: {formatDate(order.createdAt)}
-          </Text>
+        {/* Product Cards */}
+        <View style={{ marginBottom: 16 }}>
+          {products.map((product, idx) => (
+            <ProductListCard
+              key={product.id}
+              id={product.id}
+              name={product.name}
+              image={
+                product.coverImage ? { uri: product.coverImage } : undefined
+              }
+              discount={
+                product.originalPrice > 0
+                  ? Math.round(
+                      ((product.originalPrice - product.discountedPrice) /
+                        product.originalPrice) *
+                        100
+                    )
+                  : 0
+              }
+              availableItems={product.stock}
+              rating={product.rating || 4.5}
+              expirationDate={product.expirationDate}
+              price={product.discountedPrice}
+              storeId={product.storeId}
+              onPress={() => {}}
+              onStorePress={() =>
+                router.push({
+                  pathname: "/(screens)/StoreHomepageScreen",
+                  params: { id: product.storeId },
+                })
+              }
+            />
+          ))}
         </View>
 
-        {/* Order Items */}
-        {/* List all products in the order */}
-        {products.map((product, idx) => (
-          <View style={styles.card} key={product.id}>
-            <View style={styles.itemContainer}>
-              <Image
-                source={{ uri: product.coverImage }}
-                resizeMode="cover"
-                style={styles.image}
-              />
-              <View style={styles.details}>
-                <Text style={styles.itemName}>
-                  {product.name || "Unknown Product"}
-                </Text>
-                <Text category="c1">
-                  Quantity: {Array.isArray(order.quantity) ? order.quantity[idx] : order.quantity}
-                </Text>
-                <Text style={styles.price}>
-                  ₱{product.discountedPrice.toFixed(2)}
-                </Text>
-                {/* Write a Review Button (conditional, per product) */}
-                <WriteReviewButton productId={product.id} orderStatus={String(order.status)} />
-              </View>
+        {/* Total Price */}
+        <Text style={styles.total}>Total: ₱{order.totalPrice.toFixed(2)}</Text>
+
+        {/* Pick-up Section */}
+        <Text style={[styles.label, { marginTop: 16 }]}>Pick-up at</Text>
+        <View style={styles.storeCard}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Image
+              source={
+                store?.storeImageUrl ? { uri: store.storeImageUrl } : undefined
+              }
+              style={styles.storeImage}
+            />
+            <View style={{ marginLeft: 12 }}>
+              <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                {store?.name || "Unknown Store"}
+              </Text>
+              <Text style={{ color: "#666", fontSize: 13 }}>
+                {store?.address}, {store?.city}, {store?.province}
+              </Text>
+              {/* Business Hours */}
+              {Array.isArray((store as any)?.businessHours) &&
+                (store as any).businessHours.length > 0 && (
+                  <View style={{ marginTop: 4 }}>
+                    <Text style={{ fontWeight: "bold", fontSize: 13 }}>
+                      Business Hours:
+                    </Text>
+                    {(
+                      (store as any).businessHours as Array<{
+                        isOpen: boolean;
+                        openTime?: string;
+                        closeTime?: string;
+                      }>
+                    ).map((bh, i) => (
+                      <Text
+                        key={i}
+                        style={{
+                          fontSize: 13,
+                          color: bh.isOpen ? "#548C2F" : "#d32f2f",
+                        }}
+                      >
+                        {bh.isOpen
+                          ? `${bh.openTime || ""} - ${bh.closeTime || ""}`
+                          : "Closed"}
+                      </Text>
+                    ))}
+                  </View>
+                )}
             </View>
           </View>
-        ))}
+        </View>
 
-        {/* Total */}
-        <Text style={styles.total}>TOTAL: ₱{order.totalPrice.toFixed(2)}</Text>
-
-        {/* Store Info */}
-        <View style={styles.storeSection}>
-          <Text style={styles.label}>STORE INFORMATION</Text>
-          <View style={styles.pickupBox}>
-            <Ionicons
-              name="storefront"
-              size={18}
-              color="#051D24"
-              style={{ marginRight: 6 }}
+        {/* Store Location Map */}
+        {store?.latitude && store?.longitude && (
+          <View style={styles.mapContainer}>
+            <OrderMap
+              latitude={store.latitude}
+              longitude={store.longitude}
+              label={store?.name}
             />
-            <Text>{store?.name || "Unknown Store"}</Text>
           </View>
-        </View>
+        )}
 
-        {/* Store Address */}
-        <View style={styles.addressCard}>
-          <Ionicons
-            name="location"
-            size={24}
-            color="#548C2F"
-            style={{ marginRight: 12 }}
-          />
-          <View>
-            <Text category="s1" style={styles.addressText}>
-              {store?.name || "Unknown Store"}
-            </Text>
-            <Text category="c1" style={styles.addressText}>
-              {store
-                ? `${store.address}, ${store.city}, ${store.province}`
-                : "Address not available"}
-            </Text>
+        {/* Confirm Order Button */}
+        {!readOnlyMode && (
+          <View style={{ marginTop: 32, marginBottom: 16 }}>
+            <Button
+              style={{ borderRadius: 10, paddingVertical: 12 }}
+              onPress={() => {
+                /* Confirm order logic here */
+              }}
+            >
+              Confirm Order
+            </Button>
           </View>
-        </View>
-
-        {/* Back Button for read-only mode */}
-        {readOnlyMode && store && (
-          <Button
-            style={styles.backButtonStyle}
-            onPress={() => router.push({ pathname: '/(screens)/StoreHomepageScreen', params: { id: store.id } })}
-          >
-            Back to Store
-          </Button>
         )}
       </ScrollView>
     </>
   );
 };
 
-function WriteReviewButton({ productId, orderStatus }: { productId: string, orderStatus: string }) {
+function WriteReviewButton({
+  productId,
+  orderStatus,
+}: {
+  productId: string;
+  orderStatus: string;
+}) {
   const router = useRouter();
   const [eligible, setEligible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -279,7 +307,9 @@ function WriteReviewButton({ productId, orderStatus }: { productId: string, orde
         setLoading(false);
         return;
       }
-      const res = await fetch(`https://huggle-backend-jh2l.onrender.com/api/reviews?productId=${productId}`);
+      const res = await fetch(
+        `https://huggle-backend-jh2l.onrender.com/api/reviews?productId=${productId}`
+      );
       const reviews = await res.json();
       const hasReviewed = reviews.some((rev: any) => rev.buyerId === buyerId);
       setEligible(!hasReviewed);
@@ -299,7 +329,12 @@ function WriteReviewButton({ productId, orderStatus }: { productId: string, orde
         alignItems: "center",
         marginTop: 8,
       }}
-      onPress={() => router.push({ pathname: "/(screens)/ReviewProductScreen", params: { productId } })}
+      onPress={() =>
+        router.push({
+          pathname: "/(screens)/ReviewProductScreen",
+          params: { productId },
+        })
+      }
     >
       <Text style={{ color: "#fff", fontWeight: "bold" }}>Write a Review</Text>
     </Pressable>
@@ -430,6 +465,24 @@ const styles = StyleSheet.create({
   backButtonStyle: {
     backgroundColor: "#6c757d",
     borderColor: "#6c757d",
+    marginBottom: 16,
+  },
+  storeCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  storeImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  mapContainer: {
+    borderRadius: 12,
+    overflow: "hidden",
     marginBottom: 16,
   },
 });

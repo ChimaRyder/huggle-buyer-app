@@ -76,6 +76,8 @@ export const fetchSearchResults = async (
         },
       }
     );
+
+    console.log("Search URL:", response.url);
     if (!response.ok) {
       throw new Error("Failed to fetch search results");
     }

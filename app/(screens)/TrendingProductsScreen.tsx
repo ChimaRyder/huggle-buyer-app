@@ -14,7 +14,6 @@ export default function TrendingProductsScreen() {
           productType={
             typeof productType === "string" ? productType : undefined
           }
-          showHeader={false}
         />
       </View>
     </SafeAreaView>
@@ -23,7 +22,14 @@ export default function TrendingProductsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  title: { fontSize: 22, fontWeight: "bold", margin: 16, marginTop: 32 },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    margin: 16,
+    marginTop: 32,
+    fontFamily: "Poppins-SemiBold",
+    color: "#333",
+  },
   safeArea: {
     flex: 1,
     backgroundColor: "#F7F8FA", //F7F8FA

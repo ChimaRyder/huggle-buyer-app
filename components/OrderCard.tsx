@@ -2,6 +2,7 @@ import React from "react";
 import { View, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { Text, Button } from "@ui-kitten/components";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
+import { fontSizes, spacing, radii, shadows } from "../constants/theme";
 
 interface OrderCardProps {
   order: {
@@ -12,7 +13,12 @@ interface OrderCardProps {
     description: string;
     storeName: string;
     location: string;
-    status: "Pending" | "Confirmed" | "Ready for Pickup" | "Completed" | "Cancelled";
+    status:
+      | "Pending"
+      | "Confirmed"
+      | "Ready for Pickup"
+      | "Completed"
+      | "Cancelled";
     image: any;
   };
   onCancel?: () => void;
@@ -95,18 +101,15 @@ const getStatusStyle = (status: string) => ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    marginHorizontal: 25,
-    marginBottom: 19,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: radii.lg,
+    marginHorizontal: spacing.lg + spacing.sm,
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    ...shadows.card,
   },
   dateText: {
-    marginBottom: 8,
-    fontSize: 14,
+    marginBottom: spacing.xs,
+    fontSize: fontSizes.sm,
     fontFamily: "Poppins-SemiBold",
     color: "#F9A620",
   },
@@ -117,8 +120,8 @@ const styles = StyleSheet.create({
   image: {
     width: 50,
     height: 50,
-    borderRadius: 25,
-    marginRight: 12,
+    borderRadius: radii.full,
+    marginRight: spacing.md,
   },
   infoColumn: {
     flex: 1,
@@ -136,43 +139,43 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   description: {
-    marginTop: 4,
-    fontSize: 12,
+    marginTop: spacing.xs,
+    fontSize: fontSizes.xs,
     fontFamily: "Poppins-Regular",
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   metaText: {
-    fontSize: 12,
+    fontSize: fontSizes.xs,
   },
   statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
     alignSelf: "flex-start",
   },
   statusText: {
-    fontSize: 12,
+    fontSize: fontSizes.xs,
     fontWeight: "bold",
   },
   bottomRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: spacing.md - spacing.xs,
   },
   cancelButton: {
     backgroundColor: "#dc3545",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
   },
   cancelButtonText: {
     color: "white",
-    fontSize: 12,
+    fontSize: fontSizes.xs,
     fontWeight: "bold",
   },
 });

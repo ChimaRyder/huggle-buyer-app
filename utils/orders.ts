@@ -28,7 +28,7 @@ export const createOrder = async (orderData: any, token: string | null) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Error: ${response.status} - ${errorText}`);
+      throw new Error(`${errorText}`);
     }
 
     return await response.json();
