@@ -13,6 +13,8 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { CreateBuyerAccount } from "../../utils/user"; // Adjust the import path as necessary
+import { registerForPushNotificationsAsync } from "@/utils/Notifications";
+import { addPushToken } from "@/utils/pushToken";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -21,6 +23,23 @@ export default function AuthScreen() {
   const [status, setStatus] = useState("Checking user information...");
   const theme = useTheme();
   const { getToken } = useAuth();
+
+  const registerAndFetchToken = async () => {
+    const pToken = await registerForPushNotificationsAsync().catch((err) => {
+      console.log("Push notification registration error:", err);
+    });
+    const token = await getToken({ template: "seller_app" });
+    if (user && pToken) {
+      await addPushToken(
+        {
+          userId: user.id,
+          pushToken: pToken,
+          isActive: true,
+        },
+        token
+      );
+    }
+  };
 
   // Animation setup
   const scale = useSharedValue(1);
@@ -36,12 +55,11 @@ export default function AuthScreen() {
       if (user) {
         try {
           setStatus("Checking user profile...");
-          console.log("User is signed in:", user.id);
           const exists = await checkIfUserExists(user.id);
           console.log(exists);
           setStatus("Redirecting...");
           if (exists === 200) {
-            // console.log("User exists");
+            await registerAndFetchToken();
             setTimeout(() => {
               router.dismissTo("/(tabs)");
             }, 500); // Small delay for smoother transition

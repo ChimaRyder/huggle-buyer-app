@@ -16,6 +16,7 @@ import { fetchPostById, upvotePost, reportPost } from "../../utils/postApi";
 import { fetchStoreById } from "../../utils/stores";
 import { ScrollView } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
+import { likePost, unlikePost, isPostLiked } from "../../utils/posts";
 
 const { width } = Dimensions.get("window");
 
@@ -33,6 +34,8 @@ export default function PostScreen() {
   const [reportLoading, setReportLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
+  const [liked, setLiked] = useState<boolean>(false);
+  const [likeLoading, setLikeLoading] = useState(false);
 
   // Helper to format date
   const formatDate = (date: string | Date) => {
@@ -56,6 +59,15 @@ export default function PostScreen() {
         if (postData.storeId) {
           const storeData = await fetchStoreById(postData.storeId, token);
           setStore(storeData);
+        }
+        // Check if liked
+        if (id) {
+          try {
+            const likedRes = await isPostLiked(id as string, token);
+            setLiked(!!likedRes);
+          } catch (e) {
+            setLiked(false);
+          }
         }
       } catch (err: any) {
         setError(err.message || "Failed to load post");
@@ -101,6 +113,30 @@ export default function PostScreen() {
       alert(err.message || "Failed to submit report.");
     } finally {
       setReportLoading(false);
+    }
+  };
+
+  const handleLikeToggle = async () => {
+    if (!post || likeLoading) return;
+    setLikeLoading(true);
+    try {
+      const token = await getToken({ template: "seller_app" });
+      if (liked) {
+        await unlikePost(post.id, token);
+        setLiked(false);
+        setPost({
+          ...post,
+          interactions: Math.max((post.interactions || 1) - 1, 0),
+        });
+      } else {
+        await likePost(post.id, token);
+        setLiked(true);
+        setPost({ ...post, interactions: (post.interactions || 0) + 1 });
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to update like");
+    } finally {
+      setLikeLoading(false);
     }
   };
 
@@ -193,13 +229,13 @@ export default function PostScreen() {
         <View style={styles.infoRow}>
           <TouchableOpacity
             style={styles.upvoteRow}
-            onPress={handleUpvote}
-            disabled={upvoting}
+            onPress={handleLikeToggle}
+            disabled={likeLoading}
           >
             <MaterialIcons
               name="favorite"
               size={22}
-              color={post.interactions > 0 ? "#FF6B6B" : "#ccc"}
+              color={liked ? "#FF6B6B" : "#ccc"}
             />
             <Text style={styles.upvoteText}>{post.interactions || 0}</Text>
           </TouchableOpacity>

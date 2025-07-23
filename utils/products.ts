@@ -2,7 +2,6 @@ import { API_BASE_URL } from "./api";
 
 export const fetchAllProducts = async (token: string, productType?: string) => {
   try {
-    console.log("Bearer", token);
     let url = `${API_BASE_URL}/api/products/display`;
     if (productType) {
       url += `?productCategory=${encodeURIComponent(productType)}`;

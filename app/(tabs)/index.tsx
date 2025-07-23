@@ -12,45 +12,19 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import CategoryCarousel from "../../components/CategoryCarousel";
-import PromoBanner from "../../components/PromoBanner";
 import ProductGrid from "../../components/ProductGrid";
 import GreeterSection from "../../components/GreeterSection";
-
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function HomeScreen() {
   const [showModal, setShowModal] = useState(false);
   const { getToken } = useAuth();
   const router = useRouter();
-
-  // useEffect(() => {
-  //   const registerAndFetchToken = async () => {
-  //     await registerForPushNotificationsAsync().catch((err) => {
-  //       console.log("Push notification registration error:", err);
-  //     });
-  //     const token = await getToken({ template: "seller_app" });
-
-  //     // You can use the token here if needed
-  //   };
-  //   registerAndFetchToken();
-  // }, []);
+  const { user } = useUser();
 
   // TODO: Check from backend not in AsyncStorage
   // get buyer nya check if location is null
-  useEffect(() => {
-    const registerAndFetchToken = async () => {
-      await registerForPushNotificationsAsync().catch((err) => {
-        console.log("Push notification registration error:", err);
-      });
-      const token = await getToken({ template: "seller_app" });
-
-      // You can use the token here if needed
-    };
-    registerAndFetchToken();
-  }, []);
-
-  // TODO: Check from backend not in AsyncStorage
   useEffect(() => {
     const checkLocation = async () => {
       // You can replace this with a backend check if needed

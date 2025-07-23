@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "./api";
 
 export const CreateBuyerAccount = async (
-  token: string,
+  token: string | null = null,
   id: string,
   name: string,
   email: string

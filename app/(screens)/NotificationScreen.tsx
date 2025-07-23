@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,84 +6,185 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  RefreshControl,
+  Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
+import { useUser, useAuth } from "@clerk/clerk-expo";
+import {
+  getNotifications,
+  markNotificationAsRead,
+  deleteNotification,
+  markAllNotificationsAsRead,
+} from "../../utils/notificationApi";
+import { Swipeable } from "react-native-gesture-handler";
 
-const mockNotifications = [
+// Map backend type number to string
+const NOTIF_TYPE_MAP: Record<number, "NewProduct" | "NewPost" | "OrderReady"> =
   {
-    id: "1",
-    type: "order",
-    title: "Order Shipped!",
-    message: "Your order #12345 has been shipped.",
-    date: "2025-07-23 09:30",
-  },
-  {
-    id: "2",
-    type: "product",
-    title: "New Product from Favorite Store",
-    message: "Check out the new Mango Tart at Sweet Treats!",
-    productId: "mango-tart-001",
-    storeName: "Sweet Treats",
-    date: "2025-07-22 16:10",
-  },
-  {
-    id: "3",
-    type: "order",
-    title: "Order Delivered!",
-    message: "Your order #12345 has been delivered.",
-    date: "2025-07-21 18:45",
-  },
-  {
-    id: "4",
-    type: "product",
-    title: "Promo at Coffee Corner",
-    message: "Coffee Corner is offering 20% off on all drinks!",
-    productId: "coffee-corner-promo",
-    storeName: "Coffee Corner",
-    date: "2025-07-20 12:00",
-  },
-];
+    0: "NewProduct",
+    1: "NewPost",
+    2: "OrderReady",
+  };
+
+const NOTIF_TYPES = ["NewProduct", "NewPost", "OrderReady"];
+
+type Notification = {
+  id: string;
+  type: "NewProduct" | "NewPost" | "OrderReady";
+  title: string;
+  message: string;
+  createdAt: string;
+  isRead: boolean;
+  [key: string]: any;
+};
 
 const NotificationScreen = () => {
-  const navigation = useNavigation();
+  const { user } = useUser();
+  const { getToken } = useAuth();
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
 
-  const handlePress = (notif) => {
-    if (notif.type === "order") {
-      navigation.navigate("Orders");
-    } else if (notif.type === "product" && notif.productId) {
-      navigation.navigate("ProductScreen", { productId: notif.productId });
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
+    if (initialLoad) setLoading(true);
+    try {
+      const token = await getToken({ template: "seller_app" });
+      const res = await getNotifications(user.id, token);
+      // Map backend type (number) to string
+      const mapped = (res.notifications || []).map((n: any) => ({
+        ...n,
+        type: typeof n.type === "number" ? NOTIF_TYPE_MAP[n.type] : n.type,
+      }));
+      setNotifications(
+        mapped.filter((n: Notification) => NOTIF_TYPES.includes(n.type))
+      );
+    } catch (e) {
+      Alert.alert("Error", "Failed to load notifications");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      setInitialLoad(false);
+    }
+  }, [user, getToken, initialLoad]);
+
+  useEffect(() => {
+    fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const handlePress = async (notif: Notification) => {
+    if (!notif.isRead) {
+      try {
+        const token = await getToken({ template: "seller_app" });
+        await markNotificationAsRead(notif.id, token);
+        setNotifications((prev: Notification[]) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+        );
+      } catch {}
+    }
+    if (notif.type === "OrderReady") {
+      router.push("/(screens)/Orders");
+    } else if (notif.type === "NewProduct" || notif.type === "NewPost") {
+      router.push("/(tabs)/FavoritesScreen");
     }
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => handlePress(item)}>
-      <View style={styles.iconWrapper}>
-        <Image
-          source={
-            item.type === "order"
-              ? require("../../assets/icons/bell.png")
-              : require("../../assets/icons/location.png")
-          }
-          style={styles.icon}
-        />
-      </View>
-      <View style={styles.textWrapper}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.message}>{item.message}</Text>
-        <Text style={styles.date}>{item.date}</Text>
-      </View>
+  const handleDelete = async (notifId: string) => {
+    try {
+      const token = await getToken({ template: "seller_app" });
+      await deleteNotification(notifId, token);
+      setNotifications((prev: Notification[]) =>
+        prev.filter((n) => n.id !== notifId)
+      );
+    } catch {
+      Alert.alert("Error", "Failed to delete notification");
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchNotifications();
+  };
+
+  const renderRightActions = (item: Notification) => (
+    <TouchableOpacity
+      style={{
+        backgroundColor: "#d00",
+        justifyContent: "center",
+        alignItems: "center",
+        width: 80,
+        height: "100%",
+        borderTopRightRadius: 14,
+        borderBottomRightRadius: 14,
+      }}
+      onPress={() => handleDelete(item.id)}
+    >
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>Delete</Text>
     </TouchableOpacity>
+  );
+
+  const renderItem = ({ item }: { item: Notification }) => (
+    <Swipeable renderRightActions={() => renderRightActions(item)}>
+      <TouchableOpacity
+        style={[styles.card, item.isRead ? { opacity: 0.5 } : {}]}
+        onPress={() => handlePress(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.iconWrapper}>
+          <Image
+            source={
+              item.type === "OrderReady"
+                ? require("../../assets/icons/bell.png")
+                : require("../../assets/icons/location.png")
+            }
+            style={styles.icon}
+          />
+        </View>
+        <View style={styles.textWrapper}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.message}>{item.message}</Text>
+          <Text style={styles.date}>
+            {new Date(item.createdAt).toLocaleString()}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Swipeable>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Notifications</Text>
-      <FlatList
-        data={mockNotifications}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 24 }}
-      />
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          marginBottom: 18,
+        }}
+      >
+        <Text style={styles.header}>Notifications</Text>
+      </View>
+      {loading && initialLoad ? (
+        <Text>Loading...</Text>
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#548C2F"]}
+            />
+          }
+          contentContainerStyle={{ paddingBottom: 24 }}
+          ListEmptyComponent={<Text>No notifications</Text>}
+        />
+      )}
     </View>
   );
 };
