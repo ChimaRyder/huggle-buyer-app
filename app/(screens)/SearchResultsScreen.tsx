@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  TextInput,
   Image,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
@@ -43,14 +44,38 @@ const SearchResultsScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>("rating");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [searchQuery, setSearchQuery] = useState(query);
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+  const debounceTimeout = useRef<any>(null);
 
+  // Debounce search input
   useEffect(() => {
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    if (!searchQuery.trim()) {
+      setDebouncedQuery("");
+      setResults([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    debounceTimeout.current = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+    }, 400);
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
+  }, [searchQuery]);
+
+  // Fetch results when debouncedQuery changes
+  useEffect(() => {
+    if (!debouncedQuery) return;
     setLoading(true);
     setError(null);
     (async () => {
       try {
         const token = await getToken({ template: "seller_app" });
-        const { products } = await fetchSearchResults(query, isProduct, token);
+        const { products } = await fetchSearchResults(debouncedQuery, isProduct, token);
         // Mark type for each
         const productItems: SearchResult[] = (products || []).map(
           (p: BackendProduct) => ({
@@ -66,7 +91,7 @@ const SearchResultsScreen = () => {
         setLoading(false);
       }
     })();
-  }, [query, isProduct]);
+  }, [debouncedQuery, isProduct]);
 
   const handlePress = (item: SearchResult) => {
     if (item._type === "product") {
@@ -110,28 +135,34 @@ const SearchResultsScreen = () => {
     return sorted;
   };
 
-  // Render pill search bar
+  // Render pill search bar (no search icon)
   const renderSearchBar = () => (
-    <View style={styles.searchBarContainer}>
-      <TouchableOpacity
-        onPress={() => router.push("/(tabs)/SearchScreen")}
-        style={styles.iconButton}
-      >
-        <Ionicons name="arrow-back" size={22} color="#333" />
-      </TouchableOpacity>
-      <View style={styles.searchBarPill}>
-        <Text style={styles.searchBarText} numberOfLines={1}>
-          {query}
-        </Text>
-      </View>
-      <TouchableOpacity
-        style={styles.iconButton}
-        onPress={() => router.push("/(tabs)/SearchScreen")}
-      >
-        <Ionicons name="search" size={22} color="#333" />
-      </TouchableOpacity>
+  <View style={styles.searchBarContainer}>
+    <TouchableOpacity
+      onPress={() => router.back()}
+      style={styles.iconButton}
+    >
+      <Ionicons name="arrow-back" size={22} color="#333" />
+    </TouchableOpacity>
+    <View style={styles.searchInputWrapper}>
+      <MaterialIcons
+        name="search"
+        size={20}
+        color="#888"
+        style={{ marginRight: 8 }}
+      />
+      <TextInput
+        style={styles.searchInput}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Search for anything..."
+        placeholderTextColor="#888"
+        returnKeyType="search"
+      />
     </View>
-  );
+  </View>
+);
+
 
   // Updated filter bar
   const renderFilters = () => {
@@ -435,6 +466,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F7F8FA", //F7F8FA
   },
+  searchInputWrapper: {
+  flex: 1,
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#f1f1f1",
+  borderRadius: 24,
+  paddingHorizontal: 12,
+  height: 40,
+  marginLeft: 8,
+},
+searchInput: {
+  flex: 1,
+  fontSize: 16,
+  color: "#333",
+},
+
 });
 
 export default SearchResultsScreen;

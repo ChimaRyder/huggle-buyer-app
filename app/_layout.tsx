@@ -19,6 +19,7 @@ import Constants from "expo-constants";
 import { registerForPushNotificationsAsync } from "@/utils/Notifications";
 import { StyleSheet, SafeAreaView } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Toast from 'react-native-toast-message';
 
 SplashScreen.preventAutoHideAsync();
 

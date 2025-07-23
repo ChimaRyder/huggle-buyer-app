@@ -314,12 +314,12 @@ export default function StoreHomepageScreen() {
                     color={isFollowed ? "tomato" : "black"}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={[styles.circleButton, { marginTop: 8 }]}
                   onPress={() => router.push("/(screens)/chat" as any)}
                 >
                   <Ionicons name="chatbubble-outline" size={24} color="black" />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </View>
           </View>
@@ -330,7 +330,10 @@ export default function StoreHomepageScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Reviews</Text>
             <TouchableOpacity
-              onPress={() => router.push("/(screens)/reviews" as any)}
+              onPress={() => router.push({
+                pathname: "/(screens)/reviewsSeeAll",
+                params: { id: displayStore.id }
+              })}
             >
               <Text style={styles.seeAll}>See All</Text>
             </TouchableOpacity>

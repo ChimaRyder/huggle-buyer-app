@@ -26,7 +26,7 @@ const ProfileScreen = () => {
     { label: 'Orders', route: '../(screens)/Orders' as const },
     //{ label: 'Chats', route: '/(tabs)/chats' },
     { label: 'Settings', route: '../(screens)/settings' as const }, 
-    { label: 'Know secret discounts?', route: '../(screens)/secrets' as const },
+    //{ label: 'Know secret discounts?', route: '../(screens)/secrets' as const },
   ];
 
   return (
