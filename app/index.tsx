@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
 import { Redirect } from "expo-router";
-import { useTheme, Layout } from "@ui-kitten/components";
+import { useTheme, Layout, Text } from "@ui-kitten/components";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -10,9 +10,11 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
+import { ShoppingBag } from "lucide-react-native";
 
 const SplashScreen = () => {
   const { user } = useUser();
+  const theme = useTheme();
   const [isLoading, setIsLoading] = useState(true);
 
   // Animation setup
@@ -53,9 +55,17 @@ const SplashScreen = () => {
 
   return (
     <Layout
-      style={[styles.container, { backgroundColor: "color-primary-500" }]}
+      style={
+        [styles.container, 
+          { backgroundColor: theme["color-primary-500"] },
+        ]}
     >
-      <Animated.View style={animatedStyle}></Animated.View>
+      <Animated.View style={animatedStyle}>
+        <ShoppingBag
+          size={80}
+          color={theme['color-basic-100']}
+        />
+      </Animated.View>
     </Layout>
   );
 };

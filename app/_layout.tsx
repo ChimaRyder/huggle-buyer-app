@@ -20,6 +20,7 @@ import { registerForPushNotificationsAsync } from "@/utils/Notifications";
 import { StyleSheet, SafeAreaView } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from 'react-native-toast-message';
+import mainTheme from '@/assets/themes/main-theme.json'
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,7 +54,7 @@ export default function RootLayout() {
         <SafeAreaView style={styles.container}>
           <ApplicationProvider
             {...eva}
-            theme={colorScheme === "dark" ? eva.dark : eva.light}
+            theme={colorScheme === "dark" ? {...eva.dark, ...mainTheme} : {...eva.light,...mainTheme}}
           >
             <ThemeProvider
               value={colorScheme === "dark" ? DarkTheme : DefaultTheme}

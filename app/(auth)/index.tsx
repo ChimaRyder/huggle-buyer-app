@@ -15,6 +15,7 @@ import Animated, {
 import { CreateBuyerAccount } from "../../utils/user"; // Adjust the import path as necessary
 import { registerForPushNotificationsAsync } from "@/utils/Notifications";
 import { addPushToken } from "@/utils/pushToken";
+import { ShoppingBag } from "lucide-react-native";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -130,14 +131,10 @@ export default function AuthScreen() {
       {loading ? (
         <>
           <Animated.View style={animatedStyle}>
-            {/* <Icon
-              name="ShoppingBag"
-              style={{
-                width: 80,
-                height: 80,
-                tintColor: theme["color-basic-100"],
-              }}
-            /> */}
+            <ShoppingBag
+              size={80}
+              color={theme['color-basic-100']}
+            />
           </Animated.View>
         </>
       ) : (
