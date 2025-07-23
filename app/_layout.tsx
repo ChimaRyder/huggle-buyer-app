@@ -1,5 +1,5 @@
 // app/_layout.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import {
   DarkTheme,
   DefaultTheme,
@@ -8,7 +8,6 @@ import {
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { Slot } from "expo-router";
-import { useEffect } from "react";
 import * as eva from "@eva-design/eva";
 import { ApplicationProvider } from "@ui-kitten/components";
 import { StatusBar } from "expo-status-bar";
@@ -16,7 +15,10 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "../utils/cache";
 import Constants from "expo-constants";
+
 import { registerForPushNotificationsAsync } from "@/utils/Notifications";
+import { StyleSheet, SafeAreaView } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,23 +44,33 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <ClerkProvider
         publishableKey={publishableKey || ""}
         tokenCache={tokenCache}
       >
-        <ApplicationProvider
-          {...eva}
-          theme={colorScheme === "dark" ? eva.dark : eva.light}
-        >
-          <ThemeProvider
-            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        <SafeAreaView style={styles.container}>
+          <ApplicationProvider
+            {...eva}
+            theme={colorScheme === "dark" ? eva.dark : eva.light}
           >
-            <Slot />
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </ApplicationProvider>
+            <ThemeProvider
+              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+            >
+              <Slot />
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </ApplicationProvider>
+        </SafeAreaView>
       </ClerkProvider>
-    </>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#F7F8FA", //F7F8FA
+    marginTop: 24,
+    flex: 1,
+  },
+});

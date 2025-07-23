@@ -28,6 +28,8 @@ import {
   clearCart,
 } from "../../utils/api";
 import { BackendProduct, BackendStore } from "../../types/BackendModels";
+import { fontSizes, spacing, radii, shadows } from "../../constants/theme";
+import OrderMap from "../../components/OrderMap";
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -81,18 +83,43 @@ export default function CheckoutScreen() {
     }
   };
 
-  const availablePickupTimes = [
-    "ASAP (30-45 mins)",
-    "1:00 PM - 1:30 PM",
-    "2:00 PM - 2:30 PM",
-    "3:00 PM - 3:30 PM",
-    "4:00 PM - 4:30 PM",
-    "5:00 PM - 5:30 PM",
-  ];
-
   useEffect(() => {
     loadOrderData();
   }, []);
+
+  // For cart checkout, fetch all products and store info from the first item
+  useEffect(() => {
+    if (isCartCheckout === "true" && parsedCartItems.length > 0) {
+      const fetchCartProductsAndStore = async () => {
+        try {
+          setLoading(true);
+          const token = await getToken({ template: "seller_app" });
+          // Fetch all products
+          const productsData = await Promise.all(
+            parsedCartItems.map((item: any) =>
+              fetchProductById(item.productId, token)
+            )
+          );
+          setCartProducts(productsData);
+          // Fetch store info from the first product
+          if (productsData[0]?.storeId) {
+            const storeData = await fetchStoreById(
+              productsData[0].storeId,
+              token
+            );
+            setStore(storeData);
+          }
+        } catch (error) {
+          console.error("Error loading cart products/store:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchCartProductsAndStore();
+    }
+  }, [isCartCheckout, cartItems]);
+
+  const [cartProducts, setCartProducts] = useState<BackendProduct[]>([]);
 
   const loadOrderData = async () => {
     try {
@@ -131,7 +158,12 @@ export default function CheckoutScreen() {
 
       if (isCartCheckout === "true") {
         // Handle multiple orders from cart
-        await createMultipleOrders(parsedCartItems, Array.isArray(storeId) ? storeId[0] : storeId as string, getTotalPrice(), token);
+        await createMultipleOrders(
+          parsedCartItems,
+          Array.isArray(storeId) ? storeId[0] : (storeId as string),
+          getTotalPrice(),
+          token
+        );
 
         // Clear cart after successful orders
         await clearCart(token);
@@ -172,7 +204,10 @@ export default function CheckoutScreen() {
       }
     } catch (error) {
       console.error("Error placing order:", error);
-      Alert.alert("Error", "Failed to place order. Please try again.");
+      Alert.alert(
+        "Error",
+        (error as Error)?.message || "Failed to place order"
+      );
     } finally {
       setPlacingOrder(false);
     }
@@ -191,175 +226,133 @@ export default function CheckoutScreen() {
     <>
       <PageTitle title="Order Details" />
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Cart Summary for Multi-Product Orders */}
-        {isCartCheckout === "true" && parsedCartItems.length > 0 && (
-          <View style={styles.card}>
-            <Text style={{fontWeight: 'bold', fontSize: 16, marginBottom: 8}}>Cart Summary</Text>
-            {parsedCartItems.map((item: any, idx: number) => (
-              <View key={idx} style={{marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 6}}>
-                <Text style={{fontSize: 15}}>{item.productName || item.name}</Text>
-                <Text style={{color: '#666'}}>Quantity: {item.quantity}</Text>
-                <Text style={{color: '#666'}}>Price: ₱{item.price}</Text>
-                <Text style={{color: '#548C2F'}}>Subtotal: ₱{(item.price * item.quantity).toFixed(2)}</Text>
-              </View>
-            ))}
-            <Text style={{fontWeight: 'bold', fontSize: 16, marginTop: 8}}>
-              Total: ₱{getTotalPrice().toFixed(2)}
-            </Text>
-          </View>
-        )}
-        {/* Order Items */}
-        <View style={styles.card}>
+        {/* Product Cards */}
+        <View style={{ marginBottom: 16 }}>
           {isCartCheckout === "true" ? (
-            // Multiple items from cart
-            parsedCartItems.map((item: any, index: number) => (
-              <View key={index}>
+            cartProducts.map((product, idx) => (
+              <View key={product.id} style={styles.card}>
                 <View style={styles.itemContainer}>
                   <Image
-                    source={require("../../assets/products/product1.png")}
+                    source={
+                      product.coverImage
+                        ? { uri: product.coverImage }
+                        : require("../../assets/products/product1.png")
+                    }
                     style={styles.image}
                   />
                   <View style={styles.details}>
-                    <Text style={styles.itemName}>{item.productName}</Text>
+                    <Text style={styles.itemName}>{product.name}</Text>
                     <Text style={styles.itemDetails}>
-                      Qty: {item.quantity} • ₱{item.price.toFixed(2)} each
+                      Qty: {parsedCartItems[idx]?.quantity} • ₱
+                      {product.discountedPrice.toFixed(2)} each
                     </Text>
                     <Text style={styles.price}>
-                      ₱{(item.price * item.quantity).toFixed(2)}
+                      ₱
+                      {(
+                        product.discountedPrice * parsedCartItems[idx]?.quantity
+                      ).toFixed(2)}
                     </Text>
                   </View>
                 </View>
-                {index < parsedCartItems.length - 1 && (
-                  <View
-                    style={{
-                      borderBottomColor: "#ccc",
-                      borderBottomWidth: 1,
-                      marginVertical: 12,
-                    }}
-                  />
-                )}
               </View>
             ))
           ) : (
-            // Single item
-            <View style={styles.itemContainer}>
-              <Image
-                source={
-                  product?.coverImage
-                    ? { uri: product.coverImage }
-                    : require("../../assets/products/product1.png")
-                }
-                style={styles.image}
-              />
-              <View style={styles.details}>
-                <Text style={styles.itemName}>
-                  {product?.name || productName}
-                </Text>
-                <Text style={styles.itemDetails}>
-                  Qty: {getTotalItems()} • ₱
-                  {parseFloat(price as string).toFixed(2)} each
-                </Text>
-                <Text style={styles.price}>₱{getTotalPrice().toFixed(2)}</Text>
+            <View style={styles.card}>
+              <View style={styles.itemContainer}>
+                <Image
+                  source={
+                    product?.coverImage
+                      ? { uri: product.coverImage }
+                      : require("../../assets/products/product1.png")
+                  }
+                  style={styles.image}
+                />
+                <View style={styles.details}>
+                  <Text style={styles.itemName}>
+                    {product?.name || productName}
+                  </Text>
+                  <Text style={styles.itemDetails}>
+                    Qty: {getTotalItems()} • ₱
+                    {parseFloat(price as string).toFixed(2)} each
+                  </Text>
+                  <Text style={styles.price}>
+                    ₱{getTotalPrice().toFixed(2)}
+                  </Text>
+                </View>
               </View>
             </View>
           )}
         </View>
 
-        {/* Total */}
-        <Text style={styles.total}>TOTAL: ₱{getTotalPrice().toFixed(2)}</Text>
+        {/* Total Price */}
+        <Text style={styles.total}>Total: ₱{getTotalPrice().toFixed(2)}</Text>
 
-        {/* Pickup Info */}
-        <View style={styles.row}>
-          <View style={styles.column}>
-            <Text style={styles.label}>PICK-UP AT</Text>
-            <View style={styles.pickupBox}>
-              <Ionicons
-                name="storefront"
-                size={18}
-                color="#051D24"
-                style={{ marginRight: 6 }}
-              />
-              <Text>{store?.name || "Store"}</Text>
+        {/* Pick-up Section */}
+        <Text style={[styles.label, { marginTop: 16 }]}>Pick-up at</Text>
+        <View style={styles.storeCard}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Image
+              source={
+                store?.storeImageUrl ? { uri: store.storeImageUrl } : undefined
+              }
+              style={styles.storeImage}
+            />
+            <View style={{ marginLeft: 12, flex: 1 }}>
+              <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                {store?.name || "Unknown Store"}
+              </Text>
+              <Text style={{ color: "#666", fontSize: 13 }}>
+                {store?.address}, {store?.city}, {store?.province}
+              </Text>
+              {/* Business Hours for Current Day Only */}
+              {Array.isArray((store as any)?.businessHours) &&
+                (store as any).businessHours.length > 0 &&
+                (() => {
+                  const todayIdx = new Date().getDay(); // 0=Sunday, 6=Saturday
+                  const bh = (store as any).businessHours[todayIdx];
+                  return (
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={{ fontWeight: "bold", fontSize: 13 }}>
+                        Today's Hours:
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: bh.isOpen ? "#548C2F" : "#d32f2f",
+                        }}
+                      >
+                        {bh.isOpen
+                          ? `${bh.openTime || ""} - ${bh.closeTime || ""}`
+                          : "Closed"}
+                      </Text>
+                    </View>
+                  );
+                })()}
             </View>
           </View>
-          <View style={styles.column}>
-            <Text style={styles.label}>CHOOSE TIME</Text>
-            <Select
-              selectedIndex={selectedPickupTime}
-              onSelect={(index) => setSelectedPickupTime(index as IndexPath)}
-              value={
-                availablePickupTimes[selectedPickupTime.row] || "Choose time"
-              }
-              style={styles.input}
-            >
-              {availablePickupTimes.map((time) => {
-                // Assume time is in format 'HH:mm' or 'h:mm A' or similar
-                // You may need to adjust parsing logic for your actual format
-                const now = new Date();
-                let optionDate = null;
-                // Try to parse time as today with the current date
-                if (/\d{1,2}:\d{2}/.test(time)) {
-                  const [h, m] = time.split(':');
-                  optionDate = new Date(now);
-                  optionDate.setHours(Number(h), Number(m), 0, 0);
-                }
-                // If parsing fails, fallback to not disabling
-                const isPast = optionDate && optionDate < now;
-                return (
-                  <SelectItem
-                    key={time}
-                    title={(props: any) => (
-                      <Text style={isPast ? { color: '#aaa' } : undefined}>{time}</Text>
-                    )}
-                    disabled={!!isPast}
-                  />
-                );
-              })}
-            </Select>
+        </View>
+
+        {/* Store Location Map */}
+        {store?.latitude && store?.longitude && (
+          <View style={styles.mapContainer}>
+            <OrderMap
+              latitude={store.latitude}
+              longitude={store.longitude}
+              label={store?.name}
+            />
           </View>
-        </View>
+        )}
 
-        {/* Store Address */}
-        <View style={styles.addressCard}>
-          <Ionicons
-            name="location"
-            size={24}
-            color="#548C2F"
-            style={styles.locationIcon}
-          />
-          <View>
-            <Text style={styles.addressText}>
-              {store?.name || "Store Location"}
-            </Text>
-            <Text style={styles.addressSubtext}>
-              {store
-                ? `${store.address}, ${store.city}, ${store.province}`
-                : "Store Address"}
-            </Text>
-          </View>
+        {/* Confirm Order Button */}
+        <View style={{ marginTop: 32, marginBottom: 64 }}>
+          <Button
+            style={styles.confirmButton}
+            onPress={handleConfirmOrder}
+            disabled={placingOrder}
+          >
+            {placingOrder ? "Placing Order..." : "Confirm Order"}
+          </Button>
         </View>
-
-        {/* Order Notes */}
-        <View style={styles.notesSection}>
-          <Text style={styles.label}>ORDER NOTES (Optional)</Text>
-          <Input
-            multiline
-            numberOfLines={3}
-            placeholder="Add any special instructions..."
-            value={orderNotes}
-            onChangeText={setOrderNotes}
-            style={styles.notesInput}
-          />
-        </View>
-
-        {/* Confirm Button */}
-        <Button
-          style={styles.confirmButton}
-          onPress={handleConfirmOrder}
-          disabled={placingOrder}
-        >
-          {placingOrder ? "Placing Order..." : "Confirm Order"}
-        </Button>
       </ScrollView>
     </>
   );
@@ -374,23 +367,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: spacing.lg,
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: spacing.sm,
+    fontSize: fontSizes.md,
     color: "#666",
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    ...shadows.card,
   },
   itemContainer: {
     flexDirection: "row",
@@ -399,58 +388,57 @@ const styles = StyleSheet.create({
   image: {
     width: 80,
     height: 80,
-    borderRadius: 8,
-    marginRight: 12,
+    borderRadius: radii.md,
+    marginRight: spacing.md,
   },
   details: {
     flex: 1,
   },
   itemName: {
-    fontSize: 16,
+    fontSize: fontSizes.md,
     fontWeight: "600",
     color: "#333",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   itemDetails: {
-    fontSize: 14,
+    fontSize: fontSizes.sm,
     color: "#666",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   price: {
-    fontSize: 18,
+    fontSize: fontSizes.lg,
     fontWeight: "bold",
     color: "#548C2F",
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   total: {
-    fontSize: 20,
+    fontSize: fontSizes.lg,
     fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
-    marginBottom: 24,
+    color: "#548C2F",
+    textAlign: "right",
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   column: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: spacing.xs,
   },
   label: {
-    fontSize: 12,
+    fontSize: fontSizes.xs,
     fontWeight: "600",
     color: "#666",
-    marginBottom: 8,
+    marginBottom: spacing.xs,
     textTransform: "uppercase",
   },
   pickupBox: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f5f5f5",
-    padding: 12,
-    borderRadius: 8,
+    padding: spacing.md,
+    borderRadius: radii.md,
   },
   input: {
     backgroundColor: "#f5f5f5",
@@ -459,24 +447,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f9f9f9",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
+    padding: spacing.md,
+    borderRadius: radii.lg,
+    marginBottom: spacing.lg,
   },
   locationIcon: {
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   addressText: {
     color: "#333",
-    fontSize: 16,
+    fontSize: fontSizes.md,
     fontWeight: "600",
   },
   addressSubtext: {
     color: "#666",
-    fontSize: 14,
+    fontSize: fontSizes.sm,
   },
   notesSection: {
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   notesInput: {
     backgroundColor: "#f5f5f5",
@@ -485,7 +473,39 @@ const styles = StyleSheet.create({
   confirmButton: {
     backgroundColor: "#548C2F",
     borderColor: "#548C2F",
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
+  },
+  storeCard: {
+    backgroundColor: "#fff",
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    ...shadows.card,
+  },
+  storeImage: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: radii.md,
+    overflow: "hidden",
+    marginBottom: spacing.md,
+  },
+  sideTotal: {
+    fontSize: fontSizes.lg,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: spacing.xs,
+    textAlign: "right",
+  },
+  sideConfirmButton: {
+    backgroundColor: "#548C2F",
+    borderColor: "#548C2F",
+    paddingVertical: spacing.sm,
+    borderRadius: radii.lg,
+    marginLeft: spacing.md,
   },
 });

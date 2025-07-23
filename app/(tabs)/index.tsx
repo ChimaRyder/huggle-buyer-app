@@ -16,11 +16,28 @@ import PromoBanner from "../../components/PromoBanner";
 import ProductGrid from "../../components/ProductGrid";
 import GreeterSection from "../../components/GreeterSection";
 
+import { useAuth } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
+
 export default function HomeScreen() {
   const [showModal, setShowModal] = useState(false);
   const { getToken } = useAuth();
   const router = useRouter();
 
+  // useEffect(() => {
+  //   const registerAndFetchToken = async () => {
+  //     await registerForPushNotificationsAsync().catch((err) => {
+  //       console.log("Push notification registration error:", err);
+  //     });
+  //     const token = await getToken({ template: "seller_app" });
+
+  //     // You can use the token here if needed
+  //   };
+  //   registerAndFetchToken();
+  // }, []);
+
+  // TODO: Check from backend not in AsyncStorage
+  // get buyer nya check if location is null
   useEffect(() => {
     const registerAndFetchToken = async () => {
       await registerForPushNotificationsAsync().catch((err) => {
@@ -119,11 +136,32 @@ export default function HomeScreen() {
       >
         <GreeterSection onLocationPress={handleLocationPress} />
         <CategoryCarousel />
-        <PromoBanner />
         <View style={styles.productsContainer}>
           <ProductGrid />
         </View>
       </ScrollView>
+      {/* Floating Cart Button */}
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          bottom: 24,
+          right: 24,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: "#548C2F",
+          alignItems: "center",
+          justifyContent: "center",
+          elevation: 4,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+        }}
+        onPress={() => router.push("/(screens)/cart" as any)}
+      >
+        <Ionicons name="cart" size={32} color="white" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -137,6 +175,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productsContainer: {
-    marginHorizontal: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
   },
 });

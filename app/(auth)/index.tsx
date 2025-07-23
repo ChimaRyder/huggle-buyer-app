@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Alert, View, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useUser, useAuth } from "@clerk/clerk-expo";
+import axios from "axios";
 import { useClerk } from "@clerk/clerk-expo";
+import { Text, Spinner, useTheme, Layout } from "@ui-kitten/components"; // Changed from react-native-svg for proper Text component
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,14 +12,14 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { Text } from "react-native";
-import axios from "axios";
+import { CreateBuyerAccount } from "../../utils/user"; // Adjust the import path as necessary
 
 export default function AuthScreen() {
   const router = useRouter();
   const { user } = useUser();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("Checking user information...");
+  const theme = useTheme();
   const { getToken } = useAuth();
 
   // Animation setup
@@ -32,17 +34,42 @@ export default function AuthScreen() {
   useEffect(() => {
     const checkUserAndRedirect = async () => {
       if (user) {
-        const exists = await checkIfUserExists();
-        console.log(exists);
-
-        if (exists === 200) {
-          router.dismissTo("/(tabs)");
-        } else if (exists === 404) {
-          await createBuyerAccount();
-          router.dismissTo("/(tabs)");
+        try {
+          setStatus("Checking user profile...");
+          console.log("User is signed in:", user.id);
+          const exists = await checkIfUserExists(user.id);
+          console.log(exists);
+          setStatus("Redirecting...");
+          if (exists === 200) {
+            // console.log("User exists");
+            setTimeout(() => {
+              router.dismissTo("/(tabs)");
+            }, 500); // Small delay for smoother transition
+          } else if (exists === 404) {
+            const token = await getToken();
+            await CreateBuyerAccount(
+              token,
+              user.id,
+              user.firstName + " " + user.lastName,
+              user.emailAddresses[0].emailAddress
+            );
+            router.dismissTo("/(tabs)");
+            // Create account here
+          }
+        } catch (error) {
+          setStatus("Something went wrong");
+          console.error("Error in user redirection flow:", error);
+          setTimeout(() => setLoading(false), 1000);
         }
       } else {
-        router.dismissTo("../(login)");
+        setStatus("Waiting for user information...");
+        // If no user after 3 seconds, we might have a problem
+        setTimeout(() => {
+          if (!user) {
+            setLoading(false);
+            setStatus("No user found. Please sign in again.");
+          }
+        }, 3000);
       }
     };
 
@@ -61,36 +88,12 @@ export default function AuthScreen() {
     );
   }, []);
 
-  const createBuyerAccount = async () => {
-    const data = {
-      id: user?.id,
-      name: user?.firstName + " " + user?.lastName,
-      emailAddress: user?.primaryEmailAddress?.emailAddress,
-    };
+  const checkIfUserExists = async (userid: string) => {
     try {
-      const token = await getToken();
-      console.log("Bearer " + token);
-      const response = await axios.post(
-        `https://l4f9xg2c-5132.asse.devtunnels.ms/api/buyer`,
-        {
-          ...data,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      setStatus("Connecting to server...");
 
-      console.log("response: ", response.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+      const hasAccount = user?.publicMetadata.hasAccount;
 
-  const checkIfUserExists = async () => {
-    try {
-      const hasAccount = user?.publicMetadata?.hasAccount;
       if (hasAccount) {
         return 200;
       } else {
@@ -100,9 +103,41 @@ export default function AuthScreen() {
   };
 
   return (
-    <>
-      <Text>Yawa</Text>
-    </>
+    <Layout
+      style={[
+        styles.container,
+        { backgroundColor: theme["color-primary-500"] },
+      ]}
+    >
+      {loading ? (
+        <>
+          <Animated.View style={animatedStyle}>
+            {/* <Icon
+              name="ShoppingBag"
+              style={{
+                width: 80,
+                height: 80,
+                tintColor: theme["color-basic-100"],
+              }}
+            /> */}
+          </Animated.View>
+        </>
+      ) : (
+        <View style={styles.errorContainer}>
+          <Text category="s1" status="control" style={styles.errorText}>
+            {status}
+          </Text>
+          <Text
+            category="h6"
+            status="control"
+            style={styles.linkText}
+            onPress={() => router.replace("/")}
+          >
+            Return to Login
+          </Text>
+        </View>
+      )}
+    </Layout>
   );
 }
 

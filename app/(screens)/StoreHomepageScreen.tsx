@@ -20,9 +20,11 @@ import { ReviewCard } from "../../components/ReviewCard";
 import StoreProductGrid from "../../components/StoreProductGrid";
 import {
   fetchStoreById,
-  fetchBuyerById,
-  updateFavoriteStore,
-} from "../../utils/api";
+  followStore,
+  unfollowStore,
+  fetchFollowedStores,
+} from "../../utils/stores";
+import { fetchBuyerById } from "@/utils/user";
 import { BackendStore, BackendBuyer } from "../../types/BackendModels";
 
 const { width, height } = Dimensions.get("window");
@@ -75,6 +77,7 @@ export default function StoreHomepageScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [isFollowed, setIsFollowed] = useState(false);
 
   // Fallback mock stores
   const MOCK_STORES: Store[] = [
@@ -103,9 +106,9 @@ export default function StoreHomepageScreen() {
   ];
 
   // Fallback to mock store if needed
-  const mockStore = id && MOCK_STORES.find((s) => s.id === id.toString()) || null;
+  const mockStore =
+    (id && MOCK_STORES.find((s) => s.id === id.toString())) || null;
 
-  const [isFavorited, setIsFavorited] = useState(false);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -148,40 +151,39 @@ export default function StoreHomepageScreen() {
 
       // Check if the current store is in favorite stores
       if (buyerData.favoriteStores && id) {
-        setIsFavorited(buyerData.favoriteStores.includes(id.toString()));
+        setIsFollowed(buyerData.favoriteStores.includes(id.toString()));
       }
     } catch (err) {
       console.error("Error loading buyer data:", err);
     }
   };
 
-  const toggleFavorite = async () => {
-    if (!userId || !id) {
-      console.log("User ID or Store ID not available");
-      return;
+  const loadBuyerFollowStatus = async () => {
+    if (!userId || !id) return;
+    try {
+      const token = await getToken({ template: "seller_app" });
+      const followedStores = await fetchFollowedStores(userId, token);
+      setIsFollowed(
+        followedStores.some((f: any) => f.storeId === id.toString())
+      );
+    } catch (err) {
+      console.error("Error loading followed stores:", err);
     }
+  };
 
+  const toggleFollow = async () => {
+    if (!userId || !id) return;
     try {
       setFavoriteLoading(true);
       const token = await getToken({ template: "seller_app" });
-
-      // Toggle favorite status
-      const newFavoriteStatus = !isFavorited;
-
-      // Call the API to update favorite status
-      await updateFavoriteStore(
-        userId,
-        id.toString(),
-        newFavoriteStatus,
-        token
-      );
-
-      // Update local state
-      setIsFavorited(newFavoriteStatus);
+      if (isFollowed) {
+        await unfollowStore(id.toString(), userId, token);
+      } else {
+        await followStore(id.toString(), userId, token);
+      }
+      setIsFollowed(!isFollowed);
     } catch (err) {
-      console.error("Error updating favorite store:", err);
-      // Show error message to user
-      alert("Failed to update favorite status. Please try again.");
+      alert("Failed to update follow status. Please try again.");
     } finally {
       setFavoriteLoading(false);
     }
@@ -189,7 +191,7 @@ export default function StoreHomepageScreen() {
 
   useEffect(() => {
     loadStoreData();
-    loadBuyerData();
+    loadBuyerFollowStatus();
   }, [id]);
 
   useEffect(() => {
@@ -303,13 +305,13 @@ export default function StoreHomepageScreen() {
               <View style={styles.actionButtons}>
                 <TouchableOpacity
                   style={styles.circleButton}
-                  onPress={toggleFavorite}
+                  onPress={toggleFollow}
                   disabled={favoriteLoading}
                 >
                   <Ionicons
-                    name={isFavorited ? "heart" : "heart-outline"}
+                    name={isFollowed ? "heart" : "heart-outline"}
                     size={24}
-                    color={isFavorited ? "tomato" : "black"}
+                    color={isFollowed ? "tomato" : "black"}
                   />
                 </TouchableOpacity>
                 <TouchableOpacity

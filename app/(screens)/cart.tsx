@@ -9,19 +9,15 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, CheckBox } from "@ui-kitten/components";
 import PageTitle from "../../components/PageTitle";
-import {
-  fetchProductById,
-  getCart,
-  updateCartItem,
-  removeFromCart,
-} from "../../utils/api";
+import { fetchProductById } from "../../utils/products";
+import { getCart, updateCartItem, removeFromCart } from "../../utils/cart";
 import { BackendProduct } from "../../types/BackendModels";
+import { fontSizes, spacing, radii } from "../../constants/theme";
 
 interface CartItem {
   itemId: string;
@@ -206,19 +202,19 @@ export default function CartScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <>
         <PageTitle title="Shopping Cart" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#548C2F" />
           <Text style={styles.loadingText}>Loading cart...</Text>
         </View>
-      </SafeAreaView>
+      </>
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <>
         <PageTitle title="Shopping Cart" />
         <View style={styles.emptyContainer}>
           <Ionicons name="bag-outline" size={80} color="#ccc" />
@@ -233,12 +229,12 @@ export default function CartScreen() {
             Start Shopping
           </Button>
         </View>
-      </SafeAreaView>
+      </>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
       <PageTitle title="Shopping Cart" />
 
       {/* Select All */}
@@ -321,7 +317,7 @@ export default function CartScreen() {
           Checkout
         </Button>
       </View>
-    </SafeAreaView>
+    </>
   );
 }
 
@@ -381,33 +377,33 @@ const styles = StyleSheet.create({
   cartItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
   checkbox: {
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   productImage: {
     width: 80,
     height: 80,
-    borderRadius: 8,
-    marginRight: 12,
+    borderRadius: radii.md,
+    marginRight: spacing.md,
   },
   productInfo: {
     flex: 1,
   },
   productName: {
-    fontSize: 16,
+    fontSize: fontSizes.md,
     fontWeight: "600",
     color: "#333",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   productPrice: {
-    fontSize: 16,
+    fontSize: fontSizes.md,
     color: "#548C2F",
     fontWeight: "500",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   quantityControls: {
     flexDirection: "row",
@@ -416,21 +412,21 @@ const styles = StyleSheet.create({
   quantityButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: radii.full,
     backgroundColor: "#f0f0f0",
     justifyContent: "center",
     alignItems: "center",
   },
   quantityText: {
-    marginHorizontal: 16,
-    fontSize: 16,
+    marginHorizontal: spacing.lg,
+    fontSize: fontSizes.md,
     fontWeight: "500",
   },
   removeButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   bottomContainer: {
-    padding: 16,
+    padding: spacing.md,
     borderTopWidth: 1,
     borderTopColor: "#eee",
     backgroundColor: "#fff",
@@ -439,20 +435,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: fontSizes.md,
     color: "#666",
   },
   totalPrice: {
-    fontSize: 20,
+    fontSize: fontSizes.lg,
     fontWeight: "bold",
     color: "#333",
   },
   checkoutButton: {
     backgroundColor: "#548C2F",
     borderColor: "#548C2F",
-    paddingVertical: 16,
+    paddingVertical: spacing.md,
   },
 });

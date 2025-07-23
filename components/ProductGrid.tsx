@@ -14,7 +14,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { images, ImageSource } from "../assets";
-import { fetchAllProducts } from "../utils/api";
+import { fetchAllProducts } from "../utils/products";
 
 interface BackendProduct {
   id: string;
@@ -82,8 +82,9 @@ const mockProducts: Product[] = [
 const getStyles = (width: number) =>
   StyleSheet.create({
     container: {
-      paddingTop: 16,
       paddingBottom: 16,
+      margin: 16,
+      flex: 1,
     },
     header: {
       flexDirection: "row",
@@ -93,7 +94,7 @@ const getStyles = (width: number) =>
       paddingHorizontal: 16,
     },
     title: {
-      fontSize: 23,
+      fontSize: 24,
       fontFamily: "Poppins-SemiBold",
       color: "#333",
     },
@@ -107,10 +108,12 @@ const getStyles = (width: number) =>
       marginRight: 4,
     },
     grid: {
-      paddingHorizontal: 16,
+      flexDirection: "column",
+      alignItems: "center",
     },
     card: {
-      width: width - 40, // full width minus paddingHorizontal * 2
+      // width: width - 32, // full width minus 16px padding on each side
+      alignSelf: "center",
       flexDirection: "row",
       backgroundColor: "#fff",
       borderRadius: 12,
@@ -123,8 +126,8 @@ const getStyles = (width: number) =>
       elevation: 3,
     },
     image: {
-      width: 125,
-      height: 125,
+      width: 144,
+      height: 144,
       resizeMode: "cover",
     },
     infoContainer: {
@@ -171,7 +174,11 @@ const getStyles = (width: number) =>
     },
   });
 
-function ProductGrid() {
+interface ProductGridProps {
+  productType?: string;
+}
+
+function ProductGrid({ productType }: ProductGridProps) {
   const router = useRouter();
   const { getToken } = useAuth();
   const screenWidth = Dimensions.get("window").width;
@@ -209,8 +216,12 @@ function ProductGrid() {
       if (!refreshing) {
         setLoading(true);
       }
-      const token = await getToken({ template: "seller_app" });
-      const backendProducts: BackendProduct[] = await fetchAllProducts(token);
+      const tokenRaw = await getToken({ template: "seller_app" });
+      const token = tokenRaw || "";
+      const backendProducts: BackendProduct[] = await fetchAllProducts(
+        token,
+        productType || undefined
+      );
 
       const transformedProducts: Product[] = backendProducts.map((product) => {
         const discountPercentage =
@@ -257,7 +268,8 @@ function ProductGrid() {
 
   useEffect(() => {
     loadProducts();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productType]);
 
   const renderProduct = (product: Product) => (
     <TouchableOpacity
@@ -299,7 +311,7 @@ function ProductGrid() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Trending</Text>
+        {!productType && <Text style={styles.title}>Trending Near You</Text>}
       </View>
       <ScrollView
         refreshControl={
