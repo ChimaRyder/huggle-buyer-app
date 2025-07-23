@@ -21,24 +21,25 @@ export const addToCart = async (
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
-      const errorMsg = errorBody.message || response.statusText || `Error: ${response.status}`;
+      const errorMsg =
+        errorBody.message || response.statusText || `Error: ${response.status}`;
       // If error is 409 (Conflict), offer to clear cart and add item again
       if (response.status === 409) {
         // Always use React Native Alert for mobile
-        const { Alert } = require('react-native');
+        const { Alert } = require("react-native");
         return new Promise((resolve, reject) => {
           Alert.alert(
-            'Cart Store Conflict',
+            "Cart Store Conflict",
             `${errorMsg}\n\nDo you want to clear your cart and add this item?`,
             [
               {
-                text: 'Cancel',
-                style: 'cancel',
+                text: "Cancel",
+                style: "cancel",
                 onPress: () => reject(new Error(errorMsg)),
               },
               {
-                text: 'Clear Cart & Add',
-                style: 'destructive',
+                text: "Clear Cart & Add",
+                style: "destructive",
                 onPress: async () => {
                   try {
                     await clearCart(token);
@@ -73,7 +74,8 @@ export const getCart = async (token: string) => {
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
-      const errorMsg = errorBody.message || response.statusText || `Error: ${response.status}`;
+      const errorMsg =
+        errorBody.message || response.statusText || `Error: ${response.status}`;
       throw new Error(errorMsg);
     }
 
@@ -104,7 +106,8 @@ export const updateCartItem = async (
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
-      const errorMsg = errorBody.message || response.statusText || `Error: ${response.status}`;
+      const errorMsg =
+        errorBody.message || response.statusText || `Error: ${response.status}`;
       throw new Error(errorMsg);
     }
 
@@ -127,7 +130,8 @@ export const removeFromCart = async (itemId: string, token: string) => {
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
-      const errorMsg = errorBody.message || response.statusText || `Error: ${response.status}`;
+      const errorMsg =
+        errorBody.message || response.statusText || `Error: ${response.status}`;
       throw new Error(errorMsg);
     }
 
@@ -150,7 +154,8 @@ export const clearCart = async (token: string | null) => {
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
-      const errorMsg = errorBody.message || response.statusText || `Error: ${response.status}`;
+      const errorMsg =
+        errorBody.message || response.statusText || `Error: ${response.status}`;
       throw new Error(errorMsg);
     }
 

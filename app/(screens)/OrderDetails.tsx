@@ -21,7 +21,6 @@ import {
   getOrders,
   fetchBuyerById,
 } from "../../utils/api";
-import { tokenCache } from "../../utils/cache";
 import {
   BackendOrder,
   BackendProduct,
@@ -30,7 +29,6 @@ import {
 } from "../../types/BackendModels";
 import ProductListCard from "../../components/ProductListCard";
 import OrderMap from "../../components/OrderMap";
-
 
 interface OrderDetailsViewProps {
   orderId?: string;
@@ -62,7 +60,9 @@ const OrderDetails: React.FC<OrderDetailsViewProps> = (props) => {
         router.back();
       } else {
         // Web
-        window.alert("Order Cancelled\nYour order has been successfully cancelled.");
+        window.alert(
+          "Order Cancelled\nYour order has been successfully cancelled."
+        );
         router.back();
       }
     } catch (error) {
@@ -76,6 +76,7 @@ const OrderDetails: React.FC<OrderDetailsViewProps> = (props) => {
       setCancelling(false);
     }
   };
+
   const router = useRouter();
   const params = useLocalSearchParams();
   const { getToken } = useAuth();
@@ -103,8 +104,7 @@ const OrderDetails: React.FC<OrderDetailsViewProps> = (props) => {
       setLoading(true);
       setError(null);
       const token = await getToken({ template: "seller_app" });
-      console.log("Token:", token);
-      
+
       // Fetch order details
       const orderData: BackendOrder = await getOrderById(
         orderId as string,
@@ -197,177 +197,217 @@ const OrderDetails: React.FC<OrderDetailsViewProps> = (props) => {
   return (
     <>
       <PageTitle title="Order Details" />
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* Order Status Badge */}
-        {order && (
-          <View
-            style={[
-              styles.statusCard,
-              { backgroundColor: getStatusColor(order.status) + "20" },
-            ]}
-          >
-            <Text
-              style={[styles.statusText, { color: getStatusColor(order.status) }]}
+      <View style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.container}>
+          {/* Order Status Badge */}
+          {order && (
+            <View
+              style={[
+                styles.statusCard,
+                { backgroundColor: getStatusColor(order.status) + "20" },
+              ]}
             >
-              Order Status: {getStatusFromEnum(order.status)}
-              
-            </Text>
-    
-            <Text style={styles.orderIdText}>Order ID: {order.id}</Text>
-            <Text style={styles.orderDateText}>
-              Placed: {formatDate(order.createdAt)}
-            </Text>
-            
-          </View>
-          
-        )}
-        
-        {/* Product Cards */}
-        <View style={{ marginBottom: 16 }}>
-          {products.map((product, idx) => (
-            <View key={product.id} style={{ marginBottom: 12 }}>
-              <ProductListCard
-                id={product.id}
-                name={product.name}
-                image={
-                  product.coverImage ? { uri: product.coverImage } : undefined
-                }
-                discount={
-                  product.originalPrice > 0
-                    ? Math.round(
-                        ((product.originalPrice - product.discountedPrice) /
-                          product.originalPrice) *
-                        100
-                      )
-                    : 0
-                }
-                availableItems={product.stock}
-                rating={product.rating || 4.5}
-                expirationDate={product.expirationDate}
-                price={product.discountedPrice}
-                storeId={product.storeId}
-                onPress={() => {}}
-                onStorePress={() =>
-                  router.push({
-                    pathname: "/(screens)/StoreHomepageScreen",
-                    params: { id: product.storeId },
-                  })
-                }
-              />
-              {/* Write Review Button for completed orders */}
-              {order && (
-                <WriteReviewButton
-                  productId={product.id}
-                  orderStatus={getStatusFromEnum(order.status)}
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: getStatusColor(order.status) },
+                ]}
+              >
+                Order Status: {getStatusFromEnum(order.status)}
+              </Text>
+              <Text style={styles.orderIdText}>Order ID: {order.id}</Text>
+              <Text style={styles.orderDateText}>
+                Placed: {formatDate(order.createdAt)}
+              </Text>
+            </View>
+          )}
+          {/* Product Cards */}
+          <View style={{ marginBottom: 16 }}>
+            {products.map((product, idx) => (
+              <View key={product.id} style={{ marginBottom: 12 }}>
+                <ProductListCard
+                  id={product.id}
+                  name={product.name}
+                  image={
+                    product.coverImage ? { uri: product.coverImage } : undefined
+                  }
+                  discount={
+                    product.originalPrice > 0
+                      ? Math.round(
+                          ((product.originalPrice - product.discountedPrice) /
+                            product.originalPrice) *
+                            100
+                        )
+                      : 0
+                  }
+                  availableItems={product.stock}
+                  rating={product.rating || 4.5}
+                  expirationDate={product.expirationDate}
+                  price={product.discountedPrice}
+                  storeId={product.storeId}
+                  onPress={() => {}}
+                  onStorePress={() =>
+                    router.push({
+                      pathname: "/(screens)/StoreHomepageScreen",
+                      params: { id: product.storeId },
+                    })
+                  }
                 />
-              )}
-            </View>
-          ))}
-        </View>
-
-        {/* Total Price */}
-        <Text style={styles.total}>Total: ₱{order.totalPrice.toFixed(2)}</Text>
-
-        {/* Pick-up Section */}
-        <Text style={[styles.label, { marginTop: 16 }]}>Pick-up at</Text>
-        <View style={styles.storeCard}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Image
-              source={
-                store?.storeImageUrl ? { uri: store.storeImageUrl } : undefined
-              }
-              style={styles.storeImage}
-            />
-            <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontWeight: "bold", fontSize: 16 }}>
-                {store?.name || "Unknown Store"}
-              </Text>
-              <Text style={{ color: "#666", fontSize: 13 }}>
-                {store?.address}, {store?.city}, {store?.province}
-              </Text>
-              {/* Business Hours */}
-              {Array.isArray((store as any)?.businessHours) &&
-                (store as any).businessHours.length > 0 && (
-                  <View style={{ marginTop: 4 }}>
-                    <Text style={{ fontWeight: "bold", fontSize: 13 }}>
-                      Business Hours:
-                    </Text>
-                    {(
-                      (store as any).businessHours as Array<{
-                        isOpen: boolean;
-                        openTime?: string;
-                        closeTime?: string;
-                      }>
-                    ).map((bh, i) => (
-                      <Text
-                        key={i}
-                        style={{
-                          fontSize: 13,
-                          color: bh.isOpen ? "#548C2F" : "#d32f2f",
-                        }}
-                      >
-                        {bh.isOpen
-                          ? `${bh.openTime || ""} - ${bh.closeTime || ""}`
-                          : "Closed"}
-                      </Text>
-                    ))}
-                  </View>
+                {/* Write Review Button for completed orders */}
+                {order && (
+                  <WriteReviewButton
+                    productId={product.id}
+                    orderStatus={getStatusFromEnum(order.status)}
+                  />
                 )}
-            </View>
+              </View>
+            ))}
           </View>
-        </View>
-
-        {/* Store Location Map */}
-        {store?.latitude && store?.longitude && (
-          <View style={styles.mapContainer}>
-            <OrderMap
-              latitude={store.latitude}
-              longitude={store.longitude}
-              label={store?.name}
-            />
-          </View>
-        )}
-
-        {/* Confirm Order Button */}
-        {/* Cancel Order Button */}
-        {!readOnlyMode && order && canCancelOrder(order.status) && (
-          <Button
-            style={styles.cancelOrderButton}
-            status="danger"
-            onPress={() => setShowCancelModal(true)}
-            disabled={cancelling}
-          >
-            {cancelling ? "Cancelling..." : "Cancel Order"}
-          </Button>
-        )}
-        {/* Confirmation Modal */}
-        {showCancelModal && (
-          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}>
-            <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 24, width: '90%' }}>
-              <Text style={{ fontWeight: "bold", fontSize: 18, marginBottom: 16 }}>Cancel Order</Text>
-              <Text style={{ marginBottom: 16 }}>Are you sure you want to cancel this order? This action cannot be undone.</Text>
-              <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-                <Button
-                  appearance="ghost"
-                  status="basic"
-                  style={{ marginRight: 12 }}
-                  onPress={() => setShowCancelModal(false)}
-                  disabled={cancelling}
-                >
-                  Keep Order
-                </Button>
-                <Button
-                  status="danger"
-                  onPress={handleCancelOrder}
-                  disabled={cancelling}
-                >
-                  {cancelling ? "Cancelling..." : "Cancel Order"}
-                </Button>
+          {/* Pick-up Section */}
+          <Text style={[styles.label, { marginTop: 16 }]}>Pick-up at</Text>
+          <View style={styles.storeCard}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Image
+                source={
+                  store?.storeImageUrl
+                    ? { uri: store.storeImageUrl }
+                    : undefined
+                }
+                style={styles.storeImage}
+              />
+              <View style={{ marginLeft: 12 }}>
+                <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                  {store?.name || "Unknown Store"}
+                </Text>
+                <Text style={{ color: "#666", fontSize: 13 }}>
+                  {store?.address}, {store?.city}, {store?.province}
+                </Text>
+                {/* Business Hours */}
+                {Array.isArray((store as any)?.businessHours) &&
+                  (store as any).businessHours.length > 0 && (
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={{ fontWeight: "bold", fontSize: 13 }}>
+                        Business Hours:
+                      </Text>
+                      {(() => {
+                        const days = [
+                          "Sunday",
+                          "Monday",
+                          "Tuesday",
+                          "Wednesday",
+                          "Thursday",
+                          "Friday",
+                          "Saturday",
+                        ];
+                        const todayIdx = new Date().getDay();
+                        const todayHours = (store as any).businessHours[
+                          todayIdx
+                        ];
+                        return (
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              color: todayHours.isOpen ? "#548C2F" : "#d32f2f",
+                            }}
+                          >
+                            {days[todayIdx]}:{" "}
+                            {todayHours.isOpen
+                              ? `${todayHours.openTime || ""} - ${
+                                  todayHours.closeTime || ""
+                                }`
+                              : "Closed"}
+                          </Text>
+                        );
+                      })()}
+                    </View>
+                  )}
               </View>
             </View>
           </View>
-        )}
-      </ScrollView>
+          {/* Store Location Map */}
+          {store?.latitude && store?.longitude && (
+            <View style={[styles.mapContainer, { paddingBottom: 120 }]}>
+              <OrderMap
+                latitude={store.latitude}
+                longitude={store.longitude}
+                label={store?.name}
+              />
+            </View>
+          )}
+          {/* Confirm Order Button */}
+          {/* Cancel Order Button */}
+          {!readOnlyMode && order && canCancelOrder(order.status) && (
+            <Button
+              style={styles.cancelOrderButton}
+              status="danger"
+              onPress={() => setShowCancelModal(true)}
+              disabled={cancelling}
+            >
+              {cancelling ? "Cancelling..." : "Cancel Order"}
+            </Button>
+          )}
+          {/* Confirmation Modal */}
+          {showCancelModal && (
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: "#fff",
+                  borderRadius: 12,
+                  padding: 24,
+                  width: "90%",
+                }}
+              >
+                <Text
+                  style={{ fontWeight: "bold", fontSize: 18, marginBottom: 16 }}
+                >
+                  Cancel Order
+                </Text>
+                <Text style={{ marginBottom: 16 }}>
+                  Are you sure you want to cancel this order? This action cannot
+                  be undone.
+                </Text>
+                <View
+                  style={{ flexDirection: "row", justifyContent: "flex-end" }}
+                >
+                  <Button
+                    appearance="ghost"
+                    status="basic"
+                    style={{ marginRight: 12 }}
+                    onPress={() => setShowCancelModal(false)}
+                    disabled={cancelling}
+                  >
+                    Keep Order
+                  </Button>
+                  <Button
+                    status="danger"
+                    onPress={handleCancelOrder}
+                    disabled={cancelling}
+                  >
+                    {cancelling ? "Cancelling..." : "Cancel Order"}
+                  </Button>
+                </View>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+        {/* Total Price Footer */}
+        <View style={styles.footerTotal}>
+          <Text style={styles.footerTotalText}>
+            Total: ₱{order.totalPrice.toFixed(2)}
+          </Text>
+        </View>
+      </View>
     </>
   );
 };
@@ -377,11 +417,12 @@ function WriteReviewButton({
   orderStatus,
 }: {
   productId: string;
-  orderStatus: string;
+  orderStatus: string | number;
 }) {
   const router = useRouter();
-  // Show button if order is completed
-  if (orderStatus !== "Completed") return null;
+  // Show button if order is completed (enum value 3)
+  if (orderStatus !== 3 && orderStatus !== "3" && orderStatus !== "Completed")
+    return null;
   return (
     <Pressable
       style={{
@@ -402,7 +443,6 @@ function WriteReviewButton({
     </Pressable>
   );
 }
-
 
 export default OrderDetails;
 
@@ -552,5 +592,27 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     marginBottom: 16,
+  },
+  footerTotal: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderColor: "#e9ecef",
+    paddingVertical: 24,
+    alignItems: "center",
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  footerTotalText: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#333",
   },
 });

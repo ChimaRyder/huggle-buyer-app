@@ -21,6 +21,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import ReviewCard from "../../components/ReviewCard";
 import { MaterialIcons } from "@expo/vector-icons";
+import { submitProductReport } from "../../utils/reports";
 
 import { fetchStoreById } from "../../utils/stores";
 import { fetchProductById } from "@/utils/products";
@@ -234,27 +235,20 @@ export default function ProductScreen() {
     setReportLoading(true);
     try {
       const token = await getToken({ template: "seller_app" });
-      const res = await fetch("https://huggle-backend-jh2l.onrender.com/api/reports", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          reporterId: userId,
-          targetId: product.id,
-          reason: reportReason,
-          description: reportDescription,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to submit report.");
-      }
+      await submitProductReport(
+        userId,
+        product.id,
+        reportReason,
+        reportDescription,
+        token
+      );
       setReportModalVisible(false);
       setReportReason("");
       setReportDescription("");
-      Alert.alert("Report Submitted", "Thank you for helping keep Huggle safe.");
+      Alert.alert(
+        "Report Submitted",
+        "Thank you for helping keep Huggle safe."
+      );
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to submit report.");
     } finally {
@@ -265,30 +259,65 @@ export default function ProductScreen() {
   return (
     <View style={styles.container}>
       {/* Report Product Modal */}
-      <Modal visible={reportModalVisible} transparent animationType="slide" onRequestClose={() => setReportModalVisible(false)}>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.3)" }}>
-          <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 20, width: "85%" }}>
-            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>Report Product</Text>
+      <Modal
+        visible={reportModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.3)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 16,
+              padding: 20,
+              width: "85%",
+            }}
+          >
+            <Text
+              style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}
+            >
+              Report Product
+            </Text>
             <Text style={{ marginBottom: 8 }}>Reason</Text>
             <View style={{ flexDirection: "row", marginBottom: 12 }}>
               {["Inappropriate", "Fraud", "Spam", "Other"].map((reason) => (
                 <Pressable
                   key={reason}
                   style={{
-                    backgroundColor: reportReason === reason ? "#F9A620" : "#eee",
+                    backgroundColor:
+                      reportReason === reason ? "#F9A620" : "#eee",
                     padding: 8,
                     borderRadius: 8,
                     marginRight: 8,
                   }}
                   onPress={() => setReportReason(reason)}
                 >
-                  <Text style={{ color: reportReason === reason ? "#fff" : "#333" }}>{reason}</Text>
+                  <Text
+                    style={{ color: reportReason === reason ? "#fff" : "#333" }}
+                  >
+                    {reason}
+                  </Text>
                 </Pressable>
               ))}
             </View>
             <Text style={{ marginBottom: 8 }}>Description (optional)</Text>
             <TextInput
-              style={{ minHeight: 60, padding: 8, borderWidth: 1, borderColor: "#ccc", borderRadius: 8, marginBottom: 16 }}
+              style={{
+                minHeight: 60,
+                padding: 8,
+                borderWidth: 1,
+                borderColor: "#ccc",
+                borderRadius: 8,
+                marginBottom: 16,
+              }}
               multiline
               numberOfLines={3}
               value={reportDescription}
@@ -309,7 +338,10 @@ export default function ProductScreen() {
                 {reportLoading ? "Submitting..." : "Submit Report"}
               </Text>
             </Pressable>
-            <Pressable style={{ marginTop: 12, alignItems: "center" }} onPress={() => setReportModalVisible(false)}>
+            <Pressable
+              style={{ marginTop: 12, alignItems: "center" }}
+              onPress={() => setReportModalVisible(false)}
+            >
               <Text style={{ color: "#F9A620" }}>Cancel</Text>
             </Pressable>
           </View>
@@ -341,7 +373,11 @@ export default function ProductScreen() {
         </View>
       ) : (
         <>
-          <ScrollView style={styles.scrollView}>
+          <ScrollView
+            style={[styles.scrollView, { flex: 1 }]}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 120 }}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.imageContainer}>
               <Image
                 source={
@@ -354,7 +390,15 @@ export default function ProductScreen() {
               />
               {/* Report Product Button */}
               <TouchableOpacity
-                style={{ position: "absolute", top: 20, right: 60, zIndex: 2, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 20, padding: 8 }}
+                style={{
+                  position: "absolute",
+                  top: 20,
+                  right: 60,
+                  zIndex: 2,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  borderRadius: 20,
+                  padding: 8,
+                }}
                 onPress={() => setReportModalVisible(true)}
               >
                 <MaterialIcons name="flag" size={24} color="#fff" />
@@ -485,8 +529,7 @@ export default function ProductScreen() {
               </View>
             </View>
           </ScrollView>
-
-          {/* Bottom Action Buttons */}
+          {/* Bottom Action Buttons - keep outside ScrollView for proper overlay */}
           <View style={styles.bottomButtons}>
             {isExpired ? (
               <View

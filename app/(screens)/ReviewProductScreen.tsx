@@ -1,61 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import { getOrders } from '../../utils/api';
-import { useAuth } from '@clerk/clerk-expo';
-import { fetchReviews } from '../../utils/reviews';
-import { tokenCache } from '../../utils/cache';
-
-const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  StyleSheet,
+  Alert,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { useAuth } from "@clerk/clerk-expo";
+import { createReview } from "../../utils/reviews";
+import { getOrders } from "../../utils/orders";
 
 const ReviewProductScreen = () => {
   const router = useRouter();
-  const { productId } = useLocalSearchParams();
-  const [content, setContent] = useState('');
+  const { productId, orderId } = useLocalSearchParams();
+  const [content, setContent] = useState("");
   const [rating, setRating] = useState(0);
   const [imageUris, setImageUris] = useState<string[]>([]);
-  const [isEligible, setIsEligible] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
-  const [storeReviews, setStoreReviews] = useState<any[]>([]);
-  const { userId } = useAuth();
-
-  useEffect(() => {
-    const checkEligibility = async () => {
-      setLoading(true);
-      const token = await tokenCache.getToken('accessToken');
-      // Use Clerk userId as buyerId
-      const buyerId = userId;
-      let orders = [];
-      try {
-        orders = await getOrders(token ?? null);
-      } catch (e) {
-        console.log('Error fetching orders:', e);
-      }
-      // Case-insensitive check for completed orders containing this product
-      const completedOrder = orders.find((order: any) => {
-        const isCompleted = String(order.status).toLowerCase() === 'completed';
-        const hasProduct = order.productId && (Array.isArray(order.productId)
-          ? order.productId.includes(productId)
-          : order.productId === productId);
-        return isCompleted && hasProduct;
-      });
-      // Fetch reviews for this product to check if already reviewed
-      let reviews = [];
-      try {
-        reviews = await fetchReviews(token, { productId });
-      } catch (e) {
-        console.log('Error fetching reviews:', e);
-      }
-      setStoreReviews(reviews);
-      const hasReviewed = reviews.some((rev: any) => rev.buyerId === buyerId);
-      setAlreadyReviewed(hasReviewed);
-      setIsEligible(!!completedOrder); // Allow review even if already reviewed
-      setLoading(false);
-    };
-    checkEligibility();
-  }, [productId]);
+  const { userId, getToken } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -66,87 +34,90 @@ const ReviewProductScreen = () => {
     if (!result.canceled && result.assets) {
       setImageUris([
         ...imageUris,
-        ...result.assets.map((a: { uri: string }) => a.uri)
+        ...result.assets.map((a: { uri: string }) => a.uri),
       ]);
     }
   };
 
   const handleSubmit = async () => {
-    if (!content || rating === 0) {
-      Alert.alert('Please provide both a rating and review content.');
+    if (submitting) return;
+    setSubmitting(true);
+    const token = await getToken({ template: "seller_app" });
+    if (!userId) {
+      Alert.alert("User not authenticated");
+      setSubmitting(false);
       return;
     }
-    setLoading(true);
-    const token = await tokenCache.getToken('accessToken');
-    // Use Clerk userId as buyerId
-    const buyerId = userId;
-    // Find the completed order for this product
-    let orderId = null;
-    let orders = [];
-    try {
-      orders = await getOrders(token ?? null);
-    } catch (e) {
-      console.log('Error fetching orders for review submit:', e);
+    const buyerId = String(userId);
+    let finalOrderId: string | null = null;
+    if (orderId) {
+      finalOrderId = typeof orderId === "string" ? orderId : orderId[0];
+    } else {
+      // fallback: try to find a completed order for this product
+      try {
+        const orders = await getOrders(token);
+        const completedOrder = orders.find((order: any) => {
+          const isCompleted = order.status === 3 || order.status === "3";
+          const hasProduct =
+            order.productId &&
+            (Array.isArray(order.productId)
+              ? order.productId.includes(productId)
+              : order.productId === productId);
+          return isCompleted && hasProduct;
+        });
+        if (completedOrder) {
+          finalOrderId = completedOrder.id;
+        }
+      } catch (e) {
+        Alert.alert("Could not fetch orders to find orderId");
+        setSubmitting(false);
+        return;
+      }
     }
-    const completedOrder = orders.find((order: any) => {
-      const isCompleted = String(order.status).toLowerCase() === 'completed';
-      const hasProduct = order.productId && (Array.isArray(order.productId)
-        ? order.productId.includes(productId)
-        : order.productId === productId);
-      return isCompleted && hasProduct;
-    });
-    if (completedOrder) {
-      orderId = completedOrder.id;
+    if (!finalOrderId) {
+      Alert.alert("No completed order found for this product.");
+      setSubmitting(false);
+      return;
     }
-    // TODO: Upload images and get URLs if needed
     const reviewData = {
-      productId: typeof productId === 'string' ? productId : (Array.isArray(productId) ? productId[0] : ''),
+      productId:
+        typeof productId === "string"
+          ? productId
+          : Array.isArray(productId)
+          ? productId[0]
+          : "",
       buyerId,
-      orderId,
+      orderId: finalOrderId,
       content,
-      imageUrls: [], // For now, skip image upload
+      imageUrls: [],
       rating,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     try {
-      const res = await fetch(`${API_BASE_URL}/api/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(reviewData),
-      });
-      if (!res.ok) throw new Error('Failed to submit review');
-      Alert.alert('Review submitted!');
+      await createReview(token, reviewData);
+      Alert.alert("Review submitted!");
       router.back();
     } catch (e) {
-      Alert.alert('Error submitting review.');
+      Alert.alert("Error submitting review.");
+    } finally {
+      setSubmitting(false);
     }
-    setLoading(false);
   };
 
-  if (loading) return (
-    <View style={styles.center}><Text>Loading...</Text></View>
-  );
-
-  if (!isEligible) {
-    return (
-      <View style={styles.center}>
-        <Text>You can only review products you have ordered and completed.</Text>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Write a Review</Text>
-      <Text style={styles.label}>Rating</Text>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={styles.title}>Review product</Text>
+      <Text style={styles.subtitle}>How was the product?</Text>
       <View style={styles.ratingRow}>
-        {[1,2,3,4,5].map(num => (
+        {[1, 2, 3, 4, 5].map((num) => (
           <TouchableOpacity key={num} onPress={() => setRating(num)}>
-            <Text style={[styles.star, rating >= num && styles.starSelected]}>★</Text>
+            <Text style={[styles.star, rating >= num && styles.starSelected]}>
+              ★
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -154,50 +125,144 @@ const ReviewProductScreen = () => {
       <TextInput
         value={content}
         onChangeText={setContent}
-        placeholder="Share your experience..."
+        placeholder="Share your experience"
         multiline
-        style={styles.input}
+        style={styles.reviewInput}
+        maxLength={500}
       />
       <Text style={styles.label}>Images (optional)</Text>
       <View style={styles.imageRow}>
-        {imageUris.map((uri, idx) => (
-          <Image key={idx} source={{ uri }} style={styles.image} />
-        ))}
-        <TouchableOpacity onPress={handlePickImage} style={styles.addImageBtn}>
-          <Text style={styles.addImageText}>+</Text>
-        </TouchableOpacity>
+        {[0, 1, 2, 3].map((idx) =>
+          imageUris[idx] ? (
+            <Image
+              key={idx}
+              source={{ uri: imageUris[idx] }}
+              style={styles.imageSlot}
+            />
+          ) : (
+            <TouchableOpacity
+              key={idx}
+              onPress={handlePickImage}
+              style={styles.imageSlot}
+              disabled={imageUris.length >= 4}
+            >
+              <Text style={styles.addImageText}>+</Text>
+            </TouchableOpacity>
+          )
+        )}
       </View>
-      <Button title="Submit Review" onPress={handleSubmit} disabled={loading} />
-      {/* Store Reviews Section */}
-      <Text style={[styles.label, { marginTop: 32 }]}>Store Reviews</Text>
-      {storeReviews.length === 0 ? (
-        <Text style={{ color: '#666', marginTop: 8 }}>No reviews yet.</Text>
-      ) : (
-        storeReviews.map((rev, idx) => (
-          <View key={idx} style={{ marginTop: 12 }}>
-            <Text style={{ fontWeight: 'bold' }}>{rev.buyerName || 'Anonymous'}</Text>
-            <Text style={{ color: '#444' }}>{rev.content}</Text>
-            <Text style={{ color: '#FFD700' }}>Rating: {rev.rating}</Text>
-          </View>
-        ))
-      )}
+      <TouchableOpacity
+        style={styles.submitButton}
+        onPress={handleSubmit}
+        disabled={submitting}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.submitButtonText}>
+          {submitting ? "Submitting..." : "Submit review"}
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: '#fff' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
-  label: { fontWeight: 'bold', marginTop: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, minHeight: 80, marginTop: 8 },
-  ratingRow: { flexDirection: 'row', marginTop: 8 },
-  star: { fontSize: 32, color: '#ccc', marginRight: 8 },
-  starSelected: { color: '#FFD700' },
-  imageRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  image: { width: 60, height: 60, borderRadius: 8, marginRight: 8 },
-  addImageBtn: { width: 60, height: 60, borderRadius: 8, borderWidth: 1, borderColor: '#ccc', alignItems: 'center', justifyContent: 'center' },
-  addImageText: { fontSize: 32, color: '#aaa' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  container: { flexGrow: 1, padding: 20, backgroundColor: "#fff" },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 8,
+    textAlign: "left",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#444",
+    marginBottom: 8,
+    textAlign: "left",
+    fontWeight: "500",
+  },
+  label: {
+    fontWeight: "bold",
+    marginTop: 16,
+    marginBottom: 6,
+    fontSize: 15,
+    color: "#444",
+  },
+  ratingRow: {
+    gap: 8,
+    flexDirection: "row",
+    marginBottom: 12,
+    marginTop: 2,
+    alignItems: "center",
+    justifyContent: "center", // Center the row
+  },
+  star: {
+    fontSize: 50,
+    color: "#E0E0E0",
+    justifyContent: "center",
+    alignItems: "center",
+    textAlign: "center", // Center the star itself
+  },
+  starSelected: {
+    color: "#FFD700",
+    textShadowColor: "#FFD700",
+    textShadowRadius: 2,
+  },
+  reviewInput: {
+    borderWidth: 1,
+    borderColor: "#bbb",
+    borderRadius: 16,
+    padding: 14,
+    minHeight: 100,
+    marginTop: 2,
+    fontSize: 16,
+    backgroundColor: "#fafbfc",
+    textAlignVertical: "top",
+  },
+  imageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 18,
+    gap: 8,
+  },
+  imageSlot: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#bbb",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f6f6f6",
+    marginRight: 0,
+    overflow: "hidden",
+  },
+  addImageText: { fontSize: 32, color: "#bbb", fontWeight: "bold" },
+  submitButton: {
+    backgroundColor: "#548C2F",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 18,
+    marginBottom: 12,
+    shadowColor: "#548C2F",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  submitButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
+    letterSpacing: 0.5,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
 });
 
 export default ReviewProductScreen;

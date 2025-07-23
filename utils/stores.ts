@@ -88,3 +88,80 @@ export const fetchSearchResults = async (
     throw error;
   }
 };
+
+export const followStore = async (
+  storeId: string,
+  userId: string,
+  token: string | null = null
+) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/storefollower/${storeId}/follow/${userId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error following store ${storeId}:`, error);
+    throw error;
+  }
+};
+
+export const unfollowStore = async (
+  storeId: string,
+  userId: string,
+  token: string | null = null
+) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/storefollower/${storeId}/unfollow/${userId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error unfollowing store ${storeId}:`, error);
+    throw error;
+  }
+};
+
+export const fetchFollowedStores = async (
+  userId: string,
+  token: string | null = null
+) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/storefollower/user/${userId}/stores`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching followed stores for user ${userId}:`, error);
+    throw error;
+  }
+};
