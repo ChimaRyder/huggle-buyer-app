@@ -45,14 +45,15 @@ export default function AuthScreen() {
             setTimeout(() => {
               router.dismissTo("/(tabs)");
             }, 500); // Small delay for smoother transition
-          } else {
+          } else if (exists === 404) {
             const token = await getToken();
-            CreateBuyerAccount(
+            await CreateBuyerAccount(
               token,
               user.id,
               user.firstName + " " + user.lastName,
               user.emailAddresses[0].emailAddress
             );
+            router.dismissTo("/(tabs)");
             // Create account here
           }
         } catch (error) {

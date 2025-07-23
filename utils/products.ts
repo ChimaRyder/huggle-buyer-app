@@ -14,11 +14,11 @@ export const fetchAllProducts = async (token: string, productType?: string) => {
       },
     });
 
-    // if (!response.ok) {
-    //   const errorText = await response.text();
-    //   console.error("API error response:", errorText);
-    //   throw new Error(`Error: ${response.status} - ${errorText}`);
-    // }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("API error response:", errorText);
+      throw new Error(`Error: ${response.status} - ${errorText}`);
+    }
 
     const data = await response.json();
     return data;

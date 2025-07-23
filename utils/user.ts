@@ -13,17 +13,26 @@ export const CreateBuyerAccount = async (
   };
   console.log(data);
   try {
-    const response = await fetch(`${API_BASE_URL}/api/buyers`, {
+    const response = await fetch(`${API_BASE_URL}/api/buyer`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + token,
       },
-
-      body: data ? JSON.stringify(data) : null,
+      body: JSON.stringify(data),
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log("Buyer created successfully:", result);
+    return result;
   } catch (error) {
-    console.error(error);
+    console.error("Error creating buyer account:", error);
+    throw error;
   }
 };
 
