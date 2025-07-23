@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "food-ecommerce-app",
-    "slug": "food-ecommerce-app",
+    "owner": "huggle",
+    "name": "Huggle",
+    "slug": "huggle-buyer-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,11 +13,17 @@
       "supportsTablet": true
     },
     "android": {
+      "googleServicesFile": "./android/app/google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAxDDemOc-ien7K6ZHIGrBmMqyTsYZTw5U"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.foodecommerceapp"
+      "package": "com.huggle.buyerapp"
     },
     "web": {
       "bundler": "metro",
@@ -39,6 +46,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2e9c4bbf-eb17-4b5a-b1fb-1ec35317fa2d"
+      }
     }
   }
 }

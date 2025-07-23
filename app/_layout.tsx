@@ -15,6 +15,8 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "../utils/cache";
 import Constants from "expo-constants";
+
+import { registerForPushNotificationsAsync } from "@/utils/Notifications";
 import { StyleSheet, SafeAreaView } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 

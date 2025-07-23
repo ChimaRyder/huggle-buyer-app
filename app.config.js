@@ -1,45 +1,46 @@
-import 'dotenv/config';
+import "dotenv/config";
 
 export default {
   expo: {
-    name: 'food-ecommerce-app',
-    slug: 'food-ecommerce-app',
-    version: '1.0.0',
-    orientation: 'portrait',
-    icon: './assets/images/icon.png',
-    scheme: 'myapp',
-    userInterfaceStyle: 'automatic',
+    owner: "huggle",
+    name: "Huggle",
+    slug: "huggle-buyer-app",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/images/icon.png",
+    scheme: "myapp",
+    userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
     },
     android: {
-      package: 'com.anonymous.foodecommerceapp',
+      package: "com.huggle.buyerapp",
       adaptiveIcon: {
-        foregroundImage: './assets/images/adaptive-icon.png',
-        backgroundColor: '#ffffff',
+        foregroundImage: "./assets/images/adaptive-icon.png",
+        backgroundColor: "#ffffff",
       },
       permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
     },
     web: {
-      bundler: 'metro',
-      output: 'static',
-      favicon: './assets/images/favicon.png',
+      bundler: "metro",
+      output: "static",
+      favicon: "./assets/images/favicon.png",
     },
     plugins: [
-      'expo-router',
+      "expo-router",
       [
-        'expo-splash-screen',
+        "expo-splash-screen",
         {
-          image: './assets/images/splash-icon.png',
+          image: "./assets/images/splash-icon.png",
           imageWidth: 200,
-          resizeMode: 'contain',
-          backgroundColor: '#ffffff',
+          resizeMode: "contain",
+          backgroundColor: "#ffffff",
         },
       ],
-      'expo-font',
-      'expo-secure-store',
-      'expo-web-browser',
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser",
     ],
     experiments: {
       typedRoutes: true,
@@ -47,6 +48,9 @@ export default {
     extra: {
       clerkPublishableKey: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY,
       googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+      eas: {
+        projectId: "2e9c4bbf-eb17-4b5a-b1fb-1ec35317fa2d",
+      },
     },
   },
 };

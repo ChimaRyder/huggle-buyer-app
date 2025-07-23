@@ -1,12 +1,21 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, TextInput, TouchableOpacity, Platform, Alert } from 'react-native';
-import MapView, { Marker, MapPressEvent } from 'react-native-maps';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '@clerk/clerk-expo';
-import { updateBuyerLocation } from '../../utils/api';
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TextInput,
+  TouchableOpacity,
+  Platform,
+  Alert,
+} from "react-native";
+import MapView, { Marker, MapPressEvent } from "react-native-maps";
+import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "@clerk/clerk-expo";
+import { updateBuyerLocation } from "../../utils/api";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 const MapsScreen = ({ route }: any) => {
   // Optionally accept initial location from props/route
@@ -28,11 +37,11 @@ const MapsScreen = ({ route }: any) => {
     console.log('[MapsScreen] handleConfirm triggered');
     try {
       if (!userId) {
-        console.log('[MapsScreen] No userId');
-        Alert.alert('Error', 'User not logged in.');
+
+        Alert.alert("Error", "User not logged in.");
         return;
       }
-      const token = await getToken({ template: 'seller_app' });
+      const token = await getToken({ template: "seller_app" });
       if (!token) {
         console.log('[MapsScreen] No token');
         Alert.alert('Error', 'Unable to get authentication token.');
@@ -63,7 +72,11 @@ const MapsScreen = ({ route }: any) => {
         }}
         onPress={handleMapPress}
       >
-        <Marker coordinate={marker} draggable onDragEnd={e => setMarker(e.nativeEvent.coordinate)} />
+        <Marker
+          coordinate={marker}
+          draggable
+          onDragEnd={(e) => setMarker(e.nativeEvent.coordinate)}
+        />
       </MapView>
       <View style={styles.bottomCard}>
         <Text style={styles.title}>Pinpoint your location</Text>
@@ -90,56 +103,56 @@ const MapsScreen = ({ route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   map: {
     flex: 1,
-    width: '100%',
+    width: "100%",
     height: height,
   },
   bottomCard: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 20,
     marginBottom: 12,
-    color: '#222',
+    color: "#222",
   },
   input: {
-    width: '100%',
+    width: "100%",
     borderWidth: 1,
-    borderColor: '#e1e1e1',
+    borderColor: "#e1e1e1",
     borderRadius: 8,
     padding: 10,
     marginVertical: 6,
-    backgroundColor: '#f9f9f9',
-    color: '#333',
+    backgroundColor: "#f9f9f9",
+    color: "#333",
   },
   confirmBtn: {
     marginTop: 16,
-    backgroundColor: '#0d2329',
+    backgroundColor: "#0d2329",
     paddingVertical: 12,
     paddingHorizontal: 40,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   confirmBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
     fontSize: 16,
   },
 });
