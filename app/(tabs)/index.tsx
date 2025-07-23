@@ -16,6 +16,7 @@ import PromoBanner from "../../components/PromoBanner";
 import ProductGrid from "../../components/ProductGrid";
 import GreeterSection from "../../components/GreeterSection";
 import { useAuth } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function HomeScreen() {
   const [showModal, setShowModal] = useState(false);
@@ -145,9 +146,7 @@ export default function HomeScreen() {
         }}
         onPress={() => router.push("/(screens)/cart" as any)}
       >
-        <Text>
-          <Text style={{ color: "white", fontSize: 24 }}>🛒</Text>
-        </Text>
+        <Ionicons name="cart" size={32} color="white" />
       </TouchableOpacity>
     </SafeAreaView>
   );

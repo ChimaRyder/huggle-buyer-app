@@ -24,10 +24,9 @@ type SearchResult =
   | (BackendStore & { _type: "store" });
 
 const FILTERS = [
-  { key: "type", label: "Product Type" },
-  { key: "sales", label: "No. of Sales" },
   { key: "rating", label: "Rating" },
   { key: "price", label: "Price" },
+  { key: "stock", label: "Stocks Left" },
 ];
 
 const SearchResultsScreen = () => {
@@ -42,6 +41,8 @@ const SearchResultsScreen = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<string>("rating");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     setLoading(true);
@@ -81,6 +82,34 @@ const SearchResultsScreen = () => {
     }
   };
 
+  // Sorting logic
+  const getSortedResults = () => {
+    if (!isProduct) return results;
+    const sorted = [...results].sort((a, b) => {
+      if (a._type !== "product" || b._type !== "product") return 0;
+      let aValue = 0;
+      let bValue = 0;
+      switch (selectedFilter) {
+        case "rating":
+          aValue = a.rating || 0;
+          bValue = b.rating || 0;
+          break;
+        case "price":
+          aValue = a.discountedPrice || 0;
+          bValue = b.discountedPrice || 0;
+          break;
+        case "stock":
+          aValue = a.stock || 0;
+          bValue = b.stock || 0;
+          break;
+        default:
+          break;
+      }
+      return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+    });
+    return sorted;
+  };
+
   // Render pill search bar
   const renderSearchBar = () => (
     <View style={styles.searchBarContainer}>
@@ -104,7 +133,7 @@ const SearchResultsScreen = () => {
     </View>
   );
 
-  // Render filter bar (only for products)
+  // Updated filter bar
   const renderFilters = () => {
     if (!isProduct) return null;
     return (
@@ -112,18 +141,43 @@ const SearchResultsScreen = () => {
         style={{ flexDirection: "row", paddingHorizontal: 16, marginBottom: 8 }}
       >
         {FILTERS.map((filter) => (
-          <View
+          <TouchableOpacity
             key={filter.key}
             style={{
               marginRight: 12,
-              backgroundColor: "#eee",
+              backgroundColor:
+                selectedFilter === filter.key ? "#F9A620" : "#eee",
               borderRadius: 16,
               paddingHorizontal: 12,
               paddingVertical: 6,
+              flexDirection: "row",
+              alignItems: "center",
             }}
+            onPress={() => setSelectedFilter(filter.key)}
           >
-            <Text style={{ fontSize: 13, color: "#555" }}>{filter.label}</Text>
-          </View>
+            <Text
+              style={{
+                fontSize: 13,
+                color: selectedFilter === filter.key ? "#fff" : "#555",
+              }}
+            >
+              {filter.label}
+            </Text>
+            {selectedFilter === filter.key && (
+              <TouchableOpacity
+                onPress={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                style={{ marginLeft: 6 }}
+              >
+                <MaterialIcons
+                  name={sortOrder === "asc" ? "arrow-upward" : "arrow-downward"}
+                  size={16}
+                  color="#fff"
+                />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
         ))}
       </View>
     );
@@ -221,7 +275,7 @@ const SearchResultsScreen = () => {
       ) : (
         <FlatList
           style={{ marginHorizontal: 16, marginTop: 16 }}
-          data={results}
+          data={getSortedResults()}
           keyExtractor={(item) => item.id}
           renderItem={renderResultItem}
           ListEmptyComponent={

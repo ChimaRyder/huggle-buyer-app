@@ -82,19 +82,23 @@ const SearchScreen = () => {
   };
 
   const renderItem = ({ item }: any) => {
-    // Use the first imageUrl if available, fallback to a placeholder
     const imageUrl =
       Array.isArray(item.imageUrls) && item.imageUrls.length > 0
         ? item.imageUrls[0]
         : "https://via.placeholder.com/200x300?text=No+Image";
     return (
-      <View style={styles.itemContainer}>
+      <TouchableOpacity
+        style={styles.itemContainer}
+        onPress={() =>
+          router.push({ pathname: "/(screens)/PostScreen", params: { id: item.id } })
+        }
+      >
         <Image
           source={{ uri: imageUrl }}
           style={[styles.image, { aspectRatio: 2 / 3 }]}
           resizeMode="cover"
         />
-      </View>
+      </TouchableOpacity>
     );
   };
 
