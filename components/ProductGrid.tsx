@@ -133,7 +133,7 @@ const getStyles = (width: number) =>
     infoContainer: {
       flex: 1,
       padding: 12,
-      justifyContent: "space-between",
+      justifyContent: "flex-start",
     },
     productName: {
       fontSize: 16,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -13,20 +13,19 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { profileStyles } from '../../components/profileStyles';
 import { useRouter } from 'expo-router';
-import { useClerk } from '@clerk/clerk-expo';
+import { useClerk, useUser } from '@clerk/clerk-expo';
 
 const ProfileScreen = () => {
   const router = useRouter();
   const { signOut } = useClerk();
-  const userName = 'Karen Carpenter';
-  const profileImage = '';
+  const { user } = useUser(); // 👈 Get user info from Clerk
 
-  // Define the label-route mapping
+  const userName = user?.fullName ?? 'User';
+  const profileImage = user?.imageUrl ?? '';
+
   const tabs = [
     { label: 'Orders', route: '../(screens)/Orders' as const },
-    //{ label: 'Chats', route: '/(tabs)/chats' },
-    { label: 'Settings', route: '../(screens)/settings' as const }, 
-    //{ label: 'Know secret discounts?', route: '../(screens)/secrets' as const },
+    { label: 'Settings', route: '../(screens)/settings' as const },
   ];
 
   return (
@@ -56,27 +55,26 @@ const ProfileScreen = () => {
         ))}
       </View>
 
-      <TouchableOpacity onPress={() => {
-        Alert.alert(
-          'Log Out',
-          'Are you sure you want to log out?',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Log Out',
-              style: 'destructive',
-              onPress: () => {
-                signOut();
-                router.replace("../(login)");
+      <TouchableOpacity
+        onPress={() => {
+          Alert.alert(
+            'Log Out',
+            'Are you sure you want to log out?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Log Out',
+                style: 'destructive',
+                onPress: () => {
+                  signOut();
+                  router.replace('../(login)');
+                },
               },
-            },
-          ],
-          { cancelable: true }
-        );
-      }}>
+            ],
+            { cancelable: true }
+          );
+        }}
+      >
         <BlurView intensity={40} tint="light" style={profileStyles.signOutButton}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
             <Text style={profileStyles.signOutText}>Sign out</Text>
