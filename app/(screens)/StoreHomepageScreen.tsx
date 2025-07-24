@@ -356,6 +356,9 @@ export default function StoreHomepageScreen() {
                   reviewerName={review.userName}
                   message={review.comment}
                   rating={review.rating}
+                  createdAt={review.date}
+                  showExpandButton={false}
+                  isCompact={true}
                 />
               </View>
             ))}
