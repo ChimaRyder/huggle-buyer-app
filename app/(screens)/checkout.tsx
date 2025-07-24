@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
@@ -24,7 +25,6 @@ import {
   fetchProductById,
   fetchStoreById,
   createOrder,
-  createMultipleOrders,
   clearCart,
 } from "../../utils/api";
 import { BackendProduct, BackendStore } from "../../types/BackendModels";
@@ -52,6 +52,8 @@ export default function CheckoutScreen() {
     new IndexPath(0)
   );
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
 
   // Parse cart items if coming from cart
   const parsedCartItems =
@@ -157,27 +159,22 @@ export default function CheckoutScreen() {
       const token = await getToken({ template: "seller_app" });
 
       if (isCartCheckout === "true") {
-        // Handle multiple orders from cart
-        await createMultipleOrders(
-          parsedCartItems,
-          Array.isArray(storeId) ? storeId[0] : (storeId as string),
-          getTotalPrice(),
-          token
-        );
+        const productId = parsedCartItems.map((item: any) => item.productId);
+        const quantity = parsedCartItems.map((item: any) => item.quantity);
 
-        // Clear cart after successful orders
+        const orderData = {
+          buyerId: userId,
+          storeId: cartProducts[0]?.storeId || storeId,
+          productId,
+          quantity,
+          totalPrice: getTotalPrice(),
+          // status: 0, // Remove if not needed by backend
+        };
+        await createOrder(orderData, token);
         await clearCart(token);
-
-        Alert.alert(
-          "Orders Placed!",
-          "Your orders have been successfully placed. You will receive confirmation shortly.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.push("/(tabs)/HomeScreen" as any),
-            },
-          ]
-        );
+        setOrderSuccess(true);
+        setShowOrderModal(true);
+        return;
       } else {
         // Handle single product order
         const orderData = {
@@ -190,24 +187,20 @@ export default function CheckoutScreen() {
         };
 
         await createOrder(orderData, token);
-
-        Alert.alert(
-          "Order Placed!",
-          "Your order has been successfully placed. You will receive confirmation shortly.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.push("/(tabs)/HomeScreen" as any),
-            },
-          ]
-        );
+        setOrderSuccess(true);
+        setShowOrderModal(true);
+        return;
       }
     } catch (error) {
       console.error("Error placing order:", error);
-      Alert.alert(
-        "Error",
-        (error as Error)?.message || "Failed to place order"
-      );
+      let errorMessage = (error as Error)?.message || "Failed to place order";
+      try {
+        const parsed = JSON.parse(errorMessage);
+        if (parsed && parsed.message) {
+          errorMessage = parsed.message;
+        }
+      } catch {}
+      Alert.alert("Error", errorMessage);
     } finally {
       setPlacingOrder(false);
     }
@@ -354,6 +347,104 @@ export default function CheckoutScreen() {
           </Button>
         </View>
       </ScrollView>
+
+      {/* Order Success Modal */}
+      <Modal
+        visible={showOrderModal}
+        transparent
+        animationType="fade"
+        // Remove onRequestClose to prevent closing by tapping outside or back button
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.4)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 16,
+              padding: 28,
+              alignItems: "center",
+              width: 320,
+            }}
+          >
+            <Ionicons
+              name="checkmark-circle"
+              size={64}
+              color="#548C2F"
+              style={{ marginBottom: 12 }}
+            />
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: "bold",
+                marginBottom: 8,
+                color: "#222",
+              }}
+            >
+              Order Placed!
+            </Text>
+            <Text
+              style={{
+                fontSize: 16,
+                color: "#444",
+                textAlign: "center",
+                marginBottom: 24,
+              }}
+            >
+              Your order has been successfully placed. You will receive
+              confirmation shortly.
+            </Text>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#548C2F",
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  paddingHorizontal: 18,
+                  marginRight: 8,
+                }}
+                onPress={() => {
+                  setShowOrderModal(false);
+                  router.replace("/(screens)/Orders");
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontWeight: "bold",
+                    fontSize: 16,
+                  }}
+                >
+                  View Orders
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#eee",
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  paddingHorizontal: 18,
+                }}
+                onPress={() => {
+                  setShowOrderModal(false);
+                  router.push("/" as any);
+                }}
+              >
+                <Text
+                  style={{ color: "#548C2F", fontWeight: "bold", fontSize: 16 }}
+                >
+                  Back to Home
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }

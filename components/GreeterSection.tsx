@@ -12,6 +12,8 @@ import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
+import { useUser, useAuth } from "@clerk/clerk-expo";
+import { getUnreadNotificationCount } from "../utils/notificationApi";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -35,6 +37,29 @@ interface GreeterSectionProps {
 
 const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
   const [location, setLocation] = useState<string>("Fetching location...");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { user } = useUser();
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchUnread() {
+      if (!user) return;
+      try {
+        const token = await getToken({ template: "seller_app" });
+        const res = await getUnreadNotificationCount(user.id, token);
+        if (mounted) setUnreadCount(Number(res.unreadCount) || 0);
+      } catch {
+        if (mounted) setUnreadCount(0);
+      }
+    }
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000); // poll every 10s
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [user, getToken]);
 
   // Fetch and display the last pinned location from AsyncStorage if available
   useFocusEffect(
@@ -120,7 +145,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
     }, [])
   );
 
-  const NotificationBell = ({ unreadCount }) => {
+  const NotificationBell = ({ unreadCount }: { unreadCount: number }) => {
     const router = useRouter();
     return (
       <TouchableOpacity
@@ -140,46 +165,6 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
       </TouchableOpacity>
     );
   };
-
-  // Move mockNotifications to a shared location or import from NotificationScreen if needed
-  const mockNotifications = [
-    {
-      id: "1",
-      type: "order",
-      title: "Order Shipped!",
-      message: "Your order #12345 has been shipped.",
-      date: "2025-07-23 09:30",
-      read: false,
-    },
-    {
-      id: "2",
-      type: "product",
-      title: "New Product from Favorite Store",
-      message: "Check out the new Mango Tart at Sweet Treats!",
-      productId: "mango-tart-001",
-      storeName: "Sweet Treats",
-      date: "2025-07-22 16:10",
-      read: true,
-    },
-    {
-      id: "3",
-      type: "order",
-      title: "Order Delivered!",
-      message: "Your order #12345 has been delivered.",
-      date: "2025-07-21 18:45",
-      read: false,
-    },
-    {
-      id: "4",
-      type: "product",
-      title: "Promo at Coffee Corner",
-      message: "Coffee Corner is offering 20% off on all drinks!",
-      productId: "coffee-corner-promo",
-      storeName: "Coffee Corner",
-      date: "2025-07-20 12:00",
-      read: true,
-    },
-  ];
 
   return (
     <View style={styles.container}>
@@ -221,9 +206,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
             </View>
           )}
         </View>
-        <NotificationBell
-          unreadCount={mockNotifications.filter((n) => !n.read).length}
-        />
+        <NotificationBell unreadCount={unreadCount} />
       </View>
     </View>
   );

@@ -138,26 +138,6 @@ export default function StoreHomepageScreen() {
     }
   };
 
-  const loadBuyerData = async () => {
-    if (!userId) {
-      console.log("User ID not available");
-      return;
-    }
-
-    try {
-      const token = await getToken({ template: "seller_app" });
-      const buyerData = await fetchBuyerById(userId, token);
-      setBuyer(buyerData);
-
-      // Check if the current store is in favorite stores
-      if (buyerData.favoriteStores && id) {
-        setIsFollowed(buyerData.favoriteStores.includes(id.toString()));
-      }
-    } catch (err) {
-      console.error("Error loading buyer data:", err);
-    }
-  };
-
   const loadBuyerFollowStatus = async () => {
     if (!userId || !id) return;
     try {
@@ -215,9 +195,25 @@ export default function StoreHomepageScreen() {
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#548C2F" />
-          <Text style={styles.loadingText}>Loading store information...</Text>
+        <View style={styles.loadingWireframeContainer}>
+          <View style={styles.wfBanner} />
+          <View style={styles.wfProfileRow}>
+            <View style={styles.wfProfilePic} />
+            <View style={styles.wfStoreName} />
+            <View style={styles.wfRating} />
+          </View>
+          <View style={styles.wfSection} />
+          <View style={styles.wfSection} />
+          <View style={styles.wfSection} />
+          {/* Product card placeholders */}
+          <View style={styles.wfProductGridRow}>
+            <View style={styles.wfProductCard} />
+            <View style={styles.wfProductCard} />
+          </View>
+          <View style={styles.wfProductGridRow}>
+            <View style={styles.wfProductCard} />
+            <View style={styles.wfProductCard} />
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -330,10 +326,12 @@ export default function StoreHomepageScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Reviews</Text>
             <TouchableOpacity
-              onPress={() => router.push({
-                pathname: "/(screens)/reviewsSeeAll",
-                params: { id: displayStore.id }
-              })}
+              onPress={() =>
+                router.push({
+                  pathname: "/(screens)/reviewsSeeAll",
+                  params: { id: displayStore.id },
+                })
+              }
             >
               <Text style={styles.seeAll}>See All</Text>
             </TouchableOpacity>
@@ -420,6 +418,68 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: "#666",
+  },
+  loadingWireframeContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    paddingTop: 0,
+  },
+  wfBanner: {
+    width: "100%",
+    height: BANNER_HEIGHT,
+    backgroundColor: "#e0e0e0",
+    marginBottom: 16,
+  },
+  wfProfileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    width: "100%",
+  },
+  wfProfilePic: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#e0e0e0",
+    marginRight: 12,
+  },
+  wfStoreName: {
+    width: 120,
+    height: 20,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  wfRating: {
+    width: 60,
+    height: 18,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+  },
+  wfSection: {
+    width: "90%",
+    height: 18,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+    marginBottom: 14,
+    alignSelf: "center",
+  },
+  wfProductGridRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "90%",
+    marginTop: 10,
+    marginBottom: 0,
+    alignSelf: "center",
+  },
+  wfProductCard: {
+    width: "48%",
+    aspectRatio: 1,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 12,
+    marginBottom: 10,
   },
   banner: { height: BANNER_HEIGHT },
   bannerOverlay: {

@@ -26,9 +26,7 @@ export default function AuthScreen() {
   const { getToken } = useAuth();
 
   const registerAndFetchToken = async () => {
-    const pToken = await registerForPushNotificationsAsync().catch((err) => {
-      console.log("Push notification registration error:", err);
-    });
+    const pToken = await registerForPushNotificationsAsync().catch((err) => {});
     const token = await getToken({ template: "seller_app" });
     if (user && pToken) {
       await addPushToken(
@@ -57,7 +55,6 @@ export default function AuthScreen() {
         try {
           setStatus("Checking user profile...");
           const exists = await checkIfUserExists(user.id);
-          console.log(exists);
           setStatus("Redirecting...");
           if (exists === 200) {
             await registerAndFetchToken();

@@ -74,10 +74,8 @@ export default function WelcomeScreen() {
       });
       if (createdSessionId) {
         setActive!({ session: createdSessionId });
-        console.log("Redirecting to auth screen");
         router.replace("/(auth)");
       } else {
-        console.log("User is not signed in after Facebook SSO");
       }
     } catch (error) {
       if (isClerkAPIResponseError(error)) {
@@ -85,7 +83,6 @@ export default function WelcomeScreen() {
         error.errors.forEach((err) => {
           Alert.alert("Authentication Error", err.message);
         });
-        console.log("Clerk API error during Facebook login", error.errors);
       } else {
         Alert.alert(
           "Authentication Error",
@@ -115,7 +112,6 @@ export default function WelcomeScreen() {
         error.errors.forEach((err) => {
           Alert.alert("Authentication Error", err.message);
         });
-        console.log("Clerk API error during Google login", error.errors);
       } else {
         Alert.alert(
           "Authentication Error",

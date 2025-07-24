@@ -36,7 +36,7 @@ const tabs = [
   "Cancelled",
 ] as const;
 
-type TabType = typeof tabs[number];
+type TabType = (typeof tabs)[number];
 
 interface EnrichedOrder extends BackendOrder {
   productName?: string;
@@ -44,6 +44,14 @@ interface EnrichedOrder extends BackendOrder {
   storeName?: string;
   storeLocation?: string;
   formattedDate?: string;
+  description?: string; // Added to support multi-item orders
+  items?: Array<{
+    image: any;
+    name: string;
+    price: string;
+    quantity: number;
+  }>;
+  totalPrice?: string; // Accept string for display
 }
 
 const Orders = () => {
@@ -57,7 +65,9 @@ const Orders = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [orderToCancel, setOrderToCancel] = useState<EnrichedOrder | null>(null);
+  const [orderToCancel, setOrderToCancel] = useState<EnrichedOrder | null>(
+    null
+  );
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
@@ -87,23 +97,63 @@ const Orders = () => {
       const enrichedOrders = await Promise.all(
         ordersData.map(async (order) => {
           try {
-            const [productData, storeData] = await Promise.all([
-              fetchProductById(
-                Array.isArray(order.productId) ? order.productId[0] : order.productId,
-                token
-              ),
-              fetchStoreById(order.storeId, token),
-            ]);
+            // Support multiple products per order
+            const productIds = Array.isArray(order.productId)
+              ? order.productId
+              : [order.productId];
+            const quantities = Array.isArray(order.quantity)
+              ? order.quantity
+              : [order.quantity];
+
+            const productDataArr = await Promise.all(
+              productIds.map((pid) => fetchProductById(pid, token))
+            );
+            const storeData = await fetchStoreById(order.storeId, token);
+
+            // Compose items array for multi-item support
+            const items = productDataArr.map((product, idx) => ({
+              image: product?.coverImage
+                ? { uri: product.coverImage }
+                : require("../../assets/images/sample-store.jpg"),
+              name: product?.name || "Unknown Product",
+              price: product?.price
+                ? `₱${Number(product.price).toFixed(2)}`
+                : "",
+              quantity: quantities[idx] || 1,
+            }));
+
+            // Compose total price
+            const totalPrice = `₱${order.totalPrice.toFixed(2)}`;
+
+            // Compose product name for single/multi
+            let productName = "Unknown Product";
+            if (productDataArr.length === 1) {
+              productName = productDataArr[0]?.name || "Unknown Product";
+            } else if (productDataArr.length > 1) {
+              const firstName = productDataArr[0]?.name || "Unknown Product";
+              productName = `${firstName} + ${productDataArr.length - 1} more`;
+            }
+
+            // Compose description for single/multi
+            let description = "";
+            if (productDataArr.length === 1) {
+              description = `Quantity: ${quantities[0]}`;
+            } else {
+              description = `${productDataArr.length} items`;
+            }
 
             return {
               ...order,
-              productName: productData?.name || "Unknown Product",
-              productImage: productData?.coverImage,
+              productName,
+              productImage: items[0]?.image,
               storeName: storeData?.name || "Unknown Store",
               storeLocation: storeData
                 ? `${storeData.city}, ${storeData.province}`
                 : "Unknown Location",
               formattedDate: formatOrderDate(order.createdAt),
+              description,
+              items,
+              totalPrice,
             };
           } catch (error) {
             console.error(`Error enriching order ${order.id}:`, error);
@@ -113,6 +163,9 @@ const Orders = () => {
               storeName: "Unknown Store",
               storeLocation: "Unknown Location",
               formattedDate: formatOrderDate(order.createdAt),
+              description: "",
+              items: [],
+              totalPrice: `₱${order.totalPrice.toFixed(2)}`,
             };
           }
         })
@@ -325,8 +378,11 @@ const Orders = () => {
                   id: order.id,
                   date: order.formattedDate || "Unknown date",
                   productName: order.productName || "Unknown Product",
-                  price: `₱${order.totalPrice.toFixed(2)}`,
-                  description: `Quantity: ${Array.isArray(order.quantity) ? order.quantity[0] : order.quantity}`,
+                  price: `₱${order.totalPrice?.toString() ?? '0.00'}`,
+                  description: order.description ||
+                    (Array.isArray(order.quantity)
+                      ? `${order.quantity.length} items`
+                      : `Quantity: ${order.quantity}`),
                   storeName: order.storeName || "Unknown Store",
                   location: order.storeLocation || "Unknown Location",
                   status: getStatusFromEnum(order.status) as
@@ -336,8 +392,10 @@ const Orders = () => {
                     | "Completed"
                     | "Cancelled",
                   image: order.productImage
-                    ? { uri: order.productImage }
+                    ? order.productImage
                     : require("../../assets/images/sample-store.jpg"),
+                  items: order.items,
+                  totalPrice: order.totalPrice,
                 }}
                 showCancelButton={canCancelOrder(order.status)}
                 onCancel={() => handleCancelPress(order)}

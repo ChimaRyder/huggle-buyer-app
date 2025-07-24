@@ -26,7 +26,7 @@ export const getPostsByStoreId = async (
   storeId: string
 ) => {
   try {
-    const url = `${API_BASE_URL}/api/products/posts/${storeId}`;
+    const url = `${API_BASE_URL}/api/posts/store/${storeId}`;
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -34,7 +34,6 @@ export const getPostsByStoreId = async (
         Authorization: "Bearer " + token,
       },
     });
-    console.log("Response status:", response.status);
     if (response.status === 404) {
       return [];
     }
@@ -46,7 +45,7 @@ export const getPostsByStoreId = async (
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error("Error fetching posts otin:", error);
+    console.error("Error fetching posts:", error);
     throw error;
   }
 };

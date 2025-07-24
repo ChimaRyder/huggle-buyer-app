@@ -36,6 +36,7 @@ export const createReview = async (
   }
 ) => {
   try {
+    console.log("Creating review with data:", reviewData);
     const response = await fetch(`${API_BASE_URL}/api/reviews`, {
       method: "POST",
       headers: {

@@ -17,7 +17,14 @@ import {
   deleteNotification,
   markAllNotificationsAsRead,
 } from "../../utils/notificationApi";
-import { Swipeable } from "react-native-gesture-handler";
+import {
+  Menu,
+  MenuOptions,
+  MenuOption,
+  MenuTrigger,
+  MenuProvider,
+} from "react-native-popup-menu";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 // Map backend type number to string
 const NOTIF_TYPE_MAP: Record<number, "NewProduct" | "NewPost" | "OrderReady"> =
@@ -47,6 +54,7 @@ const NotificationScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [menuVisibleId, setMenuVisibleId] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -110,25 +118,8 @@ const NotificationScreen = () => {
     fetchNotifications();
   };
 
-  const renderRightActions = (item: Notification) => (
-    <TouchableOpacity
-      style={{
-        backgroundColor: "#d00",
-        justifyContent: "center",
-        alignItems: "center",
-        width: 80,
-        height: "100%",
-        borderTopRightRadius: 14,
-        borderBottomRightRadius: 14,
-      }}
-      onPress={() => handleDelete(item.id)}
-    >
-      <Text style={{ color: "#fff", fontWeight: "bold" }}>Delete</Text>
-    </TouchableOpacity>
-  );
-
   const renderItem = ({ item }: { item: Notification }) => (
-    <Swipeable renderRightActions={() => renderRightActions(item)}>
+    <View style={{ position: "relative" }}>
       <TouchableOpacity
         style={[styles.card, item.isRead ? { opacity: 0.5 } : {}]}
         onPress={() => handlePress(item)}
@@ -151,41 +142,63 @@ const NotificationScreen = () => {
             {new Date(item.createdAt).toLocaleString()}
           </Text>
         </View>
+        <Menu>
+          <MenuTrigger>
+            <Ionicons
+              name="ellipsis-vertical"
+              size={20}
+              color="#888"
+              style={{ padding: 8 }}
+            />
+          </MenuTrigger>
+          <MenuOptions>
+            <MenuOption onSelect={() => handleDelete(item.id)}>
+              <Text style={{ color: "#d00", padding: 8 }}>Delete</Text>
+            </MenuOption>
+          </MenuOptions>
+        </Menu>
       </TouchableOpacity>
-    </Swipeable>
+    </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "center",
-          alignItems: "center",
-          marginBottom: 18,
-        }}
-      >
-        <Text style={styles.header}>Notifications</Text>
+    <MenuProvider>
+      <View style={styles.container}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 18,
+          }}
+        >
+          <Ionicons
+            name="notifications"
+            size={32}
+            color="#548C2F"
+            style={{ marginRight: 10, bottom: 10 }}
+          />
+          <Text style={styles.header}>Notifications</Text>
+        </View>
+        {loading && initialLoad ? (
+          <Text>Loading...</Text>
+        ) : (
+          <FlatList
+            data={notifications}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={["#548C2F"]}
+              />
+            }
+            contentContainerStyle={{ paddingBottom: 24 }}
+            ListEmptyComponent={<Text>No notifications</Text>}
+          />
+        )}
       </View>
-      {loading && initialLoad ? (
-        <Text>Loading...</Text>
-      ) : (
-        <FlatList
-          data={notifications}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={["#548C2F"]}
-            />
-          }
-          contentContainerStyle={{ paddingBottom: 24 }}
-          ListEmptyComponent={<Text>No notifications</Text>}
-        />
-      )}
-    </View>
+    </MenuProvider>
   );
 };
 
@@ -201,7 +214,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-SemiBold",
     marginBottom: 18,
     color: "#222",
-    textAlign: "center",
   },
   card: {
     flexDirection: "row",

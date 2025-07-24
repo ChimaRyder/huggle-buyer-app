@@ -11,7 +11,6 @@ export const CreateBuyerAccount = async (
     name: name,
     emailAddress: email,
   };
-  console.log(data);
   try {
     const response = await fetch(`${API_BASE_URL}/api/buyer`, {
       method: "POST",
@@ -28,7 +27,6 @@ export const CreateBuyerAccount = async (
     }
 
     const result = await response.json();
-    console.log("Buyer created successfully:", result);
     return result;
   } catch (error) {
     console.error("Error creating buyer account:", error);

@@ -141,10 +141,15 @@ export default function PostScreen() {
   };
 
   if (loading) {
+    // Minimal wireframe loading screen for PostScreen
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#548C2F" />
-        <Text style={{ marginTop: 12 }}>Loading post...</Text>
+      <View style={styles.loadingWireframeContainer}>
+        <View style={styles.wfImage} />
+        <View style={styles.wfContent}>
+          <View style={styles.wfTitle} />
+          <View style={styles.wfSection} />
+          <View style={styles.wfSection} />
+        </View>
       </View>
     );
   }
@@ -475,5 +480,36 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 12,
+  },
+  // Wireframe loading styles
+  loadingWireframeContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    paddingTop: 24,
+  },
+  wfImage: {
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#e0e0e0",
+    marginBottom: 16,
+  },
+  wfContent: {
+    width: "92%",
+    alignSelf: "center",
+  },
+  wfTitle: {
+    width: "60%",
+    height: 24,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+    marginBottom: 16,
+  },
+  wfSection: {
+    width: "100%",
+    height: 18,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+    marginBottom: 10,
   },
 });

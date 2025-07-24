@@ -357,9 +357,23 @@ export default function ProductScreen() {
         onClose={handleContinueShopping}
       />
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F9A620" />
-          <Text style={styles.loadingText}>Loading product details...</Text>
+        // Minimal wireframe loading screen
+        <View style={styles.loadingWireframeContainer}>
+          <View style={styles.wfImage} />
+          <View style={styles.wfContent}>
+            <View style={styles.wfTitle} />
+            <View style={styles.wfPriceRow}>
+              <View style={styles.wfPrice} />
+              <View style={styles.wfOrigPrice} />
+              <View style={styles.wfDiscount} />
+            </View>
+            <View style={styles.wfSection} />
+            <View style={styles.wfSection} />
+          </View>
+          <View style={styles.wfBottomRow}>
+            <View style={styles.wfBottomBtn} />
+            <View style={styles.wfBottomBtn} />
+          </View>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
@@ -393,7 +407,7 @@ export default function ProductScreen() {
                 style={{
                   position: "absolute",
                   top: 20,
-                  right: 60,
+                  right: 20,
                   zIndex: 2,
                   backgroundColor: "rgba(0,0,0,0.5)",
                   borderRadius: 20,
@@ -410,18 +424,6 @@ export default function ProductScreen() {
               >
                 <Ionicons name="close" size={24} color="white" />
               </TouchableOpacity>
-              {/* Discount Badge */}
-              {product && product.originalPrice > product.discountedPrice && (
-                <View style={styles.discountBadge}>
-                  <Text style={styles.discountText}>
-                    {calculateDiscountPercentage(
-                      product.originalPrice,
-                      product.discountedPrice
-                    )}
-                    % OFF
-                  </Text>
-                </View>
-              )}
             </View>
 
             <View style={styles.contentContainer}>
@@ -459,11 +461,22 @@ export default function ProductScreen() {
                 <Text style={styles.originalPrice}>
                   {formatPrice(product?.originalPrice || 150)}
                 </Text>
+                {/* Discount Percentage beside price */}
+                {product && product.originalPrice > product.discountedPrice && (
+                  <View style={styles.discountBadgeInline}>
+                    <Text style={styles.discountText}>
+                      {calculateDiscountPercentage(
+                        product.originalPrice,
+                        product.discountedPrice
+                      )}
+                      % OFF
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Description Section */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Description</Text>
                 <View style={styles.horizontalRule} />
                 <Text style={styles.description}>
                   {product?.description ||
@@ -648,14 +661,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 1,
   },
-  discountBadge: {
-    position: "absolute",
-    top: 20,
-    right: 16,
+  discountBadgeInline: {
+    marginLeft: 10,
     backgroundColor: "#FF6B6B",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    alignSelf: "center",
   },
   discountText: {
     color: "#fff",
@@ -842,5 +854,78 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontFamily: "Poppins-SemiBold",
+  },
+  // Wireframe styles
+  loadingWireframeContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    padding: 0,
+    marginTop: 20,
+    alignItems: "center",
+  },
+  wfImage: {
+    width: "100%",
+    height: 300,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  wfContent: {
+    width: "92%",
+    alignSelf: "center",
+  },
+  wfTitle: {
+    flex: 1,
+    height: 28,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  wfPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  wfPrice: {
+    width: 80,
+    height: 22,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  wfOrigPrice: {
+    width: 60,
+    height: 18,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  wfDiscount: {
+    width: 60,
+    height: 18,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+  },
+  wfSection: {
+    width: "100%",
+    height: 18,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  wfBottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "92%",
+    alignSelf: "center",
+    marginTop: 20,
+    gap: 12,
+  },
+  wfBottomBtn: {
+    flex: 1,
+    height: 50,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 25,
   },
 });

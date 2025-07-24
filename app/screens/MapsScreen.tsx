@@ -11,53 +11,107 @@ import {
 } from "react-native";
 import MapView, { Marker, MapPressEvent } from "react-native-maps";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@clerk/clerk-expo";
 import { updateBuyerLocation } from "../../utils/api";
+import * as Location from "expo-location";
+import { fetchBuyerById } from "../../utils/user";
 
 const { width, height } = Dimensions.get("window");
 
 const MapsScreen = ({ route }: any) => {
-  // Optionally accept initial location from props/route
-  const initialLocation = route?.params?.location || {
-    latitude: 37.7577,
-    longitude: -122.4376,
-  };
-
-  const [marker, setMarker] = useState(initialLocation);
+  const defaultLocation = { latitude: 37.7577, longitude: -122.4376 };
+  const [marker, setMarker] = useState(defaultLocation);
+  const [locationLoaded, setLocationLoaded] = useState(false);
+  const [initialRegion, setInitialRegion] = useState(defaultLocation);
   const mapRef = useRef<MapView>(null);
   const router = useRouter();
   const { userId, getToken } = useAuth();
+
+  React.useEffect(() => {
+    let isMounted = true;
+    const preloadLocation = async () => {
+      if (route?.params?.location) {
+        setMarker(route.params.location);
+        setInitialRegion(route.params.location);
+        setLocationLoaded(true);
+        return;
+      }
+      // 1. Try to get from backend
+      try {
+        const token = await getToken({ template: "seller_app" });
+        if (userId && token) {
+          const buyer = await fetchBuyerById(userId, token);
+          if (buyer && buyer.latitude && buyer.longitude) {
+            const dbLoc = {
+              latitude: buyer.latitude,
+              longitude: buyer.longitude,
+            };
+            setMarker(dbLoc);
+            setInitialRegion(dbLoc);
+            setLocationLoaded(true);
+            return;
+          }
+        }
+      } catch {}
+      // 2. Fallback to device geolocation
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLocationLoaded(true);
+          return;
+        }
+        let loc = await Location.getCurrentPositionAsync({});
+        const coords = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        };
+        if (isMounted) {
+          setMarker(coords);
+          setInitialRegion(coords);
+        }
+      } catch {}
+      setLocationLoaded(true);
+    };
+    preloadLocation();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleMapPress = (e: MapPressEvent) => {
     setMarker(e.nativeEvent.coordinate);
   };
 
   const handleConfirm = async () => {
-    console.log('[MapsScreen] handleConfirm triggered');
     try {
       if (!userId) {
-
         Alert.alert("Error", "User not logged in.");
         return;
       }
       const token = await getToken({ template: "seller_app" });
       if (!token) {
-        console.log('[MapsScreen] No token');
-        Alert.alert('Error', 'Unable to get authentication token.');
+        Alert.alert("Error", "Unable to get authentication token.");
         return;
       }
-      console.log('[MapsScreen] Calling updateBuyerLocation', { userId, longitude: marker.longitude, latitude: marker.latitude });
-      await updateBuyerLocation(userId, marker.longitude, marker.latitude, token);
-      console.log('[MapsScreen] Location updated, saving to AsyncStorage');
-      await AsyncStorage.setItem('userLocation', JSON.stringify(marker));
-      console.log('[MapsScreen] Location saved, navigating back');
+      await updateBuyerLocation(
+        userId,
+        marker.longitude,
+        marker.latitude,
+        token
+      );
       router.back();
     } catch (error: any) {
-      console.log('[MapsScreen] Error in handleConfirm', error);
-      Alert.alert('Error', error.message || 'Failed to update location.');
+      Alert.alert("Error", error.message || "Failed to update location.");
     }
   };
+
+  if (!locationLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Getting your location...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -65,8 +119,8 @@ const MapsScreen = ({ route }: any) => {
         ref={mapRef}
         style={styles.map}
         initialRegion={{
-          latitude: marker.latitude,
-          longitude: marker.longitude,
+          latitude: initialRegion.latitude,
+          longitude: initialRegion.longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }}
@@ -154,6 +208,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#333",
   },
 });
 

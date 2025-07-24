@@ -20,6 +20,14 @@ interface OrderCardProps {
       | "Completed"
       | "Cancelled";
     image: any;
+    // Add for multi-item support
+    items?: Array<{
+      image: any;
+      name: string;
+      price: string;
+      quantity: number;
+    }>;
+    totalPrice?: string;
   };
   onCancel?: () => void;
   showCancelButton?: boolean;
@@ -33,6 +41,49 @@ const OrderCard: React.FC<OrderCardProps> = ({
   const canCancel =
     (order.status === "Pending" || order.status === "Confirmed") &&
     showCancelButton;
+
+  // If items array exists, render multi-item layout
+  if (order.items && order.items.length > 0) {
+    return (
+      <View style={styles.card}>
+        <Text appearance="hint" style={styles.dateText}>
+          {order.date}
+        </Text>
+        {order.items.map((item, idx) => (
+          <View key={idx} style={styles.multiItemRow}>
+            <Image source={item.image} style={styles.multiItemImage} />
+            <View style={styles.multiItemInfo}>
+              <View style={styles.multiItemTopRow}>
+                <Text style={styles.productName}>{item.name}</Text>
+                <Text style={styles.price}>{item.price}</Text>
+              </View>
+              <Text style={styles.quantityText}>Quantity: {item.quantity}</Text>
+            </View>
+          </View>
+        ))}
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalPriceText}>{order.totalPrice}</Text>
+        </View>
+        <View style={styles.bottomRowMulti}>
+          <View style={[styles.statusBadge, getStatusStyle(order.status)]}>
+            <Text style={styles.statusText}>{order.status}</Text>
+          </View>
+          {canCancel && onCancel && (
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                onCancel && onCancel();
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.card}>
@@ -52,9 +103,12 @@ const OrderCard: React.FC<OrderCardProps> = ({
               {order.price}
             </Text>
           </View>
-          <Text appearance="hint" numberOfLines={1} style={styles.description}>
-            {order.description}
-          </Text>
+          {/* New row for extra details */}
+          <View style={styles.extraDetailsRow}>
+            <Text style={styles.extraDetailsText} numberOfLines={2}>
+              {order.description}
+            </Text>
+          </View>
           <View style={styles.locationRow}>
             <FontAwesome5 name="store" size={14} color="#104911" />
             <Text style={styles.metaText}> {order.storeName} | </Text>
@@ -177,5 +231,68 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: fontSizes.xs,
     fontWeight: "bold",
+  },
+  extraDetailsRow: {
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  extraDetailsText: {
+    fontSize: fontSizes.sm,
+    color: "#666",
+    fontFamily: "Poppins-Regular",
+  },
+  // New styles for multi-item support
+  multiItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  multiItemImage: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    marginRight: spacing.md,
+  },
+  multiItemInfo: {
+    flex: 1,
+  },
+  multiItemTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  quantityText: {
+    fontSize: fontSizes.xs,
+    color: "#666",
+    fontFamily: "Poppins-Regular",
+    marginTop: 2,
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 2,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  totalLabel: {
+    fontSize: fontSizes.sm,
+    color: "#333",
+    fontFamily: "Poppins-SemiBold",
+  },
+  totalPriceText: {
+    fontWeight: "bold",
+    color: "#104911",
+    fontSize: fontSizes.md,
+    marginLeft: "auto",
+  },
+  bottomRowMulti: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 12,
   },
 });

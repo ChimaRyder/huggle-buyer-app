@@ -112,10 +112,18 @@ const FavoritesScreen = () => {
         const token = tokenRaw || "";
         let allPosts: any[] = [];
         for (const store of favoriteStores) {
-          // getPostsByStoreId expects (token, storeId)
           const storePosts = await getPostsByStoreId(token, store.id);
           if (Array.isArray(storePosts)) {
-            allPosts = allPosts.concat(storePosts);
+            // Ensure each post has a valid createdAt property
+            const mappedPosts = storePosts.map((post) => ({
+              ...post,
+              createdAt:
+                post.createdAt ||
+                post.created_at ||
+                post.dateCreated ||
+                "1970-01-01T00:00:00Z",
+            }));
+            allPosts = allPosts.concat(mappedPosts);
           }
         }
         setPosts(allPosts);
@@ -161,11 +169,15 @@ const FavoritesScreen = () => {
   }, [userId]);
 
   // Sort by date created (descending)
-  const sortedItems = [...products, ...posts].sort((a, b) => {
-    const dateA = new Date(a.createdAt).getTime();
-    const dateB = new Date(b.createdAt).getTime();
-    return dateB - dateA;
-  });
+  const sortedItems = [...products, ...posts]
+    .filter(
+      (item) => !!item.createdAt && !isNaN(new Date(item.createdAt).getTime())
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA;
+    });
 
   const filteredFavorites = favoriteStores
     .filter((item) => item.name.toLowerCase().includes(search.toLowerCase()))

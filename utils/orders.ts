@@ -14,6 +14,8 @@ export const createOrder = async (orderData: any, token: string | null) => {
         : [orderData.quantity],
     };
 
+    console.log("Creating order with data:", formattedOrderData);
+
     const response = await fetch(`${API_BASE_URL}/api/orders`, {
       method: "POST",
       headers: {
@@ -22,9 +24,6 @@ export const createOrder = async (orderData: any, token: string | null) => {
       },
       body: JSON.stringify(formattedOrderData),
     });
-
-    console.log("Bearer", token);
-    console.log("Order Data:", formattedOrderData);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -38,46 +37,6 @@ export const createOrder = async (orderData: any, token: string | null) => {
   }
 };
 
-// Add a new function specifically for creating orders from cart items
-export const createMultipleOrders = async (
-  cartItems: any[],
-  storeId: string,
-  totalPrice: number,
-  token: string | null
-) => {
-  try {
-    const productIds = cartItems.map((item) => item.productId);
-    const quantities = cartItems.map((item) => item.quantity);
-
-    const orderData = {
-      storeId,
-      productId: productIds,
-      quantity: quantities,
-      totalPrice,
-      status: 0, // Pending
-    };
-
-    const response = await fetch(`${API_BASE_URL}/api/orders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify(orderData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Error: ${response.status} - ${errorText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error creating order from cart:", error);
-    throw error;
-  }
-};
-
 // Get all orders for the current user
 export const getOrders = async (token: string | null) => {
   try {
@@ -87,8 +46,6 @@ export const getOrders = async (token: string | null) => {
         Authorization: "Bearer " + token,
       },
     });
-
-    console.log("Bearer", token);
 
     if (!response.ok) {
       throw new Error(`Error: ${response.status}`);
