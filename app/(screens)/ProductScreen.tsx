@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Image,
@@ -13,6 +13,7 @@ import {
   Animated,
   Modal,
   TextInput,
+  Dimensions,
 } from "react-native";
 import AddToCartModal from "../../components/AddToCartModal";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
@@ -46,6 +47,8 @@ const AnimatedPressable =
   Platform.OS === "web"
     ? Pressable
     : Animated.createAnimatedComponent(Pressable);
+
+const { width } = Dimensions.get('window');
 
 function WriteReviewButton({ productId }: { productId?: string }) {
   const router = useRouter();
@@ -119,6 +122,10 @@ export default function ProductScreen() {
   const [store, setStore] = useState<BackendStore | null>(null);
   const [reviews, setReviews] = useState<BackendReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  
+  // Image gallery state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const imageScrollRef = useRef<ScrollView>(null);
 
   // Expiration check
   const isExpired = (() => {
@@ -140,6 +147,37 @@ export default function ProductScreen() {
     } finally {
       setReviewsLoading(false);
     }
+  };
+
+  // Get all product images (cover image + additional images)
+  const getProductImages = () => {
+    const images: (string | any)[] = [];
+    
+    // Add cover image first
+    if (product?.coverImage) {
+      images.push(product.coverImage);
+    }
+    
+    // Add additional images if they exist
+    if (product?.additionalImages && Array.isArray(product.additionalImages)) {
+      // Filter out cover image to avoid duplicates
+      const additionalImages = product.additionalImages.filter((img: string) => img !== product.coverImage);
+      images.push(...additionalImages);
+    }
+    
+    // If no images, use placeholder
+    if (images.length === 0) {
+      images.push(require("../../assets/products/product1.png"));
+    }
+    
+    return images;
+  };
+
+  // Handle image scroll
+  const handleImageScroll = (event: any) => {
+    const contentOffset = event.nativeEvent.contentOffset.x;
+    const newIndex = Math.round(contentOffset / width);
+    setCurrentImageIndex(newIndex);
   };
 
   useEffect(() => {
@@ -260,7 +298,7 @@ export default function ProductScreen() {
         product.id,
         reportReason,
         reportDescription,
-        token
+        token || ""
       );
       setReportModalVisible(false);
       setReportReason("");
@@ -413,15 +451,53 @@ export default function ProductScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.imageContainer}>
-              <Image
-                source={
-                  product?.coverImage
-                    ? { uri: product.coverImage }
-                    : require("../../assets/products/product1.png")
-                }
-                style={styles.productImage}
-                resizeMode="cover"
-              />
+              {/* Image Gallery */}
+              <ScrollView
+                ref={imageScrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={handleImageScroll}
+                style={styles.imageGallery}
+              >
+                {getProductImages().map((imageSource, index) => (
+                  <Image
+                    key={index}
+                    source={
+                      typeof imageSource === 'string' 
+                        ? { uri: imageSource }
+                        : imageSource
+                    }
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                ))}
+              </ScrollView>
+
+              {/* Image Counter Dots */}
+              {getProductImages().length > 1 && (
+                <View style={styles.imageDotsContainer}>
+                  {getProductImages().map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.imageDot,
+                        index === currentImageIndex && styles.imageDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+
+              {/* Image Counter Text */}
+              {getProductImages().length > 1 && (
+                <View style={styles.imageCounterContainer}>
+                  <Text style={styles.imageCounterText}>
+                    {currentImageIndex + 1} / {getProductImages().length}
+                  </Text>
+                </View>
+              )}
+
               {/* Report Product Button */}
               <TouchableOpacity
                 style={{
@@ -576,7 +652,7 @@ export default function ProductScreen() {
                     <ReviewCard
                       key={review.id}
                       buyerId={review.buyerId}
-                      message={review.content}
+                      message={review.content || undefined}
                       rating={review.rating}
                       imageUrls={review.imageUrls || []}
                       createdAt={review.createdAt}
@@ -694,8 +770,45 @@ const styles = StyleSheet.create({
     height: 300,
   },
   productImage: {
-    width: "100%",
+    width: width,
     height: "100%",
+  },
+  imageGallery: {
+    flex: 1,
+  },
+  imageDotsContainer: {
+    position: "absolute",
+    bottom: 20,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    marginHorizontal: 4,
+  },
+  imageDotActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    transform: [{ scale: 1.2 }],
+  },
+  imageCounterContainer: {
+    position: "absolute",
+    top: 20,
+    left: 50,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  imageCounterText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
   },
   closeButton: {
     position: "absolute",
