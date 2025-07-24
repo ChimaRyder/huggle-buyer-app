@@ -57,7 +57,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Modal visible={showModal} transparent animationType="fade">
+      {/* <Modal visible={showModal} transparent animationType="fade">
         <View
           style={{
             flex: 1,
@@ -96,7 +96,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
