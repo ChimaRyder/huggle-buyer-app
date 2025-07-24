@@ -28,6 +28,7 @@ import { fetchProductById } from "@/utils/products";
 import { addToCart } from "@/utils/cart";
 import { getOrders } from "@/utils/orders";
 import { fetchBuyerById } from "@/utils/user";
+import { fetchReviews } from "@/utils/reviews";
 
 import { tokenCache } from "../../utils/cache";
 import {
@@ -116,6 +117,8 @@ export default function ProductScreen() {
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<BackendProduct | null>(null);
   const [store, setStore] = useState<BackendStore | null>(null);
+  const [reviews, setReviews] = useState<BackendReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Expiration check
   const isExpired = (() => {
@@ -124,6 +127,20 @@ export default function ProductScreen() {
     const exp = new Date(product.expirationDate);
     return exp < now;
   })();
+
+  // Function to load reviews
+  const loadProductReviews = async (productId: string, token: string | null) => {
+    try {
+      setReviewsLoading(true);
+      const reviewsData = await fetchReviews(token, { productId });
+      setReviews(reviewsData || []);
+    } catch (err) {
+      console.error("Error loading reviews:", err);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const loadProductData = async () => {
@@ -139,11 +156,14 @@ export default function ProductScreen() {
         const productData = await fetchProductById(id.toString(), token);
         setProduct(productData);
 
-        // Once we have the product, fetch the store data
+        // Once we have the product, fetch the store data and reviews
         if (productData.storeId) {
           const storeData = await fetchStoreById(productData.storeId, token);
           setStore(storeData);
         }
+
+        // Fetch reviews for this product
+        await loadProductReviews(id.toString(), token);
       } catch (err) {
         console.error("Error loading product data:", err);
         setError("Failed to load product details");
@@ -527,16 +547,44 @@ export default function ProductScreen() {
               {/* Reviews Section */}
               <View style={styles.reviewsSection}>
                 <View style={styles.reviewsHeader}>
-                  <Text style={styles.sectionTitle}>Reviews</Text>
-                  <Pressable>
-                    <Text style={styles.seeAllButton}>See all</Text>
-                  </Pressable>
+                  <Text style={styles.sectionTitle}>Reviews ({reviews.length})</Text>
+                  {reviews.length > 0 && (
+                    <Pressable 
+                      onPress={() => router.push({
+                        pathname: "/(screens)/AllReviewsScreen",
+                        params: { productId: product?.id, productName: product?.name }
+                      })}
+                    >
+                      <Text style={styles.seeAllButton}>See all</Text>
+                    </Pressable>
+                  )}
                 </View>
-                <ReviewCard
-                  reviewerName="John Doe"
-                  message="Great product! Highly recommended."
-                  rating={product?.rating || 4}
-                />
+                
+                {reviewsLoading ? (
+                  <View style={styles.reviewsLoadingContainer}>
+                    <ActivityIndicator size="small" color="#548C2F" />
+                    <Text style={styles.reviewsLoadingText}>Loading reviews...</Text>
+                  </View>
+                ) : reviews.length === 0 ? (
+                  <View style={styles.noReviewsContainer}>
+                    <Text style={styles.noReviewsText}>No reviews yet</Text>
+                    <Text style={styles.noReviewsSubtext}>Be the first to review this product!</Text>
+                  </View>
+                ) : (
+                  // Show first 2 reviews
+                  reviews.slice(0, 2).map((review) => (
+                    <ReviewCard
+                      key={review.id}
+                      buyerId={review.buyerId}
+                      message={review.content}
+                      rating={review.rating}
+                      imageUrls={review.imageUrls || []}
+                      createdAt={review.createdAt}
+                      showExpandButton={true}
+                    />
+                  ))
+                )}
+                
                 {/* Write a Review Button (conditional) */}
                 <WriteReviewButton productId={product?.id} />
               </View>
@@ -808,6 +856,34 @@ const styles = StyleSheet.create({
   seeAllButton: {
     color: "#104911",
     fontSize: 16,
+  },
+  reviewsLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+  },
+  reviewsLoadingText: {
+    marginLeft: 8,
+    color: "#666",
+    fontSize: 14,
+  },
+  noReviewsContainer: {
+    alignItems: "center",
+    paddingVertical: 24,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  noReviewsText: {
+    fontSize: 16,
+    fontFamily: "Poppins-SemiBold",
+    color: "#666",
+    marginBottom: 4,
+  },
+  noReviewsSubtext: {
+    fontSize: 14,
+    color: "#999",
   },
   bottomButtons: {
     position: "absolute",
