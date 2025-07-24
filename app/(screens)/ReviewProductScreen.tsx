@@ -15,10 +15,39 @@ import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "@clerk/clerk-expo";
 import { createReview } from "../../utils/reviews";
 import { getOrders } from "../../utils/orders";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { firebase } from "../../fbconfig"; // Make sure fbconfig.js is present
+
+const storage = getStorage(firebase);
+
+const uploadToFirebase = async (uri: string, name: string, folder: string) => {
+  try {
+    const timestamp = new Date().getTime();
+    const uniqueFilename = `${folder}/${timestamp}_${name.replace(/\s+/g, "_")}`;
+    const storageRef = ref(storage, uniqueFilename);
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const uploadTask = uploadBytesResumable(storageRef, blob);
+    return new Promise<string>((resolve, reject) => {
+      uploadTask.on(
+        "state_changed",
+        null,
+        (error) => reject(error),
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL);
+        }
+      );
+    });
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw error;
+  }
+};
 
 const ReviewProductScreen = () => {
   const router = useRouter();
-  const { productId, orderId } = useLocalSearchParams();
+  const { productId, orderId, storeId } = useLocalSearchParams();
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(0);
   const [imageUris, setImageUris] = useState<string[]>([]);
@@ -79,6 +108,20 @@ const ReviewProductScreen = () => {
       setSubmitting(false);
       return;
     }
+    // Upload images to Firebase and get URLs
+    let imageUrls: string[] = [];
+    try {
+      for (let i = 0; i < imageUris.length; i++) {
+        const uri = imageUris[i];
+        const name = `review_photo_${i}.jpg`;
+        const url = await uploadToFirebase(uri, name, "review_photos");
+        imageUrls.push(url);
+      }
+    } catch (error) {
+      Alert.alert("Error uploading images. Please try again.");
+      setSubmitting(false);
+      return;
+    }
     const reviewData = {
       productId:
         typeof productId === "string"
@@ -89,10 +132,16 @@ const ReviewProductScreen = () => {
       buyerId,
       orderId: finalOrderId,
       content,
-      imageUrls: [],
+      imageUrls, // Use the uploaded URLs
       rating,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      storeId:
+        typeof storeId === "string"
+          ? storeId
+          : Array.isArray(storeId)
+          ? storeId[0]
+          : "",
     };
     try {
       await createReview(token, reviewData);

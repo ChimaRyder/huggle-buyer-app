@@ -253,11 +253,13 @@ const OrderDetails: React.FC<OrderDetailsViewProps> = (props) => {
                     })
                   }
                 />
-                {/* Write Review Button for completed orders */}
+                {/* Write Review Button for completed orders, disabled if hasReviewed[idx] is true */}
                 {order && (
                   <WriteReviewButton
                     productId={product.id}
                     orderStatus={getStatusFromEnum(order.status)}
+                    storeId={order.storeId}
+                    disabled={Array.isArray(order.hasReviewed) ? order.hasReviewed[idx] === true : false}
                   />
                 )}
               </View>
@@ -415,9 +417,13 @@ const OrderDetails: React.FC<OrderDetailsViewProps> = (props) => {
 function WriteReviewButton({
   productId,
   orderStatus,
+  storeId,
+  disabled,
 }: {
   productId: string;
   orderStatus: string | number;
+  storeId: string;
+  disabled?: boolean;
 }) {
   const router = useRouter();
   // Show button if order is completed (enum value 3)
@@ -426,20 +432,26 @@ function WriteReviewButton({
   return (
     <Pressable
       style={{
-        backgroundColor: "#548C2F",
+        backgroundColor: disabled ? "#bbb" : "#548C2F",
         padding: 8,
         borderRadius: 8,
         alignItems: "center",
         marginTop: 8,
+        opacity: disabled ? 0.6 : 1,
       }}
-      onPress={() =>
-        router.push({
-          pathname: "/(screens)/ReviewProductScreen",
-          params: { productId },
-        })
-      }
+      onPress={() => {
+        if (!disabled) {
+          router.push({
+            pathname: "/(screens)/ReviewProductScreen",
+            params: { productId, storeId },
+          });
+        }
+      }}
+      disabled={disabled}
     >
-      <Text style={{ color: "#fff", fontWeight: "bold" }}>Write a Review</Text>
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>
+        {disabled ? "Review Submitted" : "Write a Review"}
+      </Text>
     </Pressable>
   );
 }

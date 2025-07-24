@@ -224,7 +224,7 @@ export default function CartScreen() {
           </Text>
           <Button
             style={styles.shopButton}
-            onPress={() => router.push("/(tabs)/HomeScreen" as any)}
+            onPress={() => router.back()}
           >
             Start Shopping
           </Button>

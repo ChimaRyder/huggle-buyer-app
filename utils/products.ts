@@ -39,7 +39,9 @@ export const fetchProductById = async (
       },
     });
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`API error response for product ${productId}:`, errorText);
+      throw new Error(`Error: ${response.status} - ${errorText}`);
     }
     return await response.json();
   } catch (error) {

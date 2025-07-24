@@ -378,8 +378,9 @@ const Orders = () => {
                   id: order.id,
                   date: order.formattedDate || "Unknown date",
                   productName: order.productName || "Unknown Product",
-                  price: `₱${order.totalPrice?.toString() ?? '0.00'}`,
-                  description: order.description ||
+                  price: `₱${order.totalPrice?.toString() ?? "0.00"}`,
+                  description:
+                    order.description ||
                     (Array.isArray(order.quantity)
                       ? `${order.quantity.length} items`
                       : `Quantity: ${order.quantity}`),
