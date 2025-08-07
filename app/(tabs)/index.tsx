@@ -1,110 +1,91 @@
-import React, { useEffect, useState } from "react";
+/**
+ * Home Screen
+ * Main landing screen showing categories, products, and user greeting
+ */
+
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
   View,
   SafeAreaView,
-  Modal,
   Text,
   TouchableOpacity,
   RefreshControl,
-} from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import CategoryCarousel from "../../components/CategoryCarousel";
-import ProductGrid from "../../components/ProductGrid";
-import GreeterSection from "../../components/GreeterSection";
-import { useAuth, useUser } from "@clerk/clerk-expo";
-import { Ionicons } from "@expo/vector-icons";
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { useAuth, useUser } from '@clerk/clerk-expo';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function HomeScreen() {
-  const [showModal, setShowModal] = useState(false);
+import CategoryCarousel from '@/components/CategoryCarousel';
+import ProductGrid from '@/components/ProductGrid';
+import GreeterSection from '@/components/GreeterSection';
+import { colors, spacing, layout, shadows, radii } from '@/constants/theme';
+
+interface HomeScreenProps {}
+
+const HomeScreen: React.FC<HomeScreenProps> = () => {
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  
   const { getToken } = useAuth();
   const router = useRouter();
   const { user } = useUser();
 
-  // TODO: Check from backend not in AsyncStorage
-  // get buyer nya check if location is null
   useEffect(() => {
-    const checkLocation = async () => {
-      // You can replace this with a backend check if needed
-      const location = await AsyncStorage.getItem("userLocation");
-      if (!location) {
-        setShowModal(true);
-      }
-    };
-    checkLocation();
+    checkUserLocation();
   }, []);
 
-  const handleModalConfirm = () => {
-    setShowModal(false);
-    router.push("/screens/MapsScreen");
+  const checkUserLocation = async (): Promise<void> => {
+    try {
+      // TODO: Replace with backend check instead of AsyncStorage
+      const location = await AsyncStorage.getItem('userLocation');
+      if (!location) {
+        setShowLocationModal(true);
+      }
+    } catch (error) {
+      console.error('Error checking user location:', error);
+    }
   };
 
-  const handleLocationPress = () => {
-    router.push("/screens/MapsScreen");
+  const handleLocationModalConfirm = (): void => {
+    setShowLocationModal(false);
+    router.push('/screens/MapsScreen');
   };
 
-  const [refreshing, setRefreshing] = useState(false);
+  const handleLocationPress = (): void => {
+    router.push('/screens/MapsScreen');
+  };
 
-  const onRefresh = async () => {
+  const handleRefresh = async (): Promise<void> => {
     setRefreshing(true);
-    // Optionally, trigger refresh on ProductGrid via ref or context if needed
-    // For now, just wait a bit (simulate network call)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setRefreshing(false);
+    
+    try {
+      // TODO: Implement actual data refresh logic
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleCartPress = (): void => {
+    router.push('/(screens)/cart' as any);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* <Modal visible={showModal} transparent animationType="fade">
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.4)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 20,
-              padding: 28,
-              alignItems: "center",
-              width: 320,
-            }}
-          >
-            <Text
-              style={{ fontWeight: "bold", fontSize: 18, marginBottom: 10 }}
-            >
-              Pin point your location to get started
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: "#0d2329",
-                borderRadius: 10,
-                paddingVertical: 12,
-                paddingHorizontal: 40,
-                marginTop: 16,
-              }}
-              onPress={handleModalConfirm}
-            >
-              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-                Pin Location
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal> */}
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#548C2F"]}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
@@ -114,43 +95,44 @@ export default function HomeScreen() {
           <ProductGrid />
         </View>
       </ScrollView>
+      
       {/* Floating Cart Button */}
       <TouchableOpacity
-        style={{
-          position: "absolute",
-          bottom: 24,
-          right: 24,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: "#548C2F",
-          alignItems: "center",
-          justifyContent: "center",
-          elevation: 4,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
-        }}
-        onPress={() => router.push("/(screens)/cart" as any)}
+        style={styles.floatingCartButton}
+        onPress={handleCartPress}
+        activeOpacity={0.8}
       >
-        <Ionicons name="cart" size={32} color="white" />
+        <Ionicons name="cart" size={32} color={colors.text.inverse} />
       </TouchableOpacity>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F7F8FA", //F7F8FA
+    backgroundColor: colors.background.primary,
   },
   container: {
     flex: 1,
   },
   productsContainer: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 16,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  floatingCartButton: {
+    position: 'absolute',
+    bottom: spacing.lg,
+    right: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.lg,
   },
 });
+
+export default HomeScreen;

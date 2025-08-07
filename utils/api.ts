@@ -1,18 +1,16 @@
-<<<<<<< HEAD
+/**
+ * API utilities and re-exports
+ * @deprecated API_BASE_URL - Use config.apiBaseUrl from @/constants/config instead
+ */
 
-// export const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
-export const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
-//
-=======
-export const API_BASE_URL = "https://l4f9xg2c-5132.asse.devtunnels.ms";
-// export const API_BASE_URL = "https://huggle-backend-jh2l.onrender.com";
+// Re-export API_BASE_URL for backwards compatibility
+export { API_BASE_URL } from "./constants";
 
->>>>>>> c1f5503 (qa ts)
+// Re-exports for convenience
 export * from "./products";
 export * from "./stores";
 export * from "./orders";
 export * from "./cart";
 export * from "./posts";
-export * from "./api";
 export * from "./user";
 export * from "./reviews";

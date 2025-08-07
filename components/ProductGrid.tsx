@@ -14,7 +14,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { images, ImageSource } from "../assets";
-import { fetchAllProducts } from "../utils/products";
+import { ProductService } from "../services/productService";
 
 interface BackendProduct {
   id: string;
@@ -49,35 +49,6 @@ interface Product {
   storeId: string;
   expirationDate: string;
 }
-
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    name: "Chocolate Cake",
-    image: images.products.product1,
-    rating: 4.8,
-    discount: 25,
-    distance: "5km",
-    time: "45mins",
-    availableItems: 5,
-    price: 100,
-    storeId: "1",
-    expirationDate: "2024-03-20T14:30:00.000Z",
-  },
-  {
-    id: "2",
-    name: "Fresh Salad",
-    image: images.products.product2,
-    rating: 4.6,
-    discount: 15,
-    distance: "3km",
-    time: "30mins",
-    availableItems: 8,
-    price: 150,
-    storeId: "1",
-    expirationDate: "2024-03-22T14:30:00.000Z",
-  },
-];
 
 const getStyles = (width: number) =>
   StyleSheet.create({
@@ -218,10 +189,13 @@ function ProductGrid({ productType }: ProductGridProps) {
       }
       const tokenRaw = await getToken({ template: "seller_app" });
       const token = tokenRaw || "";
-      const backendProducts: BackendProduct[] = await fetchAllProducts(
-        token,
-        productType || undefined
-      );
+      const response = await ProductService.getAllProducts(token, {
+        productType: productType || undefined
+      });
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to fetch products');
+      }
+      const backendProducts: BackendProduct[] = response.data;
 
       const transformedProducts: Product[] = backendProducts.map((product) => {
         const discountPercentage =
@@ -254,7 +228,6 @@ function ProductGrid({ productType }: ProductGridProps) {
     } catch (err) {
       console.error("Error fetching products:", err);
       setError("Failed to load products");
-      setProducts(mockProducts);
     } finally {
       setLoading(false);
       setRefreshing(false);

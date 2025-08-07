@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: radii.md,
     marginVertical: spacing.sm,
-    ...shadows.card,
+    ...shadows.md,
     minHeight: 80,
     alignItems: "stretch",
   },

@@ -601,5 +601,5 @@ const styles = StyleSheet.create({
   reviewsListContent: {
     paddingHorizontal: 16,
     paddingBottom: 24,
-  },
-}); 
+  }
+});

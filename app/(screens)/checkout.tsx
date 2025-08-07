@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
-    ...shadows.card,
+    ...shadows.md,
   },
   itemContainer: {
     flexDirection: "row",
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
-    ...shadows.card,
+    ...shadows.md,
   },
   storeImage: {
     width: 40,

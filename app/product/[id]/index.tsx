@@ -4,7 +4,7 @@ import { Text } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import ReviewCard from '../../../components/ReviewCard';
-import { fetchReviews } from '../../../utils/api';
+import { fetchReviews } from '../../../utils/reviews';
 import { BackendReview } from '../../../types/BackendModels';
 import { images } from '../../../assets';
 

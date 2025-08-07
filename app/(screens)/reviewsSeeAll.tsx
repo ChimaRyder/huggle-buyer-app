@@ -13,7 +13,7 @@ import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import ReviewCard from "../../components/ReviewCard";
-import { fetchProductsByStoreId } from "../../utils/products";
+import { ProductService } from "../../services/productService";
 import { fetchReviews } from "../../utils/reviews";
 import { BackendReview, BackendProduct } from "../../types/BackendModels";
 
@@ -67,7 +67,8 @@ export default function ReviewsSeeAllScreen() {
       
       const token = await getToken({ template: "seller_app" });
       // 1. Get all products for the store
-      const products: BackendProduct[] = await fetchProductsByStoreId(storeId as string, token);
+      const response = await ProductService.getProductsByStoreId(storeId as string, token);
+      const products: BackendProduct[] = response.success && response.data ? response.data : [];
       const allReviews: BackendReview[] = [];
       
       // 2. For each product, fetch reviews

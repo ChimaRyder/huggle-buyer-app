@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL } from "./constants";
 
 export const fetchReviews = async (
   token: string | null = null,

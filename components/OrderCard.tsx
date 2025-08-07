@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg + spacing.sm,
     marginBottom: spacing.lg,
     padding: spacing.md,
-    ...shadows.card,
+    ...shadows.md,
   },
   dateText: {
     marginBottom: spacing.xs,

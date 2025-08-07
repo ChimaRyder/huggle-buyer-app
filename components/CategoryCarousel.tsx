@@ -1,4 +1,9 @@
-import React from "react";
+/**
+ * CategoryCarousel Component
+ * Horizontal scrolling list of product categories
+ */
+
+import React from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -6,9 +11,11 @@ import {
   TouchableOpacity,
   View,
   Text,
-} from "react-native";
+} from 'react-native';
+import { useRouter } from 'expo-router';
 
-import { images, ImageSource } from "../assets";
+import { images, type ImageSource } from '@/assets';
+import { colors, spacing, typography, radii } from '@/constants/theme';
 
 interface Category {
   id: string;
@@ -17,43 +24,42 @@ interface Category {
 }
 
 const categories: Category[] = [
-  { id: "Food", name: "Food", image: images.categories.food },
+  { id: 'Food', name: 'Food', image: images.categories.food },
   {
-    id: "Electronics",
-    name: "Electronics",
+    id: 'Electronics',
+    name: 'Electronics',
     image: images.categories.electronics,
   },
-  { id: "Clothing", name: "Clothing", image: images.categories.clothing },
+  { id: 'Clothing', name: 'Clothing', image: images.categories.clothing },
   {
-    id: "HomeAppliances",
-    name: "Home Appliances",
+    id: 'HomeAppliances',
+    name: 'Home Appliances',
     image: images.categories.homeAppliances,
   },
-  { id: "Books", name: "Books", image: images.categories.books },
+  { id: 'Books', name: 'Books', image: images.categories.books },
   {
-    id: "HealthAndBeauty",
-    name: "Health & Beauty",
+    id: 'HealthAndBeauty',
+    name: 'Health & Beauty',
     image: images.categories.healthAndBeauty,
   },
   {
-    id: "SportsAndOutdoors",
-    name: "Sports & Outdoors",
+    id: 'SportsAndOutdoors',
+    name: 'Sports & Outdoors',
     image: images.categories.sports,
   },
-  { id: "ToysAndGames", name: "Toys & Games", image: images.categories.toys },
-  { id: "Pets", name: "Pets", image: images.categories.pets },
-  // { id: "Automotive", name: "Automotive", image: images.categories.food },
-  { id: "BabyProducts", name: "Baby Products", image: images.categories.baby },
+  { id: 'ToysAndGames', name: 'Toys & Games', image: images.categories.toys },
+  { id: 'Pets', name: 'Pets', image: images.categories.pets },
+  { id: 'BabyProducts', name: 'Baby Products', image: images.categories.baby },
   {
-    id: "OfficeSupplies",
-    name: "Office Supplies",
+    id: 'OfficeSupplies',
+    name: 'Office Supplies',
     image: images.categories.office,
   },
-  { id: "ArtsAndCrafts", name: "Arts & Crafts", image: images.categories.arts },
+  { id: 'ArtsAndCrafts', name: 'Arts & Crafts', image: images.categories.arts },
 ];
 
-const CategoryCarousel = () => {
-  const router = require("expo-router").useRouter();
+export const CategoryCarousel: React.FC = () => {
+  const router = useRouter();
   return (
     <ScrollView
       horizontal
@@ -66,7 +72,7 @@ const CategoryCarousel = () => {
           style={styles.categoryButton}
           onPress={() => {
             router.push({
-              pathname: "/(screens)/TrendingProductsScreen",
+              pathname: '/(screens)/TrendingProductsScreen',
               params: { productType: category.id },
             });
           }}
@@ -83,30 +89,31 @@ const CategoryCarousel = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   categoryButton: {
-    alignItems: "center",
-    marginRight: 16,
+    alignItems: 'center',
+    marginRight: spacing.lg,
   },
   imageContainer: {
     width: 60,
     height: 60,
-    borderRadius: 35,
+    borderRadius: 30,
     borderWidth: 2,
-    borderColor: "#4E4545",
-    overflow: "hidden",
-    marginBottom: 4,
+    borderColor: colors.border.primary,
+    overflow: 'hidden',
+    marginBottom: spacing.xs,
   },
   image: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   categoryName: {
-    fontSize: 12,
-    color: "#333",
-    marginTop: 4,
+    fontSize: typography.fontSizes.sm,
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
 });
 

@@ -18,7 +18,7 @@ import { fetchBuyerById } from "@/utils/user";
 import { BackendStore, BackendBuyer } from "../../types/BackendModels";
 import { fontSizes, spacing, radii, shadows } from "../../constants/theme";
 import ProductListCard from "../../components/ProductListCard";
-import { fetchAllProducts, fetchProductsByStoreId } from "../../utils/products";
+import { ProductService } from "../../services/productService";
 import { fetchPosts, getPostsByStoreId } from "../../utils/posts";
 
 interface Store {
@@ -144,7 +144,8 @@ const FavoritesScreen = () => {
         const token = tokenRaw || "";
         let allProducts: any[] = [];
         for (const store of favoriteStores) {
-          const storeProducts = await fetchProductsByStoreId(store.id, token);
+          const response = await ProductService.getProductsByStoreId(store.id, token);
+          const storeProducts = response.success && response.data ? response.data : [];
           if (Array.isArray(storeProducts)) {
             allProducts = allProducts.concat(storeProducts);
           }

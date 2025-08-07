@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL } from "./constants";
 
 // Fetch all posts from the backend
 // TODO ADD product type prop and add it to params para sa homepage
