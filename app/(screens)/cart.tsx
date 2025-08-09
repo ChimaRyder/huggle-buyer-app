@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, CheckBox } from "@ui-kitten/components";
-import PageTitle from "../../components/PageTitle";
+import { PageTitle } from "../../components/common";
 import { fetchProductById } from "../../utils/products";
 import { getCart, updateCartItem, removeFromCart } from "../../utils/cart";
 import { BackendProduct } from "../../types/BackendModels";

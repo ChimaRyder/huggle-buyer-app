@@ -12,9 +12,9 @@ import { Layout, Text } from "@ui-kitten/components";
 import { useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import PageTitle from "../../components/PageTitle";
-import OrderCard from "../../components/OrderCard";
-import ConfirmationModal from "../../components/ConfirmationModal";
+import { PageTitle } from "../../components/common";
+import { OrderCard } from "../../components/order";
+import { ConfirmationModal } from "../../components/common";
 import {
   getOrders,
   fetchProductById,

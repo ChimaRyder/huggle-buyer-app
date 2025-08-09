@@ -14,9 +14,9 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 
-import { images, ImageSource } from "../assets";
-import { fetchProductsByStoreId } from "../utils/api";
-import { BackendProduct } from "../types/BackendModels";
+import { images, ImageSource } from "../../assets";
+import { fetchProductsByStoreId } from "../../utils/api";
+import { BackendProduct } from "../../types/BackendModels";
 
 // Frontend product interface
 interface Product {

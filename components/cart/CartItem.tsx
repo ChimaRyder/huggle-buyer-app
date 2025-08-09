@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Image, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { fontSizes, spacing, radii } from "../constants/theme";
+import { fontSizes, spacing, radii } from "../../constants/theme";
 
 interface CartItemProps {
   item: {

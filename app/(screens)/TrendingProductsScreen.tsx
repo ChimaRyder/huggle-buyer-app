@@ -1,7 +1,7 @@
 import React from "react";
 import { SafeAreaView, View, Text, StyleSheet } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import ProductGrid from "../../components/ProductGrid";
+import { ProductGrid } from "../../components/product";
 
 export default function TrendingProductsScreen() {
   const { productType } = useLocalSearchParams();

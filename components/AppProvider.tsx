@@ -6,7 +6,7 @@
 import React from 'react';
 import Toast from 'react-native-toast-message';
 
-import ErrorBoundary from './ErrorBoundary';
+import { ErrorBoundary } from './common';
 import { AppStateProvider } from '@/context/AppStateContext';
 import { handleError, ErrorType, ErrorSeverity } from '@/utils/errorHandler';
 
@@ -47,7 +47,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     >
       <AppStateProvider>
         {children}
-        
         {/* Global Toast Messages */}
         <Toast />
       </AppStateProvider>

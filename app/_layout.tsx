@@ -1,7 +1,6 @@
 // app/_layout.tsx
 import React, { useEffect } from "react";
 import {
-  DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
@@ -11,7 +10,6 @@ import { Slot } from "expo-router";
 import * as eva from "@eva-design/eva";
 import { ApplicationProvider } from "@ui-kitten/components";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "../utils/cache";
 import Constants from "expo-constants";
@@ -28,8 +26,6 @@ SplashScreen.preventAutoHideAsync();
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   const [fontsLoaded] = useFonts({
     "Poppins-Regular": require("../assets/fonts/Poppins-Regular.ttf"),
     "Poppins-Bold": require("../assets/fonts/Poppins-Bold.ttf"),
@@ -54,10 +50,10 @@ export default function RootLayout() {
         <SafeAreaView style={styles.container}>
           <ApplicationProvider
             {...eva}
-            theme={colorScheme === "dark" ? {...eva.dark, ...mainTheme} : {...eva.light,...mainTheme}}
+            theme={{...eva.light,...mainTheme}}
           >
             <ThemeProvider
-              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+              value={DefaultTheme}
             >
               <Slot />
               <StatusBar style="auto" />

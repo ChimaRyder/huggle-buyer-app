@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { Text, Button } from "@ui-kitten/components";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { fontSizes, spacing, radii, shadows } from "../constants/theme";
+import { fontSizes, spacing, radii, shadows } from "../../constants/theme";
 
 interface OrderCardProps {
   order: {

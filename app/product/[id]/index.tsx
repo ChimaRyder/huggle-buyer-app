@@ -3,7 +3,7 @@ import { View, Image, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Text } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import ReviewCard from '../../../components/ReviewCard';
+import { ReviewCard } from '../../../components/review';
 import { fetchReviews } from '../../../utils/reviews';
 import { BackendReview } from '../../../types/BackendModels';
 import { images } from '../../../assets';

@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Image } from 'react-native';
-import { MaterialIcons, MaterialCommunityIcons, FontAwesome5, Ionicons, Feather } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
-import PageTitle from '../../components/PageTitle';
+import { PageTitle } from '../../components/common';
 import { useUser } from '@clerk/clerk-expo';
 
 
 const SettingsScreen = () => {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  // const [darkMode, setDarkMode] = useState(false);
-  // const [language, setLanguage] = useState('English');
-  // const [currency, setCurrency] = useState('USD - US Dollar');
-  // const [location, setLocation] = useState('Singapore');
   
   const toggleSwitch = () => setNotificationsEnabled(previousState => !previousState);
-  // const toggleDarkMode = () => setDarkMode(previousState => !previousState);
   const { user } = useUser();
 const profileName = user?.fullName ?? 'User';
 const profileEmail = user?.primaryEmailAddress?.emailAddress ?? 'Email not available';
@@ -42,37 +37,6 @@ const profileImage = user?.imageUrl ?? 'https://via.placeholder.com/100';
         />
       ),
     },
-    // {
-    //   title: 'Dark Mode',
-    //   icon: <MaterialCommunityIcons name="theme-light-dark" size={24} color="#104911" />,
-    //   rightComponent: (
-    //     <Switch
-    //       trackColor={{ false: '#767577', true: '#81b0ff' }}
-    //       thumbColor={darkMode ? '#f5dd4b' : '#f4f3f4'}
-    //       ios_backgroundColor="#3e3e3e"
-    //       onValueChange={toggleDarkMode}
-    //       value={darkMode}
-    //     />
-    //   ),
-    // },
-    // {
-    //   title: 'Language',
-    //   icon: <Ionicons name="language-outline" size={24} color="#104911" />,
-    //   rightText: language,
-    //   onPress: () => {},
-    // },
-    // {
-    //   title: 'Currency',
-    //   icon: <FontAwesome5 name="money-bill-wave" size={20} color="#104911" />,
-    //   rightText: currency,
-    //   onPress: () => {},
-    // },
-    // {
-    //   title: 'Location',
-    //   icon: <Ionicons name="location-outline" size={24} color="#104911" />,
-    //   rightText: location,
-    //   onPress: () => {},
-    // },
     {
       title: 'Help Center',
       icon: <Feather name="help-circle" size={24} color="#104911" />,

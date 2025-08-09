@@ -20,7 +20,7 @@ import {
   IndexPath,
   Button,
 } from "@ui-kitten/components";
-import PageTitle from "../../components/PageTitle";
+import { PageTitle } from "../../components/common";
 import {
   fetchProductById,
   fetchStoreById,
@@ -29,7 +29,7 @@ import {
 } from "../../utils/api";
 import { BackendProduct, BackendStore } from "../../types/BackendModels";
 import { fontSizes, spacing, radii, shadows } from "../../constants/theme";
-import OrderMap from "../../components/OrderMap";
+import { OrderMap } from "../../components/order";
 
 export default function CheckoutScreen() {
   const router = useRouter();

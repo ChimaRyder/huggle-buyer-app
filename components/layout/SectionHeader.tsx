@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from "react-native";
-import { fontSizes, spacing } from "../constants/theme";
+import { fontSizes, spacing } from "../../constants/theme";
 
 interface SectionHeaderProps {
   title: string;

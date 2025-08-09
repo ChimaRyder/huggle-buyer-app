@@ -13,7 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useUser, useAuth } from "@clerk/clerk-expo";
-import { getUnreadNotificationCount } from "../utils/notificationApi";
+import { getUnreadNotificationCount } from "../../utils/notificationApi";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -154,7 +154,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
         activeOpacity={0.7}
       >
         <Image
-          source={require("../assets/icons/bell.png")}
+          source={require("../../assets/icons/bell.png")}
           style={styles.notificationIcon}
         />
         {unreadCount > 0 && (
@@ -184,7 +184,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
               activeOpacity={0.7}
             >
               <Image
-                source={require("../assets/icons/location.png")}
+                source={require("../../assets/icons/location.png")}
                 style={styles.locationIcon}
               />
               <Text
@@ -199,7 +199,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
           ) : (
             <View style={styles.locationRow}>
               <Image
-                source={require("../assets/icons/location.png")}
+                source={require("../../assets/icons/location.png")}
                 style={styles.locationIcon}
               />
               <Text style={styles.locationText}>{location}</Text>

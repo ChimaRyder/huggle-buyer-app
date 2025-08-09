@@ -15,12 +15,12 @@ import {
   TextInput,
   Dimensions,
 } from "react-native";
-import AddToCartModal from "../../components/AddToCartModal";
+import { AddToCartModal } from "../../components/cart";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
-import ReviewCard from "../../components/ReviewCard";
+import { ReviewCard } from "../../components/review";
 import { MaterialIcons } from "@expo/vector-icons";
 import { submitProductReport } from "../../utils/reports";
 

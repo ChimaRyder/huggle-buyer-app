@@ -17,7 +17,7 @@ import { fetchStoreById, fetchFollowedStores } from "@/utils/stores";
 import { fetchBuyerById } from "@/utils/user";
 import { BackendStore, BackendBuyer } from "../../types/BackendModels";
 import { fontSizes, spacing, radii, shadows } from "../../constants/theme";
-import ProductListCard from "../../components/ProductListCard";
+import { ProductListCard } from "../../components/product";
 import { ProductService } from "../../services/productService";
 import { fetchPosts, getPostsByStoreId } from "../../utils/posts";
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Text, Image, TouchableOpacity, ScrollView, Modal, Dimensions } from "react-native";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { fontSizes, spacing, radii, shadows } from "../constants/theme";
+import { fontSizes, spacing, radii, shadows } from "../../constants/theme";
 
 interface ReviewCardProps {
   reviewerName?: string;

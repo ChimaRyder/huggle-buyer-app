@@ -18,9 +18,8 @@ import { useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 
-import CategoryCarousel from '@/components/CategoryCarousel';
-import ProductGrid from '@/components/ProductGrid';
-import GreeterSection from '@/components/GreeterSection';
+import { CategoryCarousel, GreeterSection } from '@/components/layout';
+import { ProductGrid } from '@/components/product';
 import { colors, spacing, layout, shadows, radii } from '@/constants/theme';
 
 interface HomeScreenProps {}

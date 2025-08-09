@@ -1,3 +1,8 @@
+/**
+ * Posts Screen - Instagram-style post viewing
+ * Displays swipeable images, store details, caption, and interaction options
+ */
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -7,27 +12,25 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  ActivityIndicator,
   Dimensions,
+  SafeAreaView,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useAuth } from "@clerk/clerk-expo";
-import { fetchPostById, upvotePost, reportPost } from "../../utils/postApi";
-import { fetchStoreById } from "../../utils/stores";
 import { ScrollView } from "react-native-gesture-handler";
-import { MaterialIcons } from "@expo/vector-icons";
-import { likePost, unlikePost, isPostLiked } from "../../utils/posts";
+import { Ionicons } from "@expo/vector-icons";
+import { MockPostService, MockStoreService } from "../../data/mockServices";
+import { colors, spacing, typography } from "@/constants/theme";
 
 const { width } = Dimensions.get("window");
 
-export default function PostScreen() {
+interface PostScreenProps {}
+
+const PostScreen: React.FC<PostScreenProps> = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { getToken, userId } = useAuth();
   const [post, setPost] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [upvoting, setUpvoting] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
@@ -35,14 +38,22 @@ export default function PostScreen() {
   const [error, setError] = useState<string | null>(null);
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [liked, setLiked] = useState<boolean>(false);
-  const [likeLoading, setLikeLoading] = useState(false);
+  const [likeCount, setLikeCount] = useState<number>(0);
 
   // Helper to format date
   const formatDate = (date: string | Date) => {
     const d = typeof date === "string" ? new Date(date) : date;
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
     return d.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "numeric",
+      month: "short",
       day: "numeric",
     });
   };
@@ -52,22 +63,22 @@ export default function PostScreen() {
       setLoading(true);
       setError(null);
       try {
-        const token = await getToken({ template: "seller_app" });
-        const postData = await fetchPostById(id as string, token);
+        // Get post from mock data
+        const allPosts = await MockPostService.getAllPosts();
+        const postData = allPosts.find(p => p.id === id);
+        
+        if (!postData) {
+          throw new Error('Post not found');
+        }
+        
         setPost(postData);
+        setLiked(Math.random() > 0.5); // Random liked state for demo
+        setLikeCount(postData.likes || 0);
+        
         // Fetch store info
         if (postData.storeId) {
-          const storeData = await fetchStoreById(postData.storeId, token);
+          const storeData = await MockStoreService.getStoreById(postData.storeId);
           setStore(storeData);
-        }
-        // Check if liked
-        if (id) {
-          try {
-            const likedRes = await isPostLiked(id as string, token);
-            setLiked(!!likedRes);
-          } catch (e) {
-            setLiked(false);
-          }
         }
       } catch (err: any) {
         setError(err.message || "Failed to load post");
@@ -78,33 +89,36 @@ export default function PostScreen() {
     if (id) loadPost();
   }, [id]);
 
-  const handleUpvote = async () => {
-    if (!post || upvoting) return;
-    setUpvoting(true);
+  const handleLikeToggle = async () => {
+    if (!post) return;
+    
+    // Toggle like state immediately for better UX
+    setLiked(!liked);
+    setLikeCount(prev => liked ? prev - 1 : prev + 1);
+    
+    // In a real app, would send request to backend
     try {
-      const token = await getToken({ template: "seller_app" });
-      await upvotePost(post.id, token);
-      setPost({ ...post, upvotes: (post.upvotes || 0) + 1 });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 200));
     } catch (err: any) {
-      setError(err.message || "Failed to upvote");
-    } finally {
-      setUpvoting(false);
+      // Revert on error
+      setLiked(liked);
+      setLikeCount(prev => liked ? prev + 1 : prev - 1);
+      setError(err.message || "Failed to update like");
     }
   };
 
   const handleReport = async () => {
-    if (!userId || !post) {
-      alert("You must be logged in to report a post.");
-      return;
-    }
     if (!reportReason) {
       alert("Please select a reason for reporting.");
       return;
     }
+    
     setReportLoading(true);
     try {
-      const token = await getToken({ template: "seller_app" });
-      await reportPost(post.id, userId, reportReason, reportDescription, token);
+      // Simulate report submission
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       setShowReportModal(false);
       setReportReason("");
       setReportDescription("");
@@ -116,163 +130,154 @@ export default function PostScreen() {
     }
   };
 
-  const handleLikeToggle = async () => {
-    if (!post || likeLoading) return;
-    setLikeLoading(true);
-    try {
-      const token = await getToken({ template: "seller_app" });
-      if (liked) {
-        await unlikePost(post.id, token);
-        setLiked(false);
-        setPost({
-          ...post,
-          interactions: Math.max((post.interactions || 1) - 1, 0),
-        });
-      } else {
-        await likePost(post.id, token);
-        setLiked(true);
-        setPost({ ...post, interactions: (post.interactions || 0) + 1 });
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to update like");
-    } finally {
-      setLikeLoading(false);
+  const handleStorePress = () => {
+    if (post?.storeId) {
+      router.push({
+        pathname: "/(screens)/StoreHomepageScreen",
+        params: { id: post.storeId },
+      });
     }
   };
 
   if (loading) {
-    // Minimal wireframe loading screen for PostScreen
     return (
-      <View style={styles.loadingWireframeContainer}>
-        <View style={styles.wfImage} />
-        <View style={styles.wfContent}>
-          <View style={styles.wfTitle} />
-          <View style={styles.wfSection} />
-          <View style={styles.wfSection} />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingImage} />
+          <View style={styles.loadingContent}>
+            <View style={styles.loadingLine} />
+            <View style={[styles.loadingLine, { width: '60%' }]} />
+            <View style={[styles.loadingLine, { width: '80%' }]} />
+          </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
+
   if (error || !post) {
     return (
-      <View style={styles.centered}>
-        <Text style={{ color: "#d32f2f", fontSize: 16 }}>
-          {error || "Post not found."}
-        </Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={{ color: "#fff" }}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
+          <Text style={styles.errorText}>
+            {error || "Post not found."}
+          </Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>Huggle</Text>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Post</Text>
         <TouchableOpacity onPress={() => setShowReportModal(true)}>
-          <MaterialIcons name="flag" size={28} color="#d32f2f" />
+          <Ionicons name="flag-outline" size={24} color={colors.error} />
         </TouchableOpacity>
       </View>
+      
       {/* Main scrollable content */}
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Image carousel with swipe, padding, gaps, and centering */}
-        <View style={styles.imageBox}>
-          {post.imageUrls && post.imageUrls.length > 0 && (
+        {/* Image carousel */}
+        <View style={styles.imageContainer}>
+          {post.images && post.images.length > 0 && (
             <ScrollView
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{
-                alignItems: "center",
-              }}
               onScroll={(e) => {
                 const idx = Math.round(
-                  e.nativeEvent.contentOffset.x / (width * 0.7 + 16)
+                  e.nativeEvent.contentOffset.x / width
                 );
                 setCurrentImageIdx(idx);
               }}
               scrollEventThrottle={16}
-              style={{ width: "100%", height: "100%" }}
+              style={styles.imageScrollView}
             >
-              {post.imageUrls.map((img: string, idx: number) => (
-                <View
+              {post.images.map((img: string, idx: number) => (
+                <Image
                   key={idx}
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                    width: width,
-                  }}
-                >
-                  <Image
-                    source={{ uri: img }}
-                    style={{
-                      width: "90%",
-                      height: "90%",
-                      borderRadius: 18,
-                      backgroundColor: "#eee",
-                    }}
-                    resizeMode="cover"
-                  />
-                </View>
+                  source={{ uri: img }}
+                  style={styles.postImage}
+                  resizeMode="cover"
+                />
               ))}
             </ScrollView>
           )}
-          <View style={styles.imageIndexBox}>
-            <Text style={styles.imageIndexText}>
-              {post.imageUrls
-                ? `${currentImageIdx + 1}/${post.imageUrls.length}`
-                : "1/1"}
+          
+          {/* Image indicator */}
+          {post.images && post.images.length > 1 && (
+            <View style={styles.imageIndicator}>
+              {post.images.map((_, idx: number) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.indicatorDot,
+                    { 
+                      backgroundColor: idx === currentImageIdx 
+                        ? colors.text.inverse 
+                        : 'rgba(255,255,255,0.5)' 
+                    }
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Post actions */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.likeButton}
+            onPress={handleLikeToggle}
+          >
+            <Ionicons
+              name={liked ? "heart" : "heart-outline"}
+              size={28}
+              color={liked ? colors.error : colors.text.secondary}
+            />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Like count */}
+        {likeCount > 0 && (
+          <View style={styles.likesContainer}>
+            <Text style={styles.likesText}>
+              {likeCount} {likeCount === 1 ? 'like' : 'likes'}
             </Text>
           </View>
-        </View>
-        {/* Upvote, date, store */}
-        <View style={styles.infoRow}>
-          <TouchableOpacity
-            style={styles.upvoteRow}
-            onPress={handleLikeToggle}
-            disabled={likeLoading}
-          >
-            <MaterialIcons
-              name="favorite"
-              size={22}
-              color={liked ? "#FF6B6B" : "#ccc"}
-            />
-            <Text style={styles.upvoteText}>{post.interactions || 0}</Text>
-          </TouchableOpacity>
-          <Text style={styles.dateText}>{formatDate(post.createdAt)}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.storeRow}
-          onPress={() =>
-            router.push({
-              pathname: "/(screens)/StoreHomepageScreen",
-              params: { id: post.storeId },
-            })
-          }
-        >
-          {store?.storeImageUrl ? (
+        )}
+        
+        {/* Store info and caption */}
+        <View style={styles.contentContainer}>
+          <TouchableOpacity style={styles.storeInfo} onPress={handleStorePress}>
             <Image
-              source={{ uri: store.storeImageUrl }}
-              style={styles.storeImage}
+              source={{ uri: post.storeAvatar }}
+              style={styles.storeAvatar}
               resizeMode="cover"
             />
-          ) : (
-            <View style={styles.storeCircle} />
-          )}
-          <Text style={styles.storeText}>
-            {store?.name || post.storeId || "Store"}
+            <Text style={styles.storeName}>{post.storeName}</Text>
+            <Text style={styles.timestamp}>{formatDate(post.createdAt)}</Text>
+          </TouchableOpacity>
+          
+          <Text style={styles.caption}>
+            <Text style={styles.storeNameInCaption}>{post.storeName}</Text>
+            {' '}{post.caption}
           </Text>
-        </TouchableOpacity>
-        {/* Caption */}
-        <View style={styles.captionBox}>
-          <Text style={styles.captionText}>{post.content}</Text>
         </View>
       </ScrollView>
+      
       {/* Report Modal */}
       <Modal
         visible={showReportModal}
@@ -281,235 +286,290 @@ export default function PostScreen() {
         onRequestClose={() => setShowReportModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
+          <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Report Post</Text>
-            <Text style={{ marginBottom: 8 }}>Reason</Text>
-            <View style={{ flexDirection: "row", marginBottom: 12 }}>
+            
+            <Text style={styles.modalLabel}>Reason</Text>
+            <View style={styles.reasonContainer}>
               {["Inappropriate", "Fraud", "Spam", "Other"].map((reason) => (
                 <TouchableOpacity
                   key={reason}
-                  style={{
-                    backgroundColor:
-                      reportReason === reason ? "#F9A620" : "#eee",
-                    padding: 8,
-                    borderRadius: 8,
-                    marginRight: 8,
-                  }}
+                  style={[
+                    styles.reasonButton,
+                    {
+                      backgroundColor:
+                        reportReason === reason ? colors.primary : colors.background.secondary,
+                    }
+                  ]}
                   onPress={() => setReportReason(reason)}
                 >
                   <Text
-                    style={{ color: reportReason === reason ? "#fff" : "#333" }}
+                    style={[
+                      styles.reasonText,
+                      {
+                        color: reportReason === reason ? colors.text.inverse : colors.text.primary
+                      }
+                    ]}
                   >
                     {reason}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={{ marginBottom: 8 }}>Description (optional)</Text>
+            
+            <Text style={styles.modalLabel}>Description (optional)</Text>
             <TextInput
-              style={{
-                minHeight: 60,
-                padding: 8,
-                borderWidth: 1,
-                borderColor: "#ccc",
-                borderRadius: 8,
-                marginBottom: 16,
-              }}
+              style={styles.textInput}
               multiline
               numberOfLines={3}
               value={reportDescription}
               onChangeText={setReportDescription}
               placeholder="Describe the issue..."
+              placeholderTextColor={colors.text.secondary}
             />
+            
             <TouchableOpacity
-              style={{
-                backgroundColor: reportLoading ? "#ccc" : "#F9A620",
-                padding: 12,
-                borderRadius: 8,
-                alignItems: "center",
-              }}
+              style={[
+                styles.submitButton,
+                {
+                  backgroundColor: reportLoading ? colors.text.secondary : colors.primary
+                }
+              ]}
               onPress={handleReport}
               disabled={reportLoading}
             >
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>
+              <Text style={styles.submitButtonText}>
                 {reportLoading ? "Submitting..." : "Submit Report"}
               </Text>
             </TouchableOpacity>
+            
             <TouchableOpacity
-              style={{ marginTop: 12, alignItems: "center" }}
+              style={styles.cancelButton}
               onPress={() => setShowReportModal(false)}
             >
-              <Text style={{ color: "#F9A620" }}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingTop: 24,
-    paddingHorizontal: 0,
-    justifyContent: "flex-start",
+    backgroundColor: colors.background.primary,
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 8,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
   },
   headerTitle: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#333",
+    ...typography.h2,
+    color: colors.text.primary,
   },
-  imageBox: {
-    width: "100%",
-    aspectRatio: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  image: {},
-  imageIndexBox: {
-    position: "absolute",
-    top: 12,
-    right: 18,
-    backgroundColor: "rgba(0,0,0,0.08)",
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  imageIndexText: {
-    color: "#333",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  upvoteRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  upvoteText: {
-    fontSize: 16,
-    color: "#333",
-    marginLeft: 6,
-    fontWeight: "bold",
-  },
-  dateText: {
-    fontSize: 14,
-    color: "#666",
-  },
-  storeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  storeCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#eee",
-    marginRight: 14,
-  },
-  storeImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 14,
-    backgroundColor: "#eee",
-  },
-  storeText: {
-    fontSize: 16,
-    color: "#333",
-    fontWeight: "bold",
-  },
-  captionBox: {
-    backgroundColor: "#f7f7f7",
-    borderRadius: 20,
-    margin: 20,
-    padding: 18,
-    minHeight: 120,
-    justifyContent: "center",
-  },
-  captionText: {
-    fontSize: 16,
-    color: "#333",
-    fontWeight: "500",
-  },
-  centered: {
+  scrollView: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
   },
-  backBtn: {
-    backgroundColor: "#548C2F",
+  scrollContent: {
+    paddingBottom: spacing.xl,
+  },
+  imageContainer: {
+    width: width,
+    height: width,
+    position: 'relative',
+  },
+  imageScrollView: {
+    width: '100%',
+    height: '100%',
+  },
+  postImage: {
+    width: width,
+    height: width,
+    backgroundColor: colors.background.secondary,
+  },
+  imageIndicator: {
+    position: 'absolute',
+    bottom: spacing.md,
+    alignSelf: 'center',
+    flexDirection: 'row',
+  },
+  indicatorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 2,
+  },
+  actionsContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  likeButton: {
+    alignSelf: 'flex-start',
+  },
+  likesContainer: {
+    paddingHorizontal: spacing.lg,
+  },
+  likesText: {
+    ...typography.body2,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  contentContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  storeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  storeAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: spacing.sm,
+    backgroundColor: colors.background.secondary,
+  },
+  storeName: {
+    ...typography.body2,
+    fontWeight: '600',
+    color: colors.text.primary,
+    flex: 1,
+  },
+  timestamp: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  caption: {
+    ...typography.body2,
+    color: colors.text.primary,
+    lineHeight: 20,
+  },
+  storeNameInCaption: {
+    fontWeight: '600',
+  },
+  // Loading states
+  loadingContainer: {
+    flex: 1,
+    paddingTop: spacing.xl,
+  },
+  loadingImage: {
+    width: width,
+    height: width,
+    backgroundColor: colors.background.secondary,
+  },
+  loadingContent: {
+    padding: spacing.lg,
+  },
+  loadingLine: {
+    height: 16,
+    backgroundColor: colors.background.secondary,
     borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    marginTop: 18,
+    marginBottom: spacing.sm,
   },
+  // Error states
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  errorText: {
+    ...typography.body1,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  backButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: 24,
+  },
+  backButtonText: {
+    ...typography.body2,
+    color: colors.text.inverse,
+    fontWeight: '600',
+  },
+  // Modal styles
   modalOverlay: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalBox: {
-    backgroundColor: "#fff",
+  modalContainer: {
+    backgroundColor: colors.background.primary,
     borderRadius: 16,
-    padding: 20,
-    width: "85%",
+    padding: spacing.xl,
+    width: '90%',
+    maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 12,
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: spacing.lg,
   },
-  // Wireframe loading styles
-  loadingWireframeContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    paddingTop: 24,
+  modalLabel: {
+    ...typography.body2,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+    fontWeight: '600',
   },
-  wfImage: {
-    width: "100%",
-    aspectRatio: 1,
-    backgroundColor: "#e0e0e0",
-    marginBottom: 16,
+  reasonContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: spacing.lg,
   },
-  wfContent: {
-    width: "92%",
-    alignSelf: "center",
+  reasonButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  wfTitle: {
-    width: "60%",
-    height: 24,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
-    marginBottom: 16,
+  reasonText: {
+    ...typography.caption,
+    fontWeight: '600',
   },
-  wfSection: {
-    width: "100%",
-    height: 18,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
-    marginBottom: 10,
+  textInput: {
+    minHeight: 80,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: 8,
+    marginBottom: spacing.lg,
+    ...typography.body2,
+    color: colors.text.primary,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    padding: spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  submitButtonText: {
+    ...typography.body2,
+    color: colors.text.inverse,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    ...typography.body2,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
+
+export default PostScreen;

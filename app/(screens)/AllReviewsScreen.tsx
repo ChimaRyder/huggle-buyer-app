@@ -12,7 +12,7 @@ import { Text } from "react-native";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
-import ReviewCard from "../../components/ReviewCard";
+import { ReviewCard } from "../../components/review";
 import { fetchReviews } from "../../utils/reviews";
 import { BackendReview } from "../../types/BackendModels";
 

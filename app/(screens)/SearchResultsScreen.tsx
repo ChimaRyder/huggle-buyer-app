@@ -14,8 +14,7 @@ import { useRouter } from "expo-router";
 import { MaterialIcons, Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { fetchSearchResults } from "@/utils/stores";
-import ProductGrid from "../../components/ProductGrid";
-import ProductListCard from "../../components/ProductListCard";
+import { ProductGrid, ProductListCard } from "../../components/product";
 
 // Use backend models for type safety
 import { BackendProduct, BackendStore } from "../../types/BackendModels";

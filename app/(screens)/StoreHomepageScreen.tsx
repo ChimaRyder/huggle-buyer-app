@@ -16,8 +16,8 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { ReviewCard } from "../../components/ReviewCard";
-import StoreProductGrid from "../../components/StoreProductGrid";
+import { ReviewCard } from "../../components/review";
+import { StoreProductGrid } from "../../components/store";
 import {
   fetchStoreById,
   followStore,
