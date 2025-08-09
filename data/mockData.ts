@@ -11,10 +11,10 @@ import type {
   BackendCartItem, 
   BackendBuyer,
   BackendNotification,
-  OrderStatus,
   PaymentStatus,
   NotificationType
 } from '../types/BackendModels';
+import { OrderStatus } from '../types/BackendModels';
 
 // Mock Products
 export const mockProducts: BackendProduct[] = [

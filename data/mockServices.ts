@@ -13,13 +13,13 @@ import type {
   BackendCartItem, 
   BackendBuyer,
   BackendNotification,
-  OrderStatus,
   CreateReviewRequest,
   AddToCartRequest,
   UpdateCartItemRequest,
   CreateOrderRequest,
   UpdateOrderRequest
 } from '../types/BackendModels';
+import { OrderStatus } from '../types/BackendModels';
 
 import {
   mockProducts,
