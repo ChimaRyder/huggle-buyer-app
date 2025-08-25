@@ -53,76 +53,146 @@ export const radii = {
   full: 9999,
 } as const;
 
-// Brand colors
-export const brandColors = {
-  primary: '#548C2F',
-  primaryLight: '#6DA23B',
-  primaryDark: '#3D6522',
-  secondary: '#0d2329',
-  accent: '#FF6B35',
-  accentLight: '#FF8555',
-  accentDark: '#E5552B',
-} as const;
-
-// Semantic colors
-export const semanticColors = {
-  success: '#22C55E',
-  successLight: '#4ADE80',
-  successDark: '#16A34A',
-  warning: '#F59E0B',
-  warningLight: '#FBBF24',
-  warningDark: '#D97706',
-  error: '#EF4444',
-  errorLight: '#F87171',
-  errorDark: '#DC2626',
-  info: '#3B82F6',
-  infoLight: '#60A5FA',
-  infoDark: '#2563EB',
-} as const;
-
-// Neutral colors
-export const neutralColors = {
+// Unified color palette following industry standards
+export const palette = {
+  // Primary color - Fresh Green for produce theme
+  primary: '#4CAF50',
+  primaryLight: '#81C784',
+  primaryDark: '#388E3C',
+  primaryContrast: '#FFFFFF',
+  
+  // Secondary color - Complementary Blue-Green
+  secondary: '#2E7D32',
+  secondaryLight: '#4DB6AC',
+  secondaryDark: '#00695C',
+  secondaryContrast: '#FFFFFF',
+  
+  // Info color - Blue for information
+  info: '#2196F3',
+  infoLight: '#64B5F6',
+  infoDark: '#1976D2',
+  infoContrast: '#FFFFFF',
+  
+  // Warning color - Amber for warnings
+  warning: '#FFC107',
+  warningLight: '#FFD54F',
+  warningDark: '#FFA000',
+  warningContrast: '#212121',
+  
+  // Danger/Error color - Red for errors
+  danger: '#F44336',
+  dangerLight: '#EF5350',
+  dangerDark: '#D32F2F',
+  dangerContrast: '#FFFFFF',
+  
+  // Success color - Green for success states
+  success: '#4CAF50',
+  successLight: '#81C784',
+  successDark: '#388E3C',
+  successContrast: '#FFFFFF',
+  
+  // Neutral colors
   white: '#FFFFFF',
   black: '#000000',
-  gray50: '#F9FAFB',
-  gray100: '#F3F4F6',
-  gray200: '#E5E7EB',
-  gray300: '#D1D5DB',
-  gray400: '#9CA3AF',
-  gray500: '#6B7280',
-  gray600: '#4B5563',
-  gray700: '#374151',
-  gray800: '#1F2937',
-  gray900: '#111827',
+  gray50: '#FAFAFA',
+  gray100: '#F5F5F5',
+  gray200: '#EEEEEE',
+  gray300: '#E0E0E0',
+  gray400: '#BDBDBD',
+  gray500: '#9E9E9E',
+  gray600: '#757575',
+  gray700: '#616161',
+  gray800: '#424242',
+  gray900: '#212121',
 } as const;
 
-// Combined color palette
+// Semantic color mappings for consistent usage
 export const colors = {
-  ...brandColors,
-  ...semanticColors,
-  ...neutralColors,
-  
-  // Background colors
-  background: {
-    primary: '#F7F8FA',
-    secondary: '#FFFFFF',
-    tertiary: '#F3F4F6',
-  },
+  ...palette,
   
   // Text colors
   text: {
-    primary: '#111827',
-    secondary: '#6B7280',
-    tertiary: '#9CA3AF',
-    inverse: '#FFFFFF',
+    primary: palette.gray900,
+    secondary: palette.gray700,
+    tertiary: palette.gray500,
+    inverse: palette.white,
+    primaryInverted: palette.white,
+    secondaryInverted: palette.gray300,
+    tertiaryInverted: palette.gray400,
+    success: palette.success,
+    info: palette.info,
+    warning: palette.warning,
+    danger: palette.danger,
+  },
+  
+  // Background colors
+  background: {
+    primary: palette.white,
+    secondary: palette.gray50,
+    tertiary: palette.gray100,
+    inverse: palette.gray900,
+    success: palette.successLight,
+    info: palette.infoLight,
+    warning: palette.warningLight,
+    danger: palette.dangerLight,
+    successSubtle: '#E8F5E9',
+    infoSubtle: '#E3F2FD',
+    warningSubtle: '#FFF8E1',
+    dangerSubtle: '#FFEBEE',
   },
   
   // Border colors
   border: {
-    primary: '#E5E7EB',
-    secondary: '#D1D5DB',
-    focus: '#548C2F',
+    primary: palette.gray300,
+    secondary: palette.gray400,
+    success: palette.success,
+    info: palette.info,
+    warning: palette.warning,
+    danger: palette.danger,
+    focus: palette.primary,
   },
+  
+  // Icon colors
+  icon: {
+    primary: palette.gray700,
+    secondary: palette.gray500,
+    tertiary: palette.gray400,
+    inverse: palette.white,
+    success: palette.success,
+    info: palette.info,
+    warning: palette.warning,
+    danger: palette.danger,
+    primaryInverted: palette.white,
+    secondaryInverted: palette.gray300,
+  },
+  
+  // Badge colors
+  badge: {
+    primary: palette.primary,
+    secondary: palette.secondary,
+    success: palette.success,
+    info: palette.info,
+    warning: palette.warning,
+    danger: palette.danger,
+    primaryContrast: palette.primaryContrast,
+    secondaryContrast: palette.secondaryContrast,
+    successContrast: palette.successContrast,
+    infoContrast: palette.infoContrast,
+    warningContrast: palette.warningContrast,
+    dangerContrast: palette.dangerContrast,
+  },
+} as const;
+
+// Gradient definitions
+export const gradients = {
+  primary: [colors.primaryLight, '#FFFFFF'],
+  secondary: [colors.secondary, colors.primary],
+  info: [colors.info, '#21CBF3'],
+  warning: [colors.warning, '#FFB300'],
+  danger: [colors.danger, '#FF7043'],
+  success: [colors.success, '#81C784'],
+  sunset: ['#FF5722', '#FF9800', '#FFC107'],
+  ocean: ['#2196F3', '#21CBF3', '#4CAF50'],
 } as const;
 
 // Shadow definitions
@@ -239,6 +309,7 @@ export const theme = {
   typography,
   radii,
   colors,
+  gradients,
   shadows,
   components,
   layout,

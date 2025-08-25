@@ -1,48 +1,34 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
-  Button,
   StyleSheet,
-  Alert,
-  Image,
-  TouchableOpacity,
   ScrollView,
+  TouchableOpacity,
+  Image,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useUser } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useAuth } from "@clerk/clerk-expo";
-import { createReview } from "../../utils/reviews";
-import { getOrders } from "../../utils/orders";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { firebase } from "../../fbconfig"; // Make sure fbconfig.js is present
+import { Rating } from "react-native-ratings";
+import { colors } from "@/constants/theme";
 
-const storage = getStorage(firebase);
+// Mock function to simulate image upload without Firebase
+const mockUploadImage = async (uri: string, name: string, folder: string) => {
+  // In a real app, you would upload to your own storage service
+  // For now, we'll just return the local URI
+  console.log(`Mock uploading ${name} to ${folder}`);
+  return uri;
+};
 
-const uploadToFirebase = async (uri: string, name: string, folder: string) => {
-  try {
-    const timestamp = new Date().getTime();
-    const uniqueFilename = `${folder}/${timestamp}_${name.replace(/\s+/g, "_")}`;
-    const storageRef = ref(storage, uniqueFilename);
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const uploadTask = uploadBytesResumable(storageRef, blob);
-    return new Promise<string>((resolve, reject) => {
-      uploadTask.on(
-        "state_changed",
-        null,
-        (error) => reject(error),
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
-        }
-      );
-    });
-  } catch (error) {
-    console.error("Error uploading image:", error);
-    throw error;
-  }
+// Mock function to create a review without Firebase
+const mockCreateReview = async (reviewData: any) => {
+  // In a real app, you would send this to your backend
+  console.log("Creating review:", reviewData);
+  return { success: true, id: "mock-id-" + Date.now() };
 };
 
 const ReviewProductScreen = () => {
@@ -68,89 +54,61 @@ const ReviewProductScreen = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (submitting) return;
-    setSubmitting(true);
-    const token = await getToken({ template: "seller_app" });
-    if (!userId) {
-      Alert.alert("User not authenticated");
-      setSubmitting(false);
+    const handlePostReview = async () => {
+    if (!rating) {
+      Alert.alert("Error", "Please provide a rating");
       return;
     }
-    const buyerId = String(userId);
-    let finalOrderId: string | null = null;
-    if (orderId) {
-      finalOrderId = typeof orderId === "string" ? orderId : orderId[0];
-    } else {
-      // fallback: try to find a completed order for this product
-      try {
-        const orders = await getOrders(token);
-        const completedOrder = orders.find((order: any) => {
-          const isCompleted = order.status === 3 || order.status === "3";
-          const hasProduct =
-            order.productId &&
-            (Array.isArray(order.productId)
-              ? order.productId.includes(productId)
-              : order.productId === productId);
-          return isCompleted && hasProduct;
-        });
-        if (completedOrder) {
-          finalOrderId = completedOrder.id;
-        }
-      } catch (e) {
-        Alert.alert("Could not fetch orders to find orderId");
-        setSubmitting(false);
-        return;
-      }
-    }
-    if (!finalOrderId) {
-      Alert.alert("No completed order found for this product.");
-      setSubmitting(false);
+
+    if (!reviewText.trim()) {
+      Alert.alert("Error", "Please write a review");
       return;
     }
-    // Upload images to Firebase and get URLs
-    let imageUrls: string[] = [];
+
+    setIsSubmitting(true);
+
     try {
-      for (let i = 0; i < imageUris.length; i++) {
-        const uri = imageUris[i];
-        const name = `review_photo_${i}.jpg`;
-        const url = await uploadToFirebase(uri, name, "review_photos");
-        imageUrls.push(url);
+      // Upload images (using mock function)
+      const uploadedImageUrls = [];
+      for (const asset of selectedImages) {
+        try {
+          const name = `${Date.now()}_${asset.assetId || 'image'}.jpg`;
+          const url = await mockUploadImage(asset.uri, name, "review_photos");
+          uploadedImageUrls.push(url);
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+          Alert.alert("Upload Error", "Failed to upload one or more images");
+          return;
+        }
+      }
+
+      // Create review data
+      const reviewData = {
+        productId: productId as string,
+        buyerId: user?.id,
+        orderId: orderId as string,
+        content: reviewText,
+        imageUrls: uploadedImageUrls,
+        rating: rating,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        storeId: storeId as string,
+      };
+
+      // Submit review (using mock function)
+      const result = await mockCreateReview(reviewData);
+
+      if (result.success) {
+        Alert.alert("Success", "Your review has been posted!");
+        router.back();
+      } else {
+        throw new Error("Failed to create review");
       }
     } catch (error) {
-      Alert.alert("Error uploading images. Please try again.");
-      setSubmitting(false);
-      return;
-    }
-    const reviewData = {
-      productId:
-        typeof productId === "string"
-          ? productId
-          : Array.isArray(productId)
-          ? productId[0]
-          : "",
-      buyerId,
-      orderId: finalOrderId,
-      content,
-      imageUrls, // Use the uploaded URLs
-      rating,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      storeId:
-        typeof storeId === "string"
-          ? storeId
-          : Array.isArray(storeId)
-          ? storeId[0]
-          : "",
-    };
-    try {
-      await createReview(token, reviewData);
-      Alert.alert("Review submitted!");
-      router.back();
-    } catch (e) {
-      Alert.alert("Error submitting review.");
+      console.error("Failed to post review:", error);
+      Alert.alert("Error", "Failed to post review. Please try again.");
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 

@@ -1,136 +1,123 @@
-/**
+/** 
  * Home Screen
- * Main landing screen showing categories, products, and user greeting
+ * Main landing screen for food e-commerce app showing categories and restaurants
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
-  View,
   SafeAreaView,
-  Text,
-  TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useAuth, useUser } from '@clerk/clerk-expo';
-import { Ionicons } from '@expo/vector-icons';
+import { useCart } from '@/context/CartContext';
 
-import { CategoryCarousel, GreeterSection } from '@/components/layout';
-import { ProductGrid } from '@/components/product';
-import { colors, spacing, layout, shadows, radii } from '@/constants/theme';
+import { GreeterSection } from '@/components/layout';
+import { colors, gradients } from '@/constants/theme';
+import {
+  SearchBar,
+  CategorySection,
+  TrendingItemsSection,
+  PopularStoresSection,
+  FloatingCartButton
+} from '@/components/home';
 
-interface HomeScreenProps {}
-
-const HomeScreen: React.FC<HomeScreenProps> = () => {
-  const [showLocationModal, setShowLocationModal] = useState(false);
+const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
-  
-  const { getToken } = useAuth();
   const router = useRouter();
-  const { user } = useUser();
+  const { itemCount } = useCart();
 
-  useEffect(() => {
-    checkUserLocation();
-  }, []);
-
-  const checkUserLocation = async (): Promise<void> => {
-    try {
-      // TODO: Replace with backend check instead of AsyncStorage
-      const location = await AsyncStorage.getItem('userLocation');
-      if (!location) {
-        setShowLocationModal(true);
-      }
-    } catch (error) {
-      console.error('Error checking user location:', error);
-    }
-  };
-
-  const handleLocationModalConfirm = (): void => {
-    setShowLocationModal(false);
-    router.push('/screens/MapsScreen');
-  };
-
-  const handleLocationPress = (): void => {
-    router.push('/screens/MapsScreen');
-  };
-
-  const handleRefresh = async (): Promise<void> => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    
-    try {
-      // TODO: Implement actual data refresh logic
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-    } finally {
-      setRefreshing(false);
-    }
+    // Simulate refresh
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
   };
 
-  const handleCartPress = (): void => {
-    router.push('/(screens)/cart' as any);
+  const handleRestaurantPress = (id: string) => {
+    router.push(`/screens/food/RestaurantDetailScreen?id=${id}`);
+  };
+
+  const handleToggleFavorite = (id: string) => {
+    // In a real app, this would update the backend
+    console.log(`Toggled favorite for restaurant ${id}`);
+  };
+
+  const handleCategoryPress = (categoryId: string) => {
+    router.push(`/screens/food/CategoryScreen?id=${categoryId}`);
+  };
+
+  const handleCartPress = () => {
+    router.push('/screens/food/CartScreen');
+  };
+
+  const handleSearchFocus = () => {
+    router.push('/(screens)/SearchScreen');
+  };
+
+  const handleFoodItemPress = (itemId: string) => {
+    // Find which restaurant has this item
+    // In a real app, this would be handled by the backend
+    router.push(`/screens/food/RestaurantDetailScreen?id=1`);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
+    <LinearGradient
+      colors={gradients.primary}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      style={styles.gradientBackground}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.container}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          <GreeterSection />
+          
+          <SearchBar onFocus={handleSearchFocus} />
+          
+          <CategorySection onCategoryPress={handleCategoryPress} />
+          
+          <TrendingItemsSection onFoodItemPress={handleFoodItemPress} />
+          
+          <PopularStoresSection 
+            onRestaurantPress={handleRestaurantPress} 
+            onToggleFavorite={handleToggleFavorite} 
           />
-        }
-      >
-        <GreeterSection onLocationPress={handleLocationPress} />
-        <CategoryCarousel />
-        <View style={styles.productsContainer}>
-          <ProductGrid />
-        </View>
-      </ScrollView>
-      
-      {/* Floating Cart Button */}
-      <TouchableOpacity
-        style={styles.floatingCartButton}
-        onPress={handleCartPress}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="cart" size={32} color={colors.text.inverse} />
-      </TouchableOpacity>
-    </SafeAreaView>
+        </ScrollView>
+        
+        <FloatingCartButton 
+          onPress={handleCartPress} 
+          itemCount={itemCount} 
+        />
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
+  gradientBackground: {
+    flex: 1,
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: 'transparent',
+    paddingTop: 16, // Keep only top padding
   },
   container: {
     flex: 1,
-  },
-  productsContainer: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  floatingCartButton: {
-    position: 'absolute',
-    bottom: spacing.lg,
-    right: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.lg,
+    paddingTop: 16, // Add padding at the top
   },
 });
 

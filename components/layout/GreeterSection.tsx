@@ -3,32 +3,25 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   Dimensions,
   TouchableOpacity,
 } from "react-native";
-import { BlurView } from "expo-blur";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { getUnreadNotificationCount } from "../../utils/notificationApi";
+import { colors } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 
 const screenWidth = Dimensions.get("window").width;
 
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good";
-  if (hour < 18) return "Good";
-  return "Good";
-};
-
 const getGreetingTime = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return "morning!";
-  if (hour < 18) return "afternoon!";
-  return "evening!";
+  if (hour < 12) return "Morning";
+  if (hour < 18) return "Afternoon";
+  return "Evening";
 };
 
 interface GreeterSectionProps {
@@ -153,10 +146,13 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
         style={{ position: "relative" }}
         activeOpacity={0.7}
       >
-        <Image
-          source={require("../../assets/icons/bell.png")}
-          style={styles.notificationIcon}
-        />
+        <View style={styles.notificationIconContainer}>
+          <Ionicons 
+            name="notifications" 
+            size={24} 
+            color={colors.icon.primary} 
+          />
+        </View>
         {unreadCount > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{unreadCount}</Text>
@@ -170,41 +166,55 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
     <View style={styles.container}>
       <View style={styles.row}>
         <View style={styles.leftColumn}>
-          <View style={styles.greetingWrapper}>
-            <BlurView intensity={50} tint="light" style={styles.greetingBlur} />
-            <Text style={styles.greetingText}>
-              {getGreeting()}{" "}
-              <Text style={styles.highlight}>{getGreetingTime()}</Text>
-            </Text>
-          </View>
-          {onLocationPress ? (
-            <TouchableOpacity
-              style={styles.locationRow}
-              onPress={onLocationPress}
-              activeOpacity={0.7}
-            >
-              <Image
-                source={require("../../assets/icons/location.png")}
-                style={styles.locationIcon}
+          {/* User avatar, greeting, and location in one row */}
+          <View style={styles.userRow}>
+            <View style={styles.avatarContainer}>
+              <Ionicons 
+                name="person-circle" 
+                size={40} 
+                color={colors.primary} 
               />
-              <Text
-                style={[
-                  styles.locationText,
-                  { textDecorationLine: "underline", color: "#0d2329" },
-                ]}
-              >
-                {location}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.locationRow}>
-              <Image
-                source={require("../../assets/icons/location.png")}
-                style={styles.locationIcon}
-              />
-              <Text style={styles.locationText}>{location}</Text>
             </View>
-          )}
+            <View style={styles.textContainer}>
+              <Text style={styles.greetingText}>
+                {getGreetingTime()}, {user?.firstName || "there"}!
+              </Text>
+              {onLocationPress ? (
+                <TouchableOpacity
+                  style={styles.locationRow}
+                  onPress={onLocationPress}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name="location" 
+                    size={16} 
+                    color={colors.icon.secondary} 
+                    style={styles.locationIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.locationText,
+                      { textDecorationLine: "underline", color: colors.text.secondary },
+                    ]}
+                  >
+                    {location}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.locationRow}>
+                  <Ionicons 
+                    name="location" 
+                    size={16} 
+                    color={colors.icon.secondary} 
+                    style={styles.locationIcon}
+                  />
+                  <Text style={[styles.locationText, { color: colors.text.secondary }]}>
+                    {location}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
         <NotificationBell unreadCount={unreadCount} />
       </View>
@@ -221,75 +231,69 @@ const styles = StyleSheet.create({
     marginTop: 25,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   leftColumn: {
     flex: 1,
-    marginRight: 90, //mao ning naka change sa gap sa icon and greeter for blur
+    marginRight: 20,
   },
-  greetingWrapper: {
-    position: "relative",
-    width: 270,
-    marginBottom: 4,
-    height: 50, // you can adjust this
-    justifyContent: "center",
+  userRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  greetingBlur: {
-    position: "absolute",
-    left: -16, // override the container margin
-    right: 10, // space for notification icon
-    height: "100%",
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
-    backgroundColor: "rgb(255, 255, 255)",
-    borderColor: "rgba(197, 197, 197, 0.94)",
-    borderWidth: 0.5,
+  avatarContainer: {
+    marginRight: 12,
+  },
+  textContainer: {
+    flex: 1,
   },
   greetingText: {
-    fontSize: 25,
+    fontSize: 18,
     fontFamily: "Poppins-SemiBold",
-    color: "#000",
-    paddingLeft: 20, // aligns with rest of the content
-    paddingRight: 0,
-  },
-  highlight: {
-    color: "#4CAF50",
+    color: colors.text.primary,
+    marginBottom: 2,
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   locationIcon: {
-    width: 24,
-    height: 24,
     marginRight: 4,
-    tintColor: "#2C3E50",
   },
   locationText: {
-    color: "#444",
     fontSize: 14,
-    fontFamily: "Poppins-Medium",
+    fontFamily: "Poppins-Regular",
   },
-  notificationIcon: {
-    marginTop: 10,
-    width: 24,
-    height: 24,
-    tintColor: "#2C3E50",
+  notificationIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.background.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.border.primary,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   badge: {
     position: "absolute",
-    top: 2,
-    right: 2,
+    top: -2,
+    right: -2,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#F44336",
+    backgroundColor: colors.danger,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
   },
   badgeText: {
-    color: "#fff",
+    color: colors.text.inverse,
     fontSize: 11,
     fontWeight: "bold",
     paddingHorizontal: 3,

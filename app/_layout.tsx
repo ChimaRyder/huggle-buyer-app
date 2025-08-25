@@ -12,13 +12,12 @@ import { ApplicationProvider } from "@ui-kitten/components";
 import { StatusBar } from "expo-status-bar";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "../utils/cache";
-import Constants from "expo-constants";
 
-import { registerForPushNotificationsAsync } from "@/utils/Notifications";
-import { StyleSheet, SafeAreaView } from "react-native";
+import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from 'react-native-toast-message';
 import mainTheme from '@/assets/themes/main-theme.json'
+import { CartProvider } from "@/context/CartContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,19 +46,19 @@ export default function RootLayout() {
         publishableKey={publishableKey || ""}
         tokenCache={tokenCache}
       >
-        <SafeAreaView style={styles.container}>
+        <CartProvider>
           <ApplicationProvider
             {...eva}
-            theme={{...eva.light,...mainTheme}}
+            theme={{...eva.light, ...mainTheme}}
           >
             <ThemeProvider
               value={DefaultTheme}
             >
               <Slot />
-              <StatusBar style="auto" />
+              <StatusBar style="light" backgroundColor="#4CAF50" />
             </ThemeProvider>
           </ApplicationProvider>
-        </SafeAreaView>
+        </CartProvider>
       </ClerkProvider>
     </GestureHandlerRootView>
   );
@@ -67,8 +66,7 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#F7F8FA", //F7F8FA
-    marginTop: 24,
+    backgroundColor: "transparent",
     flex: 1,
   },
 });
