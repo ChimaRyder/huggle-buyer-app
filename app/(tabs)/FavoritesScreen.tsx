@@ -4,13 +4,14 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { restaurants } from '@/data/food/mockData';
+import { colors } from '@/constants/theme';
 
 const FavoritesScreen = () => {
   const router = useRouter();
@@ -28,9 +29,10 @@ const FavoritesScreen = () => {
   };
   
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Favorites</Text>
+        <Ionicons name="heart" size={24} color={colors.primary} style={styles.headerIcon} />
+        <Text style={styles.headerTitle}>Favorite Stores</Text>
       </View>
       
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -47,7 +49,7 @@ const FavoritesScreen = () => {
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Ionicons name="heart-outline" size={80} color="#C7C7CC" />
+            <Ionicons name="heart-outline" size={80} color={colors.text.tertiary} />
             <Text style={styles.emptyTitle}>No favorites yet</Text>
             <Text style={styles.emptyDescription}>
               Tap the heart icon on restaurants to save them here
@@ -62,18 +64,23 @@ const FavoritesScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.secondary,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: colors.border.primary,
+  },
+  headerIcon: {
+    marginRight: 12,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.text.primary,
   },
   container: {
     flex: 1,
@@ -91,13 +98,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDescription: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.text.tertiary,
     textAlign: 'center',
   },
 });

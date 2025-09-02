@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/constants/theme';
 
 interface SearchInputProps {
   value: string;
   onChangeText: (text: string) => void;
   onClear: () => void;
+  onSubmitEditing?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
 }
@@ -19,26 +21,30 @@ const SearchInput: React.FC<SearchInputProps> = ({
   value, 
   onChangeText, 
   onClear, 
+  onSubmitEditing,
   placeholder = "Search restaurants or food items",
   autoFocus = false
 }) => {
   return (
     <View style={styles.searchContainer}>
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={colors.text.tertiary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder={placeholder}
           value={value}
           onChangeText={onChangeText}
+          onSubmitEditing={onSubmitEditing}
           autoFocus={autoFocus}
+          returnKeyType="search"
+          placeholderTextColor={colors.text.tertiary}
         />
         {value.length > 0 && (
           <TouchableOpacity 
             onPress={onClear}
             style={styles.clearButton}
           >
-            <Ionicons name="close-circle" size={20} color="#8E8E93" />
+            <Ionicons name="close-circle" size={20} color={colors.text.tertiary} />
           </TouchableOpacity>
         )}
       </View>
@@ -49,13 +55,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
 const styles = StyleSheet.create({
   searchContainer: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.background.secondary,
     borderRadius: 12,
     paddingHorizontal: 12,
   },
@@ -66,6 +70,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
+    color: colors.text.primary,
   },
   clearButton: {
     padding: 4,

@@ -9,15 +9,14 @@ import {
   StyleSheet,
   SafeAreaView,
   RefreshControl,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useCart } from '@/context/CartContext';
 
 import { GreeterSection } from '@/components/layout';
-import { colors, gradients } from '@/constants/theme';
+import { colors } from '@/constants/theme';
 import {
-  SearchBar,
   CategorySection,
   TrendingItemsSection,
   PopularStoresSection,
@@ -37,7 +36,7 @@ const HomeScreen = () => {
   };
 
   const handleRestaurantPress = (id: string) => {
-    router.push(`/screens/food/RestaurantDetailScreen?id=${id}`);
+    router.push(`/(screens)/StoreHomepageScreen?id=${id}`);
   };
 
   const handleToggleFavorite = (id: string) => {
@@ -46,11 +45,11 @@ const HomeScreen = () => {
   };
 
   const handleCategoryPress = (categoryId: string) => {
-    router.push(`/screens/food/CategoryScreen?id=${categoryId}`);
+    router.push({ pathname: '/(screens)/TrendingProductsScreen', params: { productType: categoryId } });
   };
 
   const handleCartPress = () => {
-    router.push('/screens/food/CartScreen');
+    router.push('/(screens)/food/CartScreen');
   };
 
   const handleSearchFocus = () => {
@@ -58,21 +57,14 @@ const HomeScreen = () => {
   };
 
   const handleFoodItemPress = (itemId: string) => {
-    // Find which restaurant has this item
-    // In a real app, this would be handled by the backend
-    router.push(`/screens/food/RestaurantDetailScreen?id=1`);
+    router.push(`/(screens)/ProductScreen?id=${itemId}`);
   };
 
   return (
-    <LinearGradient
-      colors={gradients.primary}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={styles.gradientBackground}
-    >
+    <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
-          style={styles.container}
+          style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -83,9 +75,7 @@ const HomeScreen = () => {
             />
           }
         >
-          <GreeterSection />
-          
-          <SearchBar onFocus={handleSearchFocus} />
+          <GreeterSection onSearchFocus={handleSearchFocus} />
           
           <CategorySection onCategoryPress={handleCategoryPress} />
           
@@ -102,22 +92,20 @@ const HomeScreen = () => {
           itemCount={itemCount} 
         />
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  gradientBackground: {
+  container: {
     flex: 1,
+    backgroundColor: colors.background.tertiary, // Very light gray background
   },
   safeArea: {
     flex: 1,
-    backgroundColor: 'transparent',
-    paddingTop: 16, // Keep only top padding
   },
-  container: {
+  scrollView: {
     flex: 1,
-    paddingTop: 16, // Add padding at the top
   },
 });
 

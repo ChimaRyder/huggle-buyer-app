@@ -1,592 +1,485 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
-  ImageBackground,
-  TouchableOpacity,
   Image,
-  TextInput,
-  Dimensions,
-  RefreshControl,
-  ActivityIndicator,
+  TouchableOpacity,
+  FlatList,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/clerk-expo";
-import { ReviewCard } from "../../components/review";
-import { StoreProductGrid } from "../../components/store";
-import {
-  fetchStoreById,
-  followStore,
-  unfollowStore,
-  fetchFollowedStores,
-} from "../../utils/stores";
-import { fetchBuyerById } from "@/utils/user";
-import { BackendStore, BackendBuyer } from "../../types/BackendModels";
+import { restaurants, foodItems, foodCategories } from "@/data/food/mockData";
+import { colors } from "@/constants/theme";
+import ProductGrid from "@/components/product/ProductGrid";
 
-const { width, height } = Dimensions.get("window");
-const BANNER_HEIGHT = height * 0.25;
-
-interface Review {
-  id: string;
-  rating: number;
-  comment: string;
-  userName: string;
-  date: string;
-}
-
-interface Store {
-  id: string;
-  name: string;
-  category: string;
-  rating: number;
-  reviews: number;
-  distance: string;
-  image: any;
-  profileImage: any;
-  bannerImage: any;
-}
-
-const DUMMY_REVIEWS: Review[] = [
+// Mock reviews data
+const mockReviews = [
   {
     id: "1",
+    buyerId: "user1",
+    message: "Great service and fresh produce!",
     rating: 5,
-    comment: "Great products and fast delivery!",
-    userName: "John D.",
-    date: "2025-05-10",
+    imageUrls: [],
+    createdAt: "2023-05-15T10:30:00Z",
+    showExpandButton: true,
   },
   {
     id: "2",
+    buyerId: "user2",
+    message: "Fast delivery and excellent quality.",
     rating: 4,
-    comment: "Good service and value for money.",
-    userName: "Anna B.",
-    date: "2025-05-09",
+    imageUrls: [],
+    createdAt: "2023-05-10T14:20:00Z",
+    showExpandButton: true,
   },
 ];
 
 export default function StoreHomepageScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { getToken, userId } = useAuth();
-  const [store, setStore] = useState<BackendStore | null>(null);
-  const [buyer, setBuyer] = useState<BackendBuyer | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
-  const [isFollowed, setIsFollowed] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [activeTab, setActiveTab] = useState("Featured");
 
-  // Fallback mock stores
-  const MOCK_STORES: Store[] = [
-    {
-      id: "1",
-      name: "Baked Bliss",
-      category: "Pastries",
-      rating: 4.7,
-      reviews: 120,
-      distance: "1.2km",
-      image: require("../../assets/images/sample-store.jpg"),
-      profileImage: require("../../assets/images/sample-store.jpg"),
-      bannerImage: require("../../assets/images/sample-store.jpg"),
-    },
-    {
-      id: "2",
-      name: "Snack Shack",
-      category: "Burgers",
-      rating: 4.5,
-      reviews: 98,
-      distance: "0.8km",
-      image: require("../../assets/images/sample-store.jpg"),
-      profileImage: require("../../assets/images/sample-store.jpg"),
-      bannerImage: require("../../assets/images/sample-store.jpg"),
-    },
-  ];
+  // Find the store in mock data
+  const store = restaurants.find(restaurant => restaurant.id === id);
 
-  // Fallback to mock store if needed
-  const mockStore =
-    (id && MOCK_STORES.find((s) => s.id === id.toString())) || null;
+  // Filter products for this store (using first 3 restaurants as examples)
+  const storeProducts = foodItems.filter(item => {
+    if (id === "1") return ["101", "102", "103"].includes(item.id);
+    if (id === "2") return ["201", "202"].includes(item.id);
+    if (id === "3") return ["301", "302"].includes(item.id);
+    return false;
+  });
 
-  const [activeReviewIndex, setActiveReviewIndex] = useState(0);
-  const scrollViewRef = useRef<ScrollView>(null);
+  // Get featured products (popular items)
+  const featuredProducts = storeProducts.filter(item => item.isPopular);
 
-  const loadStoreData = async () => {
-    if (!id) {
-      setError("Store ID not provided");
-      setLoading(false);
-      return;
-    }
+  // Get categories for this store
+  const storeCategories = foodCategories.filter(category => 
+    store?.categories.includes(category.name)
+  );
 
-    try {
-      if (!refreshing) {
-        setLoading(true);
-      }
-      // Get auth token with the seller_app template
-      const token = await getToken({ template: "seller_app" });
-      const storeData = await fetchStoreById(id.toString(), token);
-      setStore(storeData);
-      setError(null); // Clear any previous errors if successful
-    } catch (err) {
-      console.error("Error loading store data:", err);
-      setError("Failed to load store details");
-      // We don't clear store here to allow fallback to previous data if available
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const loadBuyerFollowStatus = async () => {
-    if (!userId || !id) return;
-    try {
-      const token = await getToken({ template: "seller_app" });
-      const followedStores = await fetchFollowedStores(userId, token);
-      setIsFollowed(
-        followedStores.some((f: any) => f.storeId === id.toString())
-      );
-    } catch (err) {
-      console.error("Error loading followed stores:", err);
-    }
-  };
-
-  const toggleFollow = async () => {
-    if (!userId || !id) return;
-    try {
-      setFavoriteLoading(true);
-      const token = await getToken({ template: "seller_app" });
-      if (isFollowed) {
-        await unfollowStore(id.toString(), userId, token);
-      } else {
-        await followStore(id.toString(), userId, token);
-      }
-      setIsFollowed(!isFollowed);
-    } catch (err) {
-      alert("Failed to update follow status. Please try again.");
-    } finally {
-      setFavoriteLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadStoreData();
-    loadBuyerFollowStatus();
-  }, [id]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const nextIndex = (activeReviewIndex + 1) % DUMMY_REVIEWS.length;
-      setActiveReviewIndex(nextIndex);
-      scrollViewRef.current?.scrollTo({
-        x: nextIndex * width,
-        animated: true,
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [activeReviewIndex]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadStoreData();
-  };
-
-  // If store is not loaded yet, show loading state
-  if (loading && !refreshing) {
+  // If store not found, show error
+  if (!store) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingWireframeContainer}>
-          <View style={styles.wfBanner} />
-          <View style={styles.wfProfileRow}>
-            <View style={styles.wfProfilePic} />
-            <View style={styles.wfStoreName} />
-            <View style={styles.wfRating} />
-          </View>
-          <View style={styles.wfSection} />
-          <View style={styles.wfSection} />
-          <View style={styles.wfSection} />
-          {/* Product card placeholders */}
-          <View style={styles.wfProductGridRow}>
-            <View style={styles.wfProductCard} />
-            <View style={styles.wfProductCard} />
-          </View>
-          <View style={styles.wfProductGridRow}>
-            <View style={styles.wfProductCard} />
-            <View style={styles.wfProductCard} />
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // If there's an error and no store data, show error state
-  if (error && !store && !mockStore) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text>{error}</Text>
-      </SafeAreaView>
-    );
-  }
-
-  // Use either real store data or fall back to mock data
-  const displayStore = store || mockStore;
-
-  if (!displayStore) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text>Store not found</Text>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#548C2F"]}
-          />
-        }
-      >
-        {/* Banner */}
-        <ImageBackground
-          source={
-            store?.storeCoverUrl
-              ? { uri: store.storeCoverUrl }
-              : "bannerImage" in displayStore && displayStore.bannerImage
-              ? displayStore.bannerImage
-              : require("../../assets/images/sample-store.jpg")
-          }
-          style={styles.banner}
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Store not found</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
         >
-          <View style={styles.bannerOverlay}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="close" size={24} color="white" />
-            </TouchableOpacity>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
-            <View style={styles.bannerBottom}>
-              <View style={styles.storeInfo}>
-                <Image
-                  source={
-                    "storeImageUrl" in displayStore &&
-                    displayStore.storeImageUrl
-                      ? { uri: displayStore.storeImageUrl }
-                      : "profileImage" in displayStore &&
-                        displayStore.profileImage
-                      ? displayStore.profileImage
-                      : require("../../assets/images/sample-store.jpg")
-                  }
-                  style={styles.storeProfileImage}
+  // Check if the promotion is about free delivery
+  const isFreeDeliveryPromo = store.promotion && store.promotion.toLowerCase().includes('free delivery');
+
+  const toggleFavorite = () => {
+    setIsFavorite(!isFavorite);
+  };
+
+  const handleProductPress = (productId: string) => {
+    router.push(`/(screens)/ProductScreen?id=${productId}`);
+  };
+
+  // Render category item
+  const renderCategoryItem = ({ item }: { item: typeof foodCategories[0] }) => (
+    <TouchableOpacity 
+      style={[styles.categoryCard, { backgroundColor: item.color }]}
+      onPress={() => console.log("Category pressed:", item.id)}
+    >
+      <Text style={styles.categoryIcon}>{item.icon}</Text>
+      <Text style={styles.categoryName}>{item.name}</Text>
+    </TouchableOpacity>
+  );
+
+  // Render featured tab content
+  const renderFeaturedTab = () => (
+    <View style={styles.tabContent}>
+      <ProductGrid 
+        products={featuredProducts}
+        onProductPress={handleProductPress}
+      />
+    </View>
+  );
+
+  // Render products tab content
+  const renderProductsTab = () => (
+    <View style={styles.tabContent}>
+      <ProductGrid 
+        products={storeProducts}
+        onProductPress={handleProductPress}
+      />
+    </View>
+  );
+
+  // Render categories tab content
+  const renderCategoriesTab = () => (
+    <View style={styles.tabContent}>
+      <FlatList
+        data={storeCategories}
+        renderItem={renderCategoryItem}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.categoryRow}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.categoryContainer}
+      />
+    </View>
+  );
+
+  // Render reviews tab content
+  const renderReviewsTab = () => (
+    <View style={styles.tabContent}>
+      {mockReviews.map((review) => (
+        <View key={review.id} style={styles.reviewCard}>
+          <View style={styles.reviewHeader}>
+            <Text style={styles.reviewerName}>Customer {review.id}</Text>
+            <View style={styles.ratingContainer}>
+              {[...Array(5)].map((_, i) => (
+                <Ionicons 
+                  key={i}
+                  name="star" 
+                  size={14} 
+                  color={i < review.rating ? colors.warning : colors.text.tertiary} 
                 />
-                <View style={styles.storeTextInfo}>
-                  <Text style={styles.storeName}>{displayStore.name}</Text>
-                  <View style={styles.ratingContainer}>
-                    <Ionicons name="star" size={16} color="#FFD700" />
-                    <Text style={styles.ratingText}>
-                      {"rating" in displayStore && displayStore.rating
-                        ? displayStore.rating.toFixed(1)
-                        : "4.5"}
-                      ({"reviews" in displayStore ? displayStore.reviews : "0"})
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={styles.circleButton}
-                  onPress={toggleFollow}
-                  disabled={favoriteLoading}
-                >
-                  <Ionicons
-                    name={isFollowed ? "heart" : "heart-outline"}
-                    size={24}
-                    color={isFollowed ? "tomato" : "black"}
-                  />
-                </TouchableOpacity>
-                {/* <TouchableOpacity
-                  style={[styles.circleButton, { marginTop: 8 }]}
-                  onPress={() => router.push("/(screens)/chat" as any)}
-                >
-                  <Ionicons name="chatbubble-outline" size={24} color="black" />
-                </TouchableOpacity> */}
-              </View>
+              ))}
             </View>
           </View>
-        </ImageBackground>
+          <Text style={styles.reviewText}>{review.message}</Text>
+          <Text style={styles.reviewDate}>
+            {new Date(review.createdAt).toLocaleDateString()}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
 
-        {/* Reviews */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Reviews</Text>
-            <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/(screens)/reviewsSeeAll",
-                  params: { id: displayStore.id },
-                })
-              }
-            >
-              <Text style={styles.seeAll}>See All</Text>
-            </TouchableOpacity>
-          </View>
+  // Tab configuration
+  const tabs = [
+    { key: "Featured", label: "Featured" },
+    { key: "Products", label: "Products" },
+    { key: "Categories", label: "Categories" },
+    { key: "Reviews", label: "Reviews" },
+  ];
 
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.reviewsContainer}
-            onMomentumScrollEnd={(event) => {
-              const newIndex = Math.round(
-                event.nativeEvent.contentOffset.x / width
-              );
-              setActiveReviewIndex(newIndex);
-            }}
+  return (
+    <View style={styles.container}>
+      {/* Store Banner */}
+      <View style={styles.bannerContainer}>
+        <Image 
+          source={{ uri: store.image }} 
+          style={styles.bannerImage} 
+        />
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Store Info with Favorite Button */}
+      <View style={styles.storeInfo}>
+        <View style={styles.storeHeader}>
+          <Text style={styles.storeName}>{store.name}</Text>
+          <TouchableOpacity 
+            style={styles.favoriteButton}
+            onPress={toggleFavorite}
           >
-            {DUMMY_REVIEWS.map((review) => (
-              <View key={review.id} style={styles.reviewWrapper}>
-                <ReviewCard
-                  reviewerName={review.userName}
-                  message={review.comment}
-                  rating={review.rating}
-                  createdAt={review.date}
-                  showExpandButton={false}
-                  isCompact={true}
-                />
-              </View>
-            ))}
-          </ScrollView>
-
-          <View style={styles.paginationDots}>
-            {DUMMY_REVIEWS.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.paginationDot,
-                  index === activeReviewIndex && styles.paginationDotActive,
-                ]}
-              />
-            ))}
+            <Ionicons 
+              name={isFavorite ? "heart" : "heart-outline"} 
+              size={24} 
+              color={isFavorite ? colors.danger : colors.text.primary} 
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.storeDetails}>
+          <View style={styles.ratingContainer}>
+            <Ionicons name="star" size={16} color={colors.warning} />
+            <Text style={styles.ratingText}>{store.rating}</Text>
           </View>
+          <Text style={styles.deliveryInfo}>
+            {store.distance}
+          </Text>
         </View>
+        {store.promotion && !isFreeDeliveryPromo && (
+          <View style={styles.promotionBanner}>
+            <Text style={styles.promotionText}>{store.promotion}</Text>
+          </View>
+        )}
+        <View style={styles.categoriesContainer}>
+          {store.categories.map((categoryName, index) => {
+            // Find the category in foodCategories to get its color
+            const category = foodCategories.find(cat => cat.name === categoryName);
+            const backgroundColor = category ? category.color : colors.primary;
+            
+            return (
+              <View 
+                key={index} 
+                style={[styles.categoryBadge, { backgroundColor }]}
+              >
+                <Text style={styles.categoryText}>{categoryName}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
 
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="gray" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search in shop"
-            placeholderTextColor="gray"
-          />
-        </View>
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[
+              styles.tab,
+              activeTab === tab.key && styles.activeTab,
+            ]}
+            onPress={() => setActiveTab(tab.key)}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === tab.key && styles.activeTabText,
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-        {/* Popular Products */}
-        <View style={styles.section}>
-          <StoreProductGrid storeId={displayStore.id} title="Store Products" />
-        </View>
+      {/* Tab Content */}
+      <ScrollView style={styles.contentContainer}>
+        {activeTab === "Featured" && renderFeaturedTab()}
+        {activeTab === "Products" && renderProductsTab()}
+        {activeTab === "Categories" && renderCategoriesTab()}
+        {activeTab === "Reviews" && renderReviewsTab()}
       </ScrollView>
-
-      {/* Floating Cart */}
-      <TouchableOpacity
-        style={styles.floatingCart}
-        onPress={() => router.push("/(screens)/cart" as any)}
-      >
-        <Ionicons name="bag" size={24} color="white" />
-      </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    marginTop: 25,
+    backgroundColor: colors.background.tertiary, // Very light gray background
   },
-  scrollView: { flex: 1 },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  errorText: {
+    fontSize: 18,
+    textAlign: "center",
+    marginTop: 50,
+    color: colors.text.primary,
+  },
+  bannerContainer: {
+    height: 200,
+    position: "relative",
+  },
+  bannerImage: {
+    width: "100%",
+    height: "100%",
+  },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: 20,
+    padding: 10,
+  },
+  storeInfo: {
     padding: 20,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#666",
-  },
-  loadingWireframeContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    paddingTop: 0,
-  },
-  wfBanner: {
-    width: "100%",
-    height: BANNER_HEIGHT,
-    backgroundColor: "#e0e0e0",
-    marginBottom: 16,
-  },
-  wfProfileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    width: "100%",
-  },
-  wfProfilePic: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#e0e0e0",
-    marginRight: 12,
-  },
-  wfStoreName: {
-    width: 120,
-    height: 20,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
-    marginRight: 12,
-  },
-  wfRating: {
-    width: 60,
-    height: 18,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
-  },
-  wfSection: {
-    width: "90%",
-    height: 18,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
-    marginBottom: 14,
-    alignSelf: "center",
-  },
-  wfProductGridRow: {
+  storeHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "90%",
-    marginTop: 10,
-    marginBottom: 0,
-    alignSelf: "center",
-  },
-  wfProductCard: {
-    width: "48%",
-    aspectRatio: 1,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 12,
+    alignItems: "center",
     marginBottom: 10,
   },
-  banner: { height: BANNER_HEIGHT },
-  bannerOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bannerBottom: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-  },
-  storeInfo: { flexDirection: "row", alignItems: "center" },
-  storeProfileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  storeTextInfo: { justifyContent: "center" },
-  storeName: { color: "white", fontSize: 16, fontWeight: "bold" },
-  ratingContainer: { flexDirection: "row", alignItems: "center" },
-  ratingText: { color: "white", marginLeft: 4 },
-  actionButtons: { alignItems: "center" },
-  circleButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "white",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    margin: 16,
-    paddingHorizontal: 16,
-    height: 40,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 20,
-  },
-  searchInput: { flex: 1, marginLeft: 8 },
-  section: { padding: 16 },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  popularHeader: { flexDirection: "row", alignItems: "center" },
-  sectionTitle: {
-    fontSize: 18,
+  storeName: {
+    fontSize: 24,
     fontWeight: "bold",
-    marginLeft: 8,
+    color: colors.text.primary,
   },
-  seeAll: {
-    color: "#1E90FF",
+  favoriteButton: {
+    padding: 5,
   },
-  reviewsContainer: {
-    paddingHorizontal: 16,
-  },
-  reviewWrapper: {
-    width: width - 32,
-    marginRight: 16,
-  },
-  paginationDots: {
+  storeDetails: {
     flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 16,
+    alignItems: "center",
+    marginBottom: 15,
   },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#ccc",
-    marginHorizontal: 4,
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 15,
   },
-  paginationDotActive: {
-    backgroundColor: "#1E90FF",
-    transform: [{ scale: 1.2 }],
+  ratingText: {
+    marginLeft: 5,
+    fontSize: 16,
+    color: colors.text.primary,
   },
-  floatingCart: {
-    position: "absolute",
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#1E90FF",
+  deliveryInfo: {
+    fontSize: 16,
+    color: colors.text.secondary,
+  },
+  promotionBanner: {
+    backgroundColor: colors.dangerLight,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  promotionText: {
+    color: colors.danger,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  categoriesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  categoryBadge: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: colors.text.inverse,
+    fontWeight: "600",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 15,
+    alignItems: "center",
+  },
+  activeTab: {
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primary,
+  },
+  tabText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    fontWeight: "500",
+  },
+  activeTabText: {
+    color: colors.primary,
+    fontWeight: "600",
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: colors.background.tertiary,
+  },
+  tabContent: {
+    padding: 20,
+  },
+  categoryContainer: {
+    paddingBottom: 20,
+  },
+  categoryRow: {
+    justifyContent: "space-between",
+  },
+  categoryCard: {
+    width: "48%",
+    height: 100,
+    borderRadius: 12,
+    marginBottom: 16,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  categoryIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+    color: colors.text.inverse,
+  },
+  categoryName: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.text.inverse,
+    textAlign: "center",
+  },
+  categoryCard: {
+    width: "48%",
+    height: 100,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  categoryIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+    color: colors.text.inverse,
+  },
+  categoryName: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.text.inverse,
+    textAlign: "center",
+  },
+  reviewCard: {
+    backgroundColor: colors.background.secondary,
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  reviewerName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.text.primary,
+  },
+  reviewText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: colors.primary,
+    textAlign: "center",
+    marginTop: 20,
   },
 });

@@ -43,15 +43,15 @@ const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
 
 const styles = StyleSheet.create({
   promoContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.background.primary,
+    padding: 12,
+    marginBottom: 8,
   },
   promoTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
+    color: colors.text.primary,
+    marginBottom: 8,
   },
   promoInputContainer: {
     flexDirection: 'row',
@@ -59,26 +59,26 @@ const styles = StyleSheet.create({
   },
   promoInput: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginRight: 8,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    marginRight: 6,
   },
   applyButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   disabledApplyButton: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: colors.text.tertiary,
   },
   applyButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text.primaryInverted,
   },
 });
 

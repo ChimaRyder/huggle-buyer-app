@@ -5,11 +5,12 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/constants/theme';
 
 const SearchEmptyState: React.FC = () => {
   return (
     <View style={styles.emptyContainer}>
-      <Ionicons name="search-outline" size={64} color="#C7C7CC" />
+      <Ionicons name="search-outline" size={64} color={colors.text.tertiary} />
       <Text style={styles.emptyTitle}>Search for restaurants or food</Text>
       <Text style={styles.emptyDescription}>
         Find your favorite restaurants and food items
@@ -29,13 +30,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDescription: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.text.tertiary,
     textAlign: 'center',
   },
 });

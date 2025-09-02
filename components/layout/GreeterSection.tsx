@@ -14,6 +14,7 @@ import { useUser, useAuth } from "@clerk/clerk-expo";
 import { getUnreadNotificationCount } from "../../utils/notificationApi";
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { GreetingSearchBox } from "@/components/home";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -26,9 +27,10 @@ const getGreetingTime = () => {
 
 interface GreeterSectionProps {
   onLocationPress?: () => void;
+  onSearchFocus?: () => void;
 }
 
-const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
+const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSearchFocus }) => {
   const [location, setLocation] = useState<string>("Fetching location...");
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useUser();
@@ -67,7 +69,6 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
             const address = await Location.reverseGeocodeAsync(coords);
             if (address.length > 0) {
               const {
-                name,
                 street,
                 district,
                 subregion,
@@ -76,16 +77,12 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
                 country,
               } = address[0];
               const parts = [
-                name,
-                street,
-                district,
+                `${street} ${district}`,
+                `${city} ${region}`,
                 subregion,
-                city,
-                region,
-                country,
               ]
                 .filter(Boolean)
-                .slice(0, 3);
+                .slice(0, 4);
               if (isActive) setLocation(parts.join(", "));
             } else {
               if (isActive) setLocation("Unknown pinned location");
@@ -103,7 +100,6 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
             const address = await Location.reverseGeocodeAsync(loc.coords);
             if (address.length > 0) {
               const {
-                name,
                 street,
                 district,
                 subregion,
@@ -112,16 +108,12 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
                 country,
               } = address[0];
               const parts = [
-                name,
-                street,
-                district,
+                `${street} ${district}`,
+                `${city} ${region}`,
                 subregion,
-                city,
-                region,
-                country,
               ]
                 .filter(Boolean)
-                .slice(0, 3);
+                .slice(0, 4);
               if (isActive) setLocation(parts.join(", "));
             } else {
               if (isActive) setLocation("Unknown location");
@@ -162,62 +154,49 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress }) => {
     );
   };
 
+  const timeOfDay = getGreetingTime();
+  const greetingText = `Good ${timeOfDay}, ${user?.firstName || "there"}!`;
+
   return (
     <View style={styles.container}>
-      <View style={styles.row}>
-        <View style={styles.leftColumn}>
-          {/* User avatar, greeting, and location in one row */}
-          <View style={styles.userRow}>
-            <View style={styles.avatarContainer}>
-              <Ionicons 
-                name="person-circle" 
-                size={40} 
-                color={colors.primary} 
-              />
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.greetingText}>
-                {getGreetingTime()}, {user?.firstName || "there"}!
+      {/* Header with Location and Notification icon */}
+      <View style={styles.headerRow}>
+        <View style={styles.locationContainer}>
+          <Ionicons 
+            name="location" 
+            size={24} 
+            color={colors.icon.primary} 
+            style={styles.locationIcon}
+          />
+          {onLocationPress ? (
+            <TouchableOpacity
+              onPress={onLocationPress}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.locationText,
+                  { textDecorationLine: "underline", color: colors.text.tertiary },
+                ]}
+              >
+                {location}
               </Text>
-              {onLocationPress ? (
-                <TouchableOpacity
-                  style={styles.locationRow}
-                  onPress={onLocationPress}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons 
-                    name="location" 
-                    size={16} 
-                    color={colors.icon.secondary} 
-                    style={styles.locationIcon}
-                  />
-                  <Text
-                    style={[
-                      styles.locationText,
-                      { textDecorationLine: "underline", color: colors.text.secondary },
-                    ]}
-                  >
-                    {location}
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.locationRow}>
-                  <Ionicons 
-                    name="location" 
-                    size={16} 
-                    color={colors.icon.secondary} 
-                    style={styles.locationIcon}
-                  />
-                  <Text style={[styles.locationText, { color: colors.text.secondary }]}>
-                    {location}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
+            </TouchableOpacity>
+          ) : (
+            <Text style={[styles.locationText, { color: colors.text.tertiary }]}>
+              {location}
+            </Text>
+          )}
         </View>
         <NotificationBell unreadCount={unreadCount} />
       </View>
+      
+      {/* Greeting and Search Bar Box */}
+      <GreetingSearchBox 
+        greeting={greetingText} 
+        timeOfDay={timeOfDay}
+        onFocus={onSearchFocus || (() => {})} 
+      />
     </View>
   );
 };
@@ -227,35 +206,17 @@ const styles = StyleSheet.create({
     margin: 16,
     marginBottom: 8,
   },
-  row: {
+  headerRow: {
     marginTop: 25,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 0,
   },
-  leftColumn: {
-    flex: 1,
-    marginRight: 20,
-  },
-  userRow: {
+  locationContainer: {
     flexDirection: "row",
-    alignItems: "center",
-  },
-  avatarContainer: {
-    marginRight: 12,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  greetingText: {
-    fontSize: 18,
-    fontFamily: "Poppins-SemiBold",
-    color: colors.text.primary,
-    marginBottom: 2,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
+
   },
   locationIcon: {
     marginRight: 4,
@@ -268,17 +229,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.background.secondary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: colors.border.primary,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   badge: {
     position: "absolute",

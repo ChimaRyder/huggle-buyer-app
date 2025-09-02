@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '@/context/CartContext';
@@ -20,6 +20,8 @@ import {
   PromoCodeInput,
   EmptyCart
 } from '@/components/cart';
+import { foodItems } from '@/data/food/mockData';
+import { colors } from '@/constants/theme';
 
 const CartScreen = () => {
   const router = useRouter();
@@ -29,12 +31,55 @@ const CartScreen = () => {
     removeItem, 
     updateQuantity, 
     clearCart, 
-    setSpecialInstructions 
+    setSpecialInstructions,
+    addItem
   } = useCart();
   
   const [promoCode, setPromoCode] = useState('');
   const [isEditingInstructions, setIsEditingInstructions] = useState<string | null>(null);
   const [instructionText, setInstructionText] = useState('');
+
+  // Add mock data to cart on component mount if cart is empty
+  useEffect(() => {
+    if (items.length === 0) {
+      // Add some sample items to the cart
+      const sampleItems = [
+        {
+          id: 'cart-1',
+          foodId: foodItems[0].id,
+          name: foodItems[0].name,
+          description: foodItems[0].description,
+          price: foodItems[0].price,
+          quantity: 2,
+          image: foodItems[0].image,
+          specialInstructions: 'Please pack separately'
+        },
+        {
+          id: 'cart-2',
+          foodId: foodItems[4].id,
+          name: foodItems[4].name,
+          description: foodItems[4].description,
+          price: foodItems[4].price,
+          quantity: 1,
+          image: foodItems[4].image,
+          specialInstructions: 'Ripe but not too soft'
+        },
+        {
+          id: 'cart-3',
+          foodId: foodItems[6].id,
+          name: foodItems[6].name,
+          description: foodItems[6].description,
+          price: foodItems[6].price,
+          quantity: 3,
+          image: foodItems[6].image
+        }
+      ];
+
+      sampleItems.forEach(item => {
+        addItem(item);
+      });
+    }
+  }, [items.length, addItem]);
 
   const handleCheckout = () => {
     if (items.length === 0) {
@@ -119,10 +164,10 @@ const CartScreen = () => {
   if (isEditingInstructions) {
     const item = items.find(item => item.id === isEditingInstructions);
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleCancelInstructions} style={styles.headerButton}>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Special Instructions</Text>
           <TouchableOpacity onPress={handleSaveInstructions} style={styles.headerButton}>
@@ -151,7 +196,7 @@ const CartScreen = () => {
   // Render empty cart
   if (items.length === 0) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <CartHeader onBack={() => router.back()} title="Your Cart" />
         <EmptyCart onBack={() => router.back()} />
       </SafeAreaView>
@@ -160,8 +205,8 @@ const CartScreen = () => {
 
   // Render cart with items
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <CartHeader onBack={() => router.back()} title="Your Cart" />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <CartHeader onBack={() => router.back()} title={`Your Cart (${items.length})`} />
       
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.itemsContainer}>
@@ -176,22 +221,23 @@ const CartScreen = () => {
             />
           ))}
         </View>
-        
+      </ScrollView>
+      
+      <View style={styles.summaryContainer}>
         <PromoCodeInput 
           value={promoCode} 
           onChangeText={setPromoCode} 
           onApply={handleApplyPromo} 
         />
-      </ScrollView>
-      
-      <CartSummary
-        subtotal={subtotal}
-        deliveryFee={deliveryFee}
-        tax={tax}
-        total={totalWithFees}
-        onCheckout={handleCheckout}
-        hasItems={items.length > 0}
-      />
+        <CartSummary
+          subtotal={subtotal}
+          deliveryFee={deliveryFee}
+          tax={tax}
+          total={totalWithFees}
+          onCheckout={handleCheckout}
+          hasItems={items.length > 0}
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -199,7 +245,7 @@ const CartScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.secondary, // Light gray background for better contrast
   },
   header: {
     flexDirection: 'row',
@@ -208,7 +254,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: colors.border.primary,
   },
   headerButton: {
     padding: 4,
@@ -216,18 +262,23 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.primary,
   },
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: colors.primary,
   },
   container: {
     flex: 1,
   },
   itemsContainer: {
     padding: 16,
+  },
+  summaryContainer: {
+    backgroundColor: colors.background.primary,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.primary,
   },
   instructionsContainer: {
     flex: 1,
@@ -236,17 +287,17 @@ const styles = StyleSheet.create({
   instructionsLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.primary,
     marginBottom: 16,
   },
   itemName: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.text.tertiary,
     marginBottom: 16,
   },
   instructionsInput: {
     borderWidth: 1,
-    borderColor: '#F2F2F7',
+    borderColor: colors.border.primary,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -256,7 +307,7 @@ const styles = StyleSheet.create({
   },
   instructionsHint: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: colors.text.tertiary,
     fontStyle: 'italic',
   },
 });

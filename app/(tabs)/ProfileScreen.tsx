@@ -4,13 +4,14 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/constants/theme';
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -27,13 +28,7 @@ const ProfileScreen = () => {
       id: 'orders',
       title: 'My Orders',
       icon: 'receipt-outline',
-      screen: 'OrderHistoryScreen',
-    },
-    {
-      id: 'favorites',
-      title: 'Favorite Restaurants',
-      icon: 'heart-outline',
-      screen: 'FavoritesScreen',
+      screen: '/(screens)/Orders',
     },
     {
       id: 'addresses',
@@ -62,12 +57,16 @@ const ProfileScreen = () => {
   ];
 
   const handleMenuItemPress = (screen: string) => {
-    // For now, we'll just show an alert since these screens don't exist yet
-    alert(`Navigating to ${screen} - This screen is not implemented in this prototype`);
+    if (screen === '/(screens)/Orders') {
+      router.push(screen);
+    } else {
+      // For now, we'll just show an alert since these screens don't exist yet
+      alert(`Navigating to ${screen} - This screen is not implemented in this prototype`);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
@@ -92,10 +91,10 @@ const ProfileScreen = () => {
               onPress={() => handleMenuItemPress(item.screen)}
             >
               <View style={styles.menuItemLeft}>
-                <Ionicons name={item.icon as any} size={24} color="#000000" />
+                <Ionicons name={item.icon as any} size={24} color={colors.primary} />
                 <Text style={styles.menuItemText}>{item.title}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+              <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
             </TouchableOpacity>
           ))}
         </View>
@@ -114,7 +113,7 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.secondary,
   },
   container: {
     flex: 1,
@@ -123,13 +122,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 32,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: colors.border.primary,
   },
   avatarContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.background.tertiary,
     marginBottom: 16,
     overflow: 'hidden',
   },
@@ -140,12 +139,12 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.text.primary,
     marginBottom: 4,
   },
   profileEmail: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.text.tertiary,
   },
   menuContainer: {
     marginTop: 16,
@@ -157,7 +156,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: colors.border.primary,
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -165,7 +164,7 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 18,
-    color: '#000000',
+    color: colors.text.primary,
     marginLeft: 16,
   },
   bottomContainer: {
@@ -173,15 +172,15 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   signOutButton: {
-    backgroundColor: '#FF3B30',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: colors.danger,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
   },
   signOutText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text.primaryInverted,
   },
 });
 

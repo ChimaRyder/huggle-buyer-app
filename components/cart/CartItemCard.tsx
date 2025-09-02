@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { CartItem } from '../../data/food/models';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/constants/theme';
 
 interface CartItemCardProps {
   item: CartItem;
@@ -28,24 +29,15 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
           <TouchableOpacity onPress={onRemove} style={styles.removeButton}>
-            <Ionicons name="close" size={20} color="#8E8E93" />
+            <Ionicons name="close" size={20} color={colors.danger} />
           </TouchableOpacity>
         </View>
         
-        {item.specialInstructions ? (
-          <TouchableOpacity onPress={onUpdateInstructions} style={styles.instructionsContainer}>
-            <Text style={styles.instructionsText} numberOfLines={1}>
-              "{item.specialInstructions}"
-            </Text>
-            <Text style={styles.editText}>Edit</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={onUpdateInstructions} style={styles.addInstructionsContainer}>
-            <Text style={styles.addInstructionsText}>+ Add instructions</Text>
-          </TouchableOpacity>
-        )}
+        <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
         
         <View style={styles.footer}>
+          <Text style={styles.price}>${(item.price * item.quantity).toFixed(2)}</Text>
+          
           <View style={styles.quantityContainer}>
             <TouchableOpacity 
               style={[styles.quantityButton, item.quantity <= 1 && styles.disabledButton]} 
@@ -55,7 +47,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
               <Ionicons 
                 name="remove" 
                 size={16} 
-                color={item.quantity > 1 ? "#000000" : "#C7C7CC"} 
+                color={item.quantity > 1 ? colors.primary : "#C7C7CC"} 
               />
             </TouchableOpacity>
             
@@ -65,11 +57,9 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
               style={styles.quantityButton} 
               onPress={onIncrease}
             >
-              <Ionicons name="add" size={16} color="#000000" />
+              <Ionicons name="add" size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
-          
-          <Text style={styles.price}>${(item.price * item.quantity).toFixed(2)}</Text>
         </View>
       </View>
     </View>
@@ -79,24 +69,25 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.primary,
+    marginBottom: 16,
     borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: 'transparent',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 0,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    padding: 12,
   },
   imageContainer: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     borderRadius: 12,
     overflow: 'hidden',
-    margin: 12,
+    marginRight: 12,
   },
   image: {
     width: '100%',
@@ -104,58 +95,40 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingVertical: 12,
-    paddingRight: 12,
+    justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
+    alignItems: 'center',
+    marginBottom: 8,
   },
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.secondary,
     flex: 1,
     marginRight: 8,
   },
   removeButton: {
     padding: 4,
   },
-  instructionsContainer: {
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+  description: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+    lineHeight: 18,
     marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  instructionsText: {
-    fontSize: 12,
-    color: '#8E8E93',
-    flex: 1,
-    marginRight: 4,
-  },
-  editText: {
-    fontSize: 12,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  addInstructionsContainer: {
-    marginBottom: 8,
-  },
-  addInstructionsText: {
-    fontSize: 12,
-    color: '#007AFF',
-    fontWeight: '500',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  price: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -178,11 +151,6 @@ const styles = StyleSheet.create({
     color: '#000000',
     minWidth: 24,
     textAlign: 'center',
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000000',
   },
 });
 

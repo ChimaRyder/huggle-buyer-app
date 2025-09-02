@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/constants/theme';
 
 interface SearchHeaderProps {
   onBack: () => void;
@@ -15,7 +16,7 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({ onBack }) => {
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={onBack} style={styles.headerButton}>
-        <Ionicons name="arrow-back" size={24} color="#000000" />
+        <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Search</Text>
       <View style={styles.headerSpacer} />
@@ -31,7 +32,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: colors.border.primary,
+    backgroundColor: colors.background.primary,
   },
   headerButton: {
     padding: 4,
@@ -39,7 +41,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.primary,
   },
   headerSpacer: {
     width: 32,

@@ -1,339 +1,183 @@
-/**
- * ProductGrid Component
- * Displays a grid of products with filtering and refresh capabilities
- */
-
-import React, { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import React from "react";
 import {
   View,
   StyleSheet,
   Image,
   Text,
   TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
+  FlatList,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { MockProductService } from "../../data/mockServices";
-import type { BackendProduct } from "../../types/BackendModels";
-import { colors, spacing, typography } from "@/constants/theme";
-
-interface Product {
-  id: string;
-  name: string;
-  image: { uri: string };
-  rating: number;
-  discount: number;
-  distance: string;
-  time: string;
-  availableItems: number;
-  price: number;
-  storeId: string;
-  expirationDate: string;
-}
+import { FoodItem } from "@/data/food/models";
+import { colors } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ProductGridProps {
-  productType?: string;
-  limit?: number;
+  products: FoodItem[];
+  onProductPress: (productId: string) => void;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ productType, limit }) => {
-  const router = useRouter();
-
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const calculateTimeUntilExpiration = (expirationDate: string) => {
-    const now = new Date();
-    const expiry = new Date(expirationDate);
-    const diffTime = expiry.getTime() - now.getTime();
-
-    if (diffTime <= 0) return "Expired";
-
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor(
-      (diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-    );
-    const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (diffDays > 0) {
-      return `${diffDays} ${diffDays === 1 ? "day" : "days"} left`;
-    } else if (diffHours > 0) {
-      return `${diffHours} ${diffHours === 1 ? "hour" : "hours"} left`;
-    } else {
-      return `${diffMinutes} ${diffMinutes === 1 ? "min" : "mins"} left`;
-    }
-  };
-
-  const loadProducts = async () => {
-    try {
-      if (!refreshing) {
-        setLoading(true);
-      }
-      
-      let backendProducts: BackendProduct[];
-      
-      if (productType) {
-        backendProducts = await MockProductService.getProductsByCategory(productType);
-      } else {
-        backendProducts = await MockProductService.getFeaturedProducts(limit || 10);
-      }
-
-      const transformedProducts: Product[] = backendProducts.map((product) => {
-        const discountPercentage =
-          product.originalPrice > 0
-            ? Math.round(
-                ((product.originalPrice - product.discountedPrice) /
-                  product.originalPrice) *
-                  100
-              )
-            : 0;
-
-        return {
-          id: product.id,
-          name: product.name,
-          image: { uri: product.coverImage },
-          rating: product.rating || 4.5,
-          discount: discountPercentage,
-          distance: "2-5km", // Mock distance
-          time: "15-30mins", // Mock time
-          availableItems: product.stock,
-          price: product.discountedPrice,
-          storeId: product.storeId,
-          expirationDate: product.expirationDate,
-        };
-      });
-
-      setProducts(transformedProducts);
-      setError(null);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-      setError("Failed to load products");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadProducts();
-  };
-
-  useEffect(() => {
-    loadProducts();
-  }, [productType, limit]);
-
-  const renderProduct = (product: Product) => (
+export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPress }) => {
+  const renderProduct = ({ item }: { item: FoodItem }) => (
     <TouchableOpacity
-      key={product.id}
-      style={styles.card}
-      onPress={() => router.push(`/(screens)/ProductScreen?id=${product.id}`)}
+      style={styles.productCard}
+      onPress={() => onProductPress(item.id)}
     >
-      <Image source={product.image} style={styles.image} />
-      <View style={styles.infoContainer}>
-        <Text style={styles.productName} numberOfLines={2}>
-          {product.name}
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: item.image }} style={styles.productImage} />
+        {item.isPopular && (
+          <View style={styles.popularBadge}>
+            <Text style={styles.popularText}>Popular</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.productInfo}>
+        <Text style={styles.productName} numberOfLines={1}>
+          {item.name}
         </Text>
-        
-        <View style={styles.badgeRow}>
-          {product.discount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{product.discount}% OFF</Text>
+        <Text style={styles.productDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
+        <View style={styles.footer}>
+          <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+          {item.rating && (
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={12} color={colors.warning} />
+              <Text style={styles.ratingText}>{item.rating}</Text>
             </View>
           )}
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{product.availableItems} left</Text>
-          </View>
         </View>
-        
-        <View style={styles.metaRow}>
-          <MaterialIcons name="star" size={14} color={colors.warning} />
-          <Text style={styles.metaText}>{product.rating}</Text>
-          <Text style={styles.metaText}>•</Text>
-          <Text style={styles.metaText}>
-            {calculateTimeUntilExpiration(product.expirationDate)}
-          </Text>
-        </View>
-        
-        <View style={styles.priceRow}>
-          <Text style={styles.priceText}>${product.price.toFixed(2)}</Text>
-          <TouchableOpacity
-            onPress={() =>
-              router.push(`/(screens)/StoreHomepageScreen?id=${product.storeId}`)
-            }
-          >
-            <Text style={styles.storeButton}>View Store</Text>
-          </TouchableOpacity>
+        <View style={styles.dietaryContainer}>
+          {item.isVegetarian && (
+            <View style={[styles.dietaryBadge, styles.vegetarianBadge]}>
+              <Text style={styles.dietaryText}>V</Text>
+            </View>
+          )}
+          {item.isVegan && (
+            <View style={[styles.dietaryBadge, styles.veganBadge]}>
+              <Text style={styles.dietaryText}>VG</Text>
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
   );
 
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      {!productType && (
-        <View style={styles.header}>
-          <Text style={styles.title}>Trending Near You</Text>
-          <TouchableOpacity style={styles.viewAllButton}>
-            <Text style={styles.viewAllText}>View All</Text>
-            <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-      )}
-      
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.grid}>
-          {error ? (
-            <Text style={styles.errorText}>{error}</Text>
-          ) : products.length === 0 ? (
-            <Text style={styles.emptyText}>No products available</Text>
-          ) : (
-            products.map(renderProduct)
-          )}
-        </View>
-      </ScrollView>
-    </View>
+    <FlatList
+      data={products}
+      renderItem={renderProduct}
+      keyExtractor={(item) => item.id}
+      numColumns={2}
+      columnWrapperStyle={styles.row}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.container}
+    />
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    paddingBottom: 20,
   },
-  header: {
-    flexDirection: "row",
+  row: {
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.lg,
   },
-  title: {
-    ...typography.h2,
-    color: colors.text.primary,
-  },
-  viewAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  viewAllText: {
-    ...typography.body2,
-    color: colors.primary,
-    marginRight: spacing.xs,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  grid: {
-    paddingHorizontal: spacing.lg,
-  },
-  card: {
-    flexDirection: "row",
+  productCard: {
     backgroundColor: colors.background.primary,
     borderRadius: 12,
-    marginBottom: spacing.md,
-    overflow: "hidden",
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
+    marginBottom: 16,
+    width: "48%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 2.22,
     elevation: 3,
   },
-  image: {
-    width: 120,
+  imageContainer: {
     height: 120,
-    backgroundColor: colors.background.secondary,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    overflow: "hidden",
+    position: "relative",
   },
-  infoContainer: {
-    flex: 1,
-    padding: spacing.md,
-    justifyContent: "space-between",
+  productImage: {
+    width: "100%",
+    height: "100%",
+  },
+  popularBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: colors.warning,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  popularText: {
+    color: colors.text.inverse,
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  productInfo: {
+    padding: 12,
   },
   productName: {
-    ...typography.h4,
+    fontSize: 14,
+    fontWeight: "600",
     color: colors.text.primary,
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
-  badgeRow: {
+  productDescription: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  footer: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: spacing.sm,
-    gap: spacing.xs,
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
-  badge: {
-    backgroundColor: colors.success + '20',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 12,
+  price: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.text.primary,
   },
-  badgeText: {
-    ...typography.caption,
-    color: colors.success,
-    fontWeight: '600',
-  },
-  metaRow: {
+  ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.xs,
-    gap: spacing.xs,
   },
-  metaText: {
-    ...typography.caption,
-    color: colors.text.secondary,
+  ratingText: {
+    marginLeft: 2,
+    fontSize: 12,
+    color: colors.text.primary,
+    fontWeight: "500",
   },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  dietaryContainer: {
+    flexDirection: "row",
   },
-  priceText: {
-    ...typography.body2,
-    color: colors.primary,
-    fontWeight: '600',
+  dietaryBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 4,
   },
-  storeButton: {
-    ...typography.caption,
-    color: colors.primary,
-    textDecorationLine: 'underline',
+  vegetarianBadge: {
+    backgroundColor: colors.success,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
+  veganBadge: {
+    backgroundColor: colors.successDark,
   },
-  errorText: {
-    ...typography.body1,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  emptyText: {
-    ...typography.body1,
-    color: colors.text.secondary,
-    textAlign: 'center',
+  dietaryText: {
+    color: colors.text.inverse,
+    fontSize: 8,
+    fontWeight: "600",
   },
 });
 

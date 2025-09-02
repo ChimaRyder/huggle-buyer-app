@@ -1,722 +1,254 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
-  Image,
   Text,
-  Pressable,
-  ScrollView,
   StyleSheet,
+  ScrollView,
+  Image,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Animated,
-  Modal,
-  TextInput,
   Dimensions,
 } from "react-native";
-import { AddToCartModal } from "../../components/cart";
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useLocalSearchParams } from "expo-router";
-import { useAuth } from "@clerk/clerk-expo";
-import { ReviewCard } from "../../components/review";
-import { MaterialIcons } from "@expo/vector-icons";
-import { submitProductReport } from "../../utils/reports";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { foodItems, restaurants } from "@/data/food/mockData";
+import { colors } from "@/constants/theme";
+import { ReviewCard } from "@/components/review";
 
-import { fetchStoreById } from "../../utils/stores";
-import { fetchProductById } from "@/utils/products";
-import { addToCart } from "@/utils/cart";
-import { getOrders } from "@/utils/orders";
-import { fetchBuyerById } from "@/utils/user";
-import { fetchReviews } from "@/utils/reviews";
+// Get screen width for carousel
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-import { tokenCache } from "../../utils/cache";
-import {
-  BackendProduct,
-  BackendStore,
-  BackendReview,
-} from "../../types/BackendModels";
-import {
-  calculateDiscountPercentage,
-  formatPrice,
-  formatDate,
-} from "../../utils/productHelper";
-
-const AnimatedPressable =
-  Platform.OS === "web"
-    ? Pressable
-    : Animated.createAnimatedComponent(Pressable);
-
-const { width } = Dimensions.get('window');
-
-function WriteReviewButton({ productId }: { productId?: string }) {
-  const router = useRouter();
-  const [eligible, setEligible] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const checkEligibility = async () => {
-      if (!productId) return;
-      setLoading(true);
-      const token = await tokenCache.getToken("accessToken");
-      let buyerId = null;
-      try {
-        const user = await fetchBuyerById("me", token);
-        buyerId = user.id;
-      } catch {
-        setLoading(false);
-        return;
-      }
-      const orders = await getOrders(token ?? null);
-      const completedOrder = orders.find(
-        (order: any) =>
-          order.status === "Completed" &&
-          order.productId &&
-          (Array.isArray(order.productId)
-            ? order.productId.includes(productId)
-            : order.productId === productId)
-      );
-      const res = await fetch(
-        `https://huggle-backend-jh2l.onrender.com/api/reviews?productId=${productId}`
-      );
-      const reviews = await res.json();
-      const hasReviewed = reviews.some((rev: any) => rev.buyerId === buyerId);
-      setEligible(!!completedOrder && !hasReviewed);
-      setLoading(false);
-    };
-    checkEligibility();
-  }, [productId]);
-
-  if (loading || !productId) return null;
-  if (!eligible) return null;
-  return (
-    <Pressable
-      style={{
-        backgroundColor: "#548C2F",
-        padding: 12,
-        borderRadius: 8,
-        alignItems: "center",
-        marginTop: 12,
-      }}
-      onPress={() =>
-        router.push({
-          pathname: "/(screens)/ReviewProductScreen",
-          params: { productId },
-        })
-      }
-    >
-      <Text style={{ color: "#fff", fontWeight: "bold" }}>Write a Review</Text>
-    </Pressable>
-  );
-}
+// Mock reviews data
+const mockReviews = [
+  {
+    id: "1",
+    buyerId: "user1",
+    message: "Fresh and delicious! Will buy again. The apples were perfectly ripe and sweet.",
+    rating: 5,
+    imageUrls: [],
+    createdAt: "2023-05-15T10:30:00Z",
+    showExpandButton: true,
+  },
+  {
+    id: "2",
+    buyerId: "user2",
+    message: "Good quality produce. Arrived fresh and well packaged. Will order again.",
+    rating: 4,
+    imageUrls: [],
+    createdAt: "2023-05-10T14:20:00Z",
+    showExpandButton: true,
+  },
+  {
+    id: "3",
+    buyerId: "user3",
+    message: "Excellent service and quality. The organic apples were the best I've had in months!",
+    rating: 5,
+    imageUrls: [],
+    createdAt: "2023-05-05T09:15:00Z",
+    showExpandButton: true,
+  },
+  {
+    id: "4",
+    buyerId: "user4",
+    message: "Fresh and tasty. Delivery was on time. Great experience overall.",
+    rating: 4,
+    imageUrls: [],
+    createdAt: "2023-04-28T16:45:00Z",
+    showExpandButton: true,
+  },
+];
 
 export default function ProductScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { getToken, userId } = useAuth();
   const [quantity, setQuantity] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [product, setProduct] = useState<BackendProduct | null>(null);
-  const [store, setStore] = useState<BackendStore | null>(null);
-  const [reviews, setReviews] = useState<BackendReview[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  
-  // Image gallery state
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const imageScrollRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef(null);
+  const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
 
-  // Expiration check
-  const isExpired = (() => {
-    if (!product?.expirationDate) return false;
-    const now = new Date(); // Use local time
-    const exp = new Date(product.expirationDate);
-    return exp < now;
-  })();
+  // Find the product in mock data
+  const product = foodItems.find(item => item.id === id);
 
-  // Function to load reviews
-  const loadProductReviews = async (productId: string, token: string | null) => {
-    try {
-      setReviewsLoading(true);
-      const reviewsData = await fetchReviews(token, { productId });
-      setReviews(reviewsData || []);
-    } catch (err) {
-      console.error("Error loading reviews:", err);
-      setReviews([]);
-    } finally {
-      setReviewsLoading(false);
-    }
-  };
+  // Find the store that sells this product (using first store as example)
+  const store = restaurants[0];
 
-  // Get all product images (cover image + additional images)
-  const getProductImages = () => {
-    const images: (string | any)[] = [];
-    
-    // Add cover image first
-    if (product?.coverImage) {
-      images.push(product.coverImage);
-    }
-    
-    // Add additional images if they exist
-    if (product?.additionalImages && Array.isArray(product.additionalImages)) {
-      // Filter out cover image to avoid duplicates
-      const additionalImages = product.additionalImages.filter((img: string) => img !== product.coverImage);
-      images.push(...additionalImages);
-    }
-    
-    // If no images, use placeholder
-    if (images.length === 0) {
-      images.push(require("../../assets/products/product1.png"));
-    }
-    
-    return images;
-  };
+  // If product not found, show error
+  if (!product) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Product not found</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
-  // Handle image scroll
-  const handleImageScroll = (event: any) => {
-    const contentOffset = event.nativeEvent.contentOffset.x;
-    const newIndex = Math.round(contentOffset / width);
-    setCurrentImageIndex(newIndex);
-  };
-
-  useEffect(() => {
-    const loadProductData = async () => {
-      if (!id) {
-        setError("Product ID not provided");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const token = await getToken({ template: "seller_app" });
-        const productData = await fetchProductById(id.toString(), token);
-        setProduct(productData);
-
-        // Once we have the product, fetch the store data and reviews
-        if (productData.storeId) {
-          const storeData = await fetchStoreById(productData.storeId, token);
-          setStore(storeData);
-        }
-
-        // Fetch reviews for this product
-        await loadProductReviews(id.toString(), token);
-      } catch (err) {
-        console.error("Error loading product data:", err);
-        setError("Failed to load product details");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProductData();
-  }, [id]);
+  // Calculate average rating
+  const averageRating = mockReviews.length > 0 
+    ? (mockReviews.reduce((sum, review) => sum + review.rating, 0) / mockReviews.length).toFixed(1)
+    : "0.0";
 
   const handleQuantityChange = (increment: boolean) => {
-    setQuantity((prev) => {
-      const newValue = increment ? prev + 1 : prev - 1;
-      return Math.min(Math.max(newValue, 1), product?.stock || 5);
-    });
+    const newQuantity = increment ? quantity + 1 : quantity - 1;
+    if (newQuantity >= 1 && newQuantity <= 10) {
+      setQuantity(newQuantity);
+    }
+  };
+
+  const handleAddToCart = () => {
+    // In a real app, this would add to cart
+    alert(`Added ${quantity} ${product.name} to cart!`);
   };
 
   const navigateToStore = () => {
-    if (store) {
-      // Navigate to StoreHomepageScreen with store ID
-      router.push(`/(screens)/StoreHomepageScreen?id=${store.id}`);
-    }
+    router.push(`/(screens)/StoreHomepageScreen?id=${store.id}`);
   };
 
-  const [cartModalVisible, setCartModalVisible] = useState(false);
-
-  const handleAddToCart = async () => {
-    if (!userId) {
-      // Still use Alert for login error
-      Alert.alert("Error", "Please log in to add items to cart");
-      return;
-    }
-
-    try {
-      const token = await getToken({ template: "seller_app" });
-      if (!product) {
-        Alert.alert("Error", "Product information not available");
-        return;
-      }
-
-      await addToCart(product.id, quantity, token);
-      setCartModalVisible(true);
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      Alert.alert("Error", "Failed to add item to cart. Please try again.");
-    }
+  const handleViewAllReviews = () => {
+    // In a real app, this would navigate to a full reviews screen
+    console.log("View all reviews");
   };
 
-  const handleContinueShopping = () => {
-    setCartModalVisible(false);
-  };
-
-  const handleViewCart = () => {
-    setCartModalVisible(false);
-    router.push("/(screens)/cart" as any);
-  };
-
-  const handleOrderNow = () => {
-    // Navigate to checkout/order details screen with product info
-    if (product) {
-      router.push({
-        pathname: "/(screens)/checkout" as any,
-        params: {
-          productId: product.id,
-          quantity: quantity.toString(),
-          price: product.discountedPrice.toString(),
-          productName: product.name,
-          storeId: product.storeId,
-        },
-      });
-    }
-  };
-
-  const [reportModalVisible, setReportModalVisible] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [reportDescription, setReportDescription] = useState("");
-  const [reportLoading, setReportLoading] = useState(false);
-
-  const handleReportProduct = async () => {
-    if (!userId || !product) {
-      Alert.alert("Error", "You must be logged in to report a product.");
-      return;
-    }
-    if (!reportReason) {
-      Alert.alert("Error", "Please select a reason for reporting.");
-      return;
-    }
-    setReportLoading(true);
-    try {
-      const token = await getToken({ template: "seller_app" });
-      await submitProductReport(
-        userId,
-        product.id,
-        reportReason,
-        reportDescription,
-        token || ""
-      );
-      setReportModalVisible(false);
-      setReportReason("");
-      setReportDescription("");
-      Alert.alert(
-        "Report Submitted",
-        "Thank you for helping keep Huggle safe."
-      );
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to submit report.");
-    } finally {
-      setReportLoading(false);
-    }
+  const handleReviewScroll = (event) => {
+    const contentOffset = event.nativeEvent.contentOffset.x;
+    // Calculate index based on the ORIGINAL slide width (SCREEN_WIDTH - 45) plus the marginRight (6)
+    const slideWidthWithMargin = (SCREEN_WIDTH - 45) + 6;
+    const calculatedIndex = contentOffset / slideWidthWithMargin;
+    // Use Math.round for more accurate positioning
+    const newIndex = Math.round(calculatedIndex);
+    // Ensure index is within bounds
+    const clampedIndex = Math.min(Math.max(newIndex, 0), mockReviews.length - 1);
+    setCurrentReviewIndex(clampedIndex);
   };
 
   return (
     <View style={styles.container}>
-      {/* Report Product Modal */}
-      <Modal
-        visible={reportModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setReportModalVisible(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "rgba(0,0,0,0.3)",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 16,
-              padding: 20,
-              width: "85%",
-            }}
-          >
-            <Text
-              style={{ fontSize: 20, fontWeight: "bold", marginBottom: 12 }}
-            >
-              Report Product
-            </Text>
-            <Text style={{ marginBottom: 8 }}>Reason</Text>
-            <View style={{ flexDirection: "row", marginBottom: 12 }}>
-              {["Inappropriate", "Fraud", "Spam", "Other"].map((reason) => (
-                <Pressable
-                  key={reason}
-                  style={{
-                    backgroundColor:
-                      reportReason === reason ? "#F9A620" : "#eee",
-                    padding: 8,
-                    borderRadius: 8,
-                    marginRight: 8,
-                  }}
-                  onPress={() => setReportReason(reason)}
-                >
-                  <Text
-                    style={{ color: reportReason === reason ? "#fff" : "#333" }}
-                  >
-                    {reason}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <Text style={{ marginBottom: 8 }}>Description (optional)</Text>
-            <TextInput
-              style={{
-                minHeight: 60,
-                padding: 8,
-                borderWidth: 1,
-                borderColor: "#ccc",
-                borderRadius: 8,
-                marginBottom: 16,
-              }}
-              multiline
-              numberOfLines={3}
-              value={reportDescription}
-              onChangeText={setReportDescription}
-              placeholder="Describe the issue..."
-            />
-            <Pressable
-              style={{
-                backgroundColor: reportLoading ? "#ccc" : "#F9A620",
-                padding: 12,
-                borderRadius: 8,
-                alignItems: "center",
-              }}
-              onPress={handleReportProduct}
-              disabled={reportLoading}
-            >
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                {reportLoading ? "Submitting..." : "Submit Report"}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={{ marginTop: 12, alignItems: "center" }}
-              onPress={() => setReportModalVisible(false)}
-            >
-              <Text style={{ color: "#F9A620" }}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-      {/* Add to Cart Success Modal */}
-      <AddToCartModal
-        visible={cartModalVisible}
-        productName={product?.name || ""}
-        quantity={quantity}
-        onContinue={handleContinueShopping}
-        onViewCart={handleViewCart}
-        onClose={handleContinueShopping}
-      />
-      {loading ? (
-        // Minimal wireframe loading screen
-        <View style={styles.loadingWireframeContainer}>
-          <View style={styles.wfImage} />
-          <View style={styles.wfContent}>
-            <View style={styles.wfTitle} />
-            <View style={styles.wfPriceRow}>
-              <View style={styles.wfPrice} />
-              <View style={styles.wfOrigPrice} />
-              <View style={styles.wfDiscount} />
-            </View>
-            <View style={styles.wfSection} />
-            <View style={styles.wfSection} />
-          </View>
-          <View style={styles.wfBottomRow}>
-            <View style={styles.wfBottomBtn} />
-            <View style={styles.wfBottomBtn} />
-          </View>
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: product.image }} style={styles.image} />
+          <TouchableOpacity 
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
-      ) : (
-        <>
-          <ScrollView
-            style={[styles.scrollView, { flex: 1 }]}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 120 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.imageContainer}>
-              {/* Image Gallery */}
-              <ScrollView
-                ref={imageScrollRef}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={handleImageScroll}
-                style={styles.imageGallery}
+
+        <View style={styles.content}>
+          {/* Product name and quantity row */}
+          <View style={styles.nameRow}>
+            <Text style={styles.title}>{product.name}</Text>
+            <View style={styles.quantityControls}>
+              <TouchableOpacity 
+                style={styles.quantityButton}
+                onPress={() => handleQuantityChange(false)}
               >
-                {getProductImages().map((imageSource, index) => (
-                  <Image
-                    key={index}
-                    source={
-                      typeof imageSource === 'string' 
-                        ? { uri: imageSource }
-                        : imageSource
-                    }
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
-                ))}
-              </ScrollView>
-
-              {/* Image Counter Dots */}
-              {getProductImages().length > 1 && (
-                <View style={styles.imageDotsContainer}>
-                  {getProductImages().map((_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.imageDot,
-                        index === currentImageIndex && styles.imageDotActive,
-                      ]}
-                    />
-                  ))}
-                </View>
-              )}
-
-              {/* Image Counter Text */}
-              {getProductImages().length > 1 && (
-                <View style={styles.imageCounterContainer}>
-                  <Text style={styles.imageCounterText}>
-                    {currentImageIndex + 1} / {getProductImages().length}
-                  </Text>
-                </View>
-              )}
-
-              {/* Report Product Button */}
-              <TouchableOpacity
-                style={{
-                  position: "absolute",
-                  top: 20,
-                  right: 20,
-                  zIndex: 2,
-                  backgroundColor: "rgba(0,0,0,0.5)",
-                  borderRadius: 20,
-                  padding: 8,
-                }}
-                onPress={() => setReportModalVisible(true)}
-              >
-                <MaterialIcons name="flag" size={24} color="#fff" />
+                <Ionicons name="remove" size={16} color="#fff" />
               </TouchableOpacity>
-              {/* Close Button */}
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => router.back()}
+              <Text style={styles.quantityText}>{quantity}</Text>
+              <TouchableOpacity 
+                style={styles.quantityButton}
+                onPress={() => handleQuantityChange(true)}
               >
-                <Ionicons name="close" size={24} color="white" />
+                <Ionicons name="add" size={16} color="#fff" />
               </TouchableOpacity>
             </View>
-
-            <View style={styles.contentContainer}>
-              {/* Product Name & Quantity Selector */}
-              <View style={styles.nameQuantityRow}>
-                <Text style={styles.productName}>
-                  {product?.name || "Product Name"}
-                </Text>
-                <View style={styles.quantitySelector}>
-                  <Pressable
-                    onPress={() => handleQuantityChange(false)}
-                    style={styles.quantityButton}
-                  >
-                    <Text style={styles.quantityButtonText}>-</Text>
-                  </Pressable>
-                  <Text style={styles.quantityText}>{quantity}</Text>
-                  <Pressable
-                    onPress={() => handleQuantityChange(true)}
-                    style={[
-                      styles.quantityButton,
-                      quantity >= (product?.stock || 5) && { opacity: 0.5 },
-                    ]}
-                    disabled={quantity >= (product?.stock || 5)}
-                  >
-                    <Text style={styles.quantityButtonText}>+</Text>
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Pricing Row */}
-              <View style={styles.pricingRow}>
-                <Text style={styles.discountedPrice}>
-                  {formatPrice(product?.discountedPrice || 100)}
-                </Text>
-                <Text style={styles.originalPrice}>
-                  {formatPrice(product?.originalPrice || 150)}
-                </Text>
-                {/* Discount Percentage beside price */}
-                {product && product.originalPrice > product.discountedPrice && (
-                  <View style={styles.discountBadgeInline}>
-                    <Text style={styles.discountText}>
-                      {calculateDiscountPercentage(
-                        product.originalPrice,
-                        product.discountedPrice
-                      )}
-                      % OFF
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Description Section */}
-              <View style={styles.section}>
-                <View style={styles.horizontalRule} />
-                <Text style={styles.description}>
-                  {product?.description ||
-                    "This is a sample product description that might be longer than 50 characters..."}
-                </Text>
-              </View>
-
-              {/* Store Info Row */}
-              <TouchableOpacity
-                style={styles.storeInfoRow}
-                onPress={navigateToStore}
-                disabled={!store}
-              >
-                <View style={styles.storeSection}>
-                  <FontAwesome name="shopping-bag" size={20} color="#548C2F" />
-                  <Text style={styles.storeName}>
-                    {store?.name || "Store Name"}
-                  </Text>
-                </View>
-                <View style={styles.locationSection}>
-                  <FontAwesome name="map-marker" size={20} color="#548C2F" />
-                  <Text style={styles.location}>
-                    {store
-                      ? `${store.city}, ${store.province}`
-                      : "Store Location"}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Stock and Expiry Info */}
-              <View style={styles.additionalInfoSection}>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>Available:</Text>
-                  <Text style={styles.infoValue}>
-                    {product?.stock || 0} items
-                  </Text>
-                </View>
-                {product?.expirationDate && (
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoLabel}>Expires:</Text>
-                    <Text style={styles.infoValue}>
-                      {formatDate(product.expirationDate)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Reviews Section */}
-              <View style={styles.reviewsSection}>
-                <View style={styles.reviewsHeader}>
-                  <Text style={styles.sectionTitle}>Reviews ({reviews.length})</Text>
-                  {reviews.length > 0 && (
-                    <Pressable 
-                      onPress={() => router.push({
-                        pathname: "/(screens)/AllReviewsScreen",
-                        params: { productId: product?.id, productName: product?.name }
-                      })}
-                    >
-                      <Text style={styles.seeAllButton}>See all</Text>
-                    </Pressable>
-                  )}
-                </View>
-                
-                {reviewsLoading ? (
-                  <View style={styles.reviewsLoadingContainer}>
-                    <ActivityIndicator size="small" color="#548C2F" />
-                    <Text style={styles.reviewsLoadingText}>Loading reviews...</Text>
-                  </View>
-                ) : reviews.length === 0 ? (
-                  <View style={styles.noReviewsContainer}>
-                    <Text style={styles.noReviewsText}>No reviews yet</Text>
-                    <Text style={styles.noReviewsSubtext}>Be the first to review this product!</Text>
-                  </View>
-                ) : (
-                  // Show first 2 reviews
-                  reviews.slice(0, 2).map((review) => (
-                    <ReviewCard
-                      key={review.id}
-                      buyerId={review.buyerId}
-                      message={review.content || undefined}
-                      rating={review.rating}
-                      imageUrls={review.imageUrls || []}
-                      createdAt={review.createdAt}
-                      showExpandButton={true}
-                    />
-                  ))
-                )}
-                
-                {/* Write a Review Button (conditional) */}
-                <WriteReviewButton productId={product?.id} />
-              </View>
-            </View>
-          </ScrollView>
-          {/* Bottom Action Buttons - keep outside ScrollView for proper overlay */}
-          <View style={styles.bottomButtons}>
-            {isExpired ? (
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: "#eee",
-                  borderRadius: 20,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: 60,
-                }}
-              >
-                <Text
-                  style={{ color: "#d32f2f", fontWeight: "bold", fontSize: 18 }}
-                >
-                  Product Expired
-                </Text>
-              </View>
-            ) : (
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <AnimatedPressable
-                  style={({ pressed }) => [
-                    styles.addToCartButton,
-                    pressed && { transform: [{ scale: 0.96 }], opacity: 0.85 },
-                  ]}
-                  onPress={handleAddToCart}
-                  disabled={isExpired}
-                >
-                  <Text style={styles.addToCartText}>Add to Cart</Text>
-                </AnimatedPressable>
-                <AnimatedPressable
-                  style={({ pressed }) => [
-                    styles.orderNowButton,
-                    pressed && { transform: [{ scale: 0.96 }], opacity: 0.85 },
-                  ]}
-                  onPress={handleOrderNow}
-                  disabled={isExpired}
-                >
-                  <Text style={styles.orderNowText}>Order Now</Text>
-                </AnimatedPressable>
-              </View>
-            )}
           </View>
-        </>
-      )}
+
+          {/* Minimal store info */}
+          <TouchableOpacity style={styles.minimalStoreInfo} onPress={navigateToStore}>
+            <Text style={styles.storeNameMinimal}>{store.name}</Text>
+            <Text style={styles.storeDistanceMinimal}> • {store.distance}</Text>
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Description without header */}
+          <View style={styles.section}>
+            <Text style={styles.description}>{product.description}</Text>
+            
+            {/* Badges at the bottom of description section */}
+            <View style={styles.badgesContainer}>
+              {product.isPopular && (
+                <View style={styles.popularBadge}>
+                  <Text style={styles.popularText}>Popular</Text>
+                </View>
+              )}
+              {product.isVegetarian && (
+                <View style={[styles.dietaryBadge, styles.vegetarianBadge]}>
+                  <Text style={styles.dietaryText}>V</Text>
+                </View>
+              )}
+              {product.isVegan && (
+                <View style={[styles.dietaryBadge, styles.veganBadge]}>
+                  <Text style={styles.dietaryText}>VG</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Reviews section with updated header */}
+          <View style={styles.reviewsHeader}>
+            <View style={styles.reviewsTitleContainer}>
+              <Text style={styles.sectionTitle}>Reviews</Text>
+              <View style={styles.ratingContainer}>
+                <Ionicons name="star" size={16} color={colors.warning} />
+                <Text style={styles.ratingText}>{averageRating}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={handleViewAllReviews}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Reviews carousel */}
+          <View style={styles.reviewsCarouselContainer}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onScroll={handleReviewScroll}
+              ref={scrollViewRef}
+              scrollEventThrottle={16}
+            >
+              {mockReviews.map((review) => (
+                <View key={review.id} style={styles.reviewSlide}>
+                  <ReviewCard {...review} />
+                </View>
+              ))}
+            </ScrollView>
+            
+            {/* Carousel indicators */}
+            <View style={styles.indicatorsContainer}>
+              {mockReviews.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.indicator,
+                    index === currentReviewIndex && styles.activeIndicator,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Bottom bar with price and Add to Cart button - expanded to screen edges with breathing room */}
+      <View style={styles.bottomBarContainer}>
+        <View style={styles.bottomBar}>
+          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+          <TouchableOpacity style={styles.addButton} onPress={handleAddToCart}>
+            <Text style={styles.addButtonText}>Add to Cart</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -724,397 +256,219 @@ export default function ProductScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    marginTop: 20,
+    backgroundColor: colors.background.tertiary,
   },
-  loadingContainer: {
+  scrollContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#666",
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
   },
   errorText: {
-    fontSize: 16,
-    color: "#FF6B6B",
-    marginBottom: 20,
+    fontSize: 18,
     textAlign: "center",
-  },
-  backButton: {
-    backgroundColor: "#F9A620",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Poppins-SemiBold",
-  },
-  scrollView: {
-    flex: 1,
+    marginTop: 50,
+    color: colors.text.primary,
   },
   imageContainer: {
-    position: "relative",
-    width: "100%",
     height: 300,
+    position: "relative",
   },
-  productImage: {
-    width: width,
+  image: {
+    width: "100%",
     height: "100%",
   },
-  imageGallery: {
-    flex: 1,
-  },
-  imageDotsContainer: {
+  backButton: {
     position: "absolute",
-    bottom: 20,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
-    marginHorizontal: 4,
-  },
-  imageDotActive: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    transform: [{ scale: 1.2 }],
-  },
-  imageCounterContainer: {
-    position: "absolute",
-    top: 20,
-    left: 50,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  imageCounterText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  closeButton: {
-    position: "absolute",
-    top: 20,
-    left: 16,
-    width: 40,
-    height: 40,
+    top: 50,
+    left: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
+    padding: 10,
   },
-  discountBadgeInline: {
-    marginLeft: 10,
-    backgroundColor: "#FF6B6B",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    alignSelf: "center",
+  content: {
+    padding: 20,
   },
-  discountText: {
-    color: "#fff",
-    fontSize: 14,
-    fontFamily: "Poppins-SemiBold",
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  nameQuantityRow: {
+  nameRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
   },
-  productName: {
-    fontSize: 25,
-    fontFamily: "Poppins-Bold",
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: colors.text.primary,
     flex: 1,
+    marginRight: 10,
   },
-  quantitySelector: {
+  minimalStoreInfo: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    padding: 4,
+    marginBottom: 20,
   },
-  quantityButton: {
-    width: 32,
-    height: 32,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-  },
-  quantityButtonText: {
-    fontSize: 20,
-    fontFamily: "Poppins-SemiBold",
-  },
-  quantityText: {
-    marginHorizontal: 16,
+  storeNameMinimal: {
     fontSize: 16,
-    fontFamily: "Poppins-SemiBold",
+    color: colors.text.secondary,
+    fontWeight: "500",
   },
-  pricingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
+  storeDistanceMinimal: {
+    fontSize: 16,
+    color: colors.text.secondary,
   },
-  discountedPrice: {
-    fontFamily: "Poppins-Regular",
-    fontSize: 20,
-    color: "#F9A620",
-    marginRight: 8,
-  },
-  originalPrice: {
-    fontFamily: "Poppins-Regular",
-    fontSize: 20,
-    color: "#979797",
-    textDecorationLine: "line-through",
+  divider: {
+    height: 1,
+    backgroundColor: colors.border.primary,
+    marginVertical: 20,
   },
   section: {
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    color: "#454B60",
-    fontSize: 18,
-    fontFamily: "Poppins-Regular",
-    marginBottom: 8,
-  },
-  horizontalRule: {
-    height: 1,
-    backgroundColor: "#E0E0E0",
-    marginBottom: 8,
+    marginBottom: 10, // Reduced bottom margin
   },
   description: {
     fontSize: 16,
-    color: "#666",
-    fontFamily: "Poppins-Regular",
+    color: colors.text.secondary,
+    lineHeight: 24,
+    marginBottom: 10, // Reduced bottom margin
   },
-  storeInfoRow: {
+  badgesContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginTop: 10, // Reduced top margin
   },
-  storeSection: {
+  popularBadge: {
+    backgroundColor: colors.warning,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginRight: 10,
+    justifyContent: "center",
+  },
+  popularText: {
+    color: colors.text.inverse,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  dietaryBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  vegetarianBadge: {
+    backgroundColor: colors.success,
+  },
+  veganBadge: {
+    backgroundColor: colors.successDark,
+  },
+  dietaryText: {
+    color: colors.text.inverse,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  quantityControls: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 16,
   },
-  locationSection: {
-    flexDirection: "row",
+  quantityButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.primary, // Green background
     alignItems: "center",
+    justifyContent: "center",
   },
-  storeName: {
+  quantityText: {
     fontSize: 16,
-    fontFamily: "Poppins-Regular",
-    marginLeft: 8,
-    color: "#868889",
-  },
-  location: {
-    fontSize: 16,
-    color: "#868889",
-    marginLeft: 8,
-    fontFamily: "Poppins-Regular",
-  },
-  additionalInfoSection: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-  },
-  infoItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: "#666",
-    fontFamily: "Poppins-Regular",
-  },
-  infoValue: {
-    fontSize: 14,
-    color: "#333",
-    fontFamily: "Poppins-SemiBold",
-  },
-  reviewsSection: {
-    marginBottom: 100, // Extra space for bottom buttons
+    fontWeight: "600",
+    color: colors.text.primary,
+    marginHorizontal: 10,
   },
   reviewsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
-    color: "#454B60",
+    marginBottom: 15,
   },
-  seeAllButton: {
-    color: "#104911",
-    fontSize: 16,
-  },
-  reviewsLoadingContainer: {
+  reviewsTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 24,
   },
-  reviewsLoadingText: {
-    marginLeft: 8,
-    color: "#666",
-    fontSize: 14,
-  },
-  noReviewsContainer: {
-    alignItems: "center",
-    paddingVertical: 24,
-    backgroundColor: "#f8f8f8",
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  noReviewsText: {
-    fontSize: 16,
-    fontFamily: "Poppins-SemiBold",
-    color: "#666",
-    marginBottom: 4,
-  },
-  noReviewsSubtext: {
-    fontSize: 14,
-    color: "#999",
-  },
-  bottomButtons: {
-    position: "absolute",
-    bottom: 16,
-    left: 16,
-    right: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-  },
-  addToCartButton: {
-    flex: 1,
-    height: 60,
-    backgroundColor: "#F9A620",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  addToCartText: {
-    color: "#fff",
-    fontSize: 18,
-    fontFamily: "Poppins-SemiBold",
-  },
-  orderNowButton: {
-    flex: 1,
-    height: 60,
-    backgroundColor: "#548C2F",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  orderNowText: {
-    color: "#fff",
-    fontSize: 18,
-    fontFamily: "Poppins-SemiBold",
-  },
-  // Wireframe styles
-  loadingWireframeContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-    padding: 0,
-    marginTop: 20,
-    alignItems: "center",
-  },
-  wfImage: {
-    width: "100%",
-    height: 300,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  wfContent: {
-    width: "92%",
-    alignSelf: "center",
-  },
-  wfTitle: {
-    flex: 1,
-    height: 28,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
-    marginBottom: 12,
-  },
-  wfPriceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  wfPrice: {
-    width: 80,
-    height: 22,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.text.primary,
     marginRight: 10,
   },
-  wfOrigPrice: {
-    width: 60,
-    height: 18,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
-    marginRight: 10,
-  },
-  wfDiscount: {
-    width: 60,
-    height: 18,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
-  },
-  wfSection: {
-    width: "100%",
-    height: 18,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 6,
-    marginBottom: 10,
-  },
-  wfBottomRow: {
+  ratingContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    width: "92%",
-    alignSelf: "center",
-    marginTop: 20,
-    gap: 12,
   },
-  wfBottomBtn: {
-    flex: 1,
-    height: 50,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 25,
+  ratingText: {
+    marginLeft: 5,
+    fontSize: 16,
+    color: colors.text.primary,
+  },
+  viewAllText: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: "500",
+  },
+  reviewsCarouselContainer: {
+    marginBottom: 20,
+  },
+  reviewSlide: {
+    width: SCREEN_WIDTH - 45, // Original width
+    marginRight: 6, // Original marginRight
+    alignItems: "center", // Original alignItems
+    justifyContent: "center", // Original justifyContent
+  },
+  indicatorsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 15,
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.text.tertiary,
+    marginHorizontal: 4,
+  },
+  activeIndicator: {
+    backgroundColor: colors.primary,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: colors.primary,
+    textAlign: "center",
+    marginTop: 20,
+  },
+  bottomBarContainer: {
+    backgroundColor: colors.background.primary, // White background to expand to screen edges
+    paddingVertical: 20, // Vertical breathing room
+    paddingHorizontal: 20, // Horizontal breathing room
+  },
+  bottomBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    // Removed background color since container provides it
+    // Removed border since we're expanding to edges
+  },
+  price: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: colors.text.primary,
+  },
+  addButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: colors.text.inverse,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

@@ -8,7 +8,9 @@ import {
   Image,
   RefreshControl,
   Alert,
+  Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   Menu,
@@ -224,48 +226,59 @@ const NotificationScreen = () => {
 
   return (
     <MenuProvider>
-      <View style={styles.container}>
-        <View style={styles.headerContainer}>
-          <Ionicons
-            name="notifications"
-            size={32}
-            color={colors.primary}
-            style={styles.headerIcon}
-          />
-          <Text style={styles.header}>Notifications</Text>
-          <TouchableOpacity 
-            style={styles.markAllButton}
-            onPress={markAllAsRead}
-          >
-            <Text style={styles.markAllText}>Mark All Read</Text>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          data={notifications}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
-            />
-          }
-          contentContainerStyle={{ paddingBottom: 24 }}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons 
-                name="notifications-off" 
-                size={64} 
-                color={colors.text.tertiary} 
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color={colors.primary}
               />
-              <Text style={styles.emptyText}>No notifications</Text>
-              <Text style={styles.emptySubtext}>We'll notify you when something important happens</Text>
-            </View>
-          }
-        />
-      </View>
+            </TouchableOpacity>
+            <Text style={styles.header}>Notifications</Text>
+            <TouchableOpacity 
+              style={styles.markAllButton}
+              onPress={markAllAsRead}
+            >
+              <Ionicons
+                name="checkmark-done"
+                size={24}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.divider} />
+          <FlatList
+            data={notifications}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+              />
+            }
+            contentContainerStyle={{ paddingBottom: 24 }}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons 
+                  name="notifications-off" 
+                  size={64} 
+                  color={colors.text.tertiary} 
+                />
+                <Text style={styles.emptyText}>No notifications</Text>
+                <Text style={styles.emptySubtext}>We'll notify you when something important happens</Text>
+              </View>
+            }
+          />
+        </View>
+      </SafeAreaView>
     </MenuProvider>
   );
 };
@@ -300,35 +313,41 @@ const formatTimeAgo = (dateString: string) => {
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background.secondary,
+  },
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
-    paddingTop: 32,
+    backgroundColor: colors.background.secondary,
     paddingHorizontal: 16,
   },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 18,
+    justifyContent: "center",
+    marginBottom: 12,
+    minHeight: 44, // Ensures vertical centering and proper touch target size
   },
-  headerIcon: {
-    marginRight: 10,
-    bottom: 10,
+  backButton: {
+    padding: 8,
+    marginRight: 8,
   },
   header: {
-    fontSize: 28,
+    fontSize: 22,
     fontFamily: "Poppins-SemiBold",
-    marginBottom: 18,
     color: colors.text.primary,
     flex: 1,
+    textAlign: "center",
   },
   markAllButton: {
-    marginBottom: 18,
+    padding: 8,
+    marginLeft: 8,
   },
-  markAllText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
+  divider: {
+    height: 1,
+    backgroundColor: colors.border.primary,
+    marginBottom: 16,
   },
   card: {
     flexDirection: "row",
