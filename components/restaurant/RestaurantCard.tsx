@@ -69,14 +69,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   imageContainer: {
     height: 140,

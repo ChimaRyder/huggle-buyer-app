@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   },
   categoriesContent: {
     paddingRight: 16,
-    paddingBottom: 10, // Add padding to prevent shadow cut-off
+    paddingBottom: 10,
   },
   categoryCard: {
     width: 80,
@@ -56,14 +56,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   categoryIcon: {
     fontSize: 24,

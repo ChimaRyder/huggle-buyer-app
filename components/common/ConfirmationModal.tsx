@@ -2,6 +2,7 @@ import React from "react";
 import { Modal, View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text, Button } from "@ui-kitten/components";
 import { Ionicons } from "@expo/vector-icons";
+import { colors, spacing, typography, radii } from "../../constants/theme";
 
 interface ConfirmationModalProps {
   visible: boolean;
@@ -21,7 +22,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   confirmText = "Confirm",
   cancelText = "Cancel",
-  confirmButtonColor = "#dc3545",
+  confirmButtonColor = colors.danger,
   onConfirm,
   onCancel,
   loading = false,
@@ -37,12 +38,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <View style={styles.modalContent}>
           {/* Close button */}
           <TouchableOpacity style={styles.closeButton} onPress={onCancel}>
-            <Ionicons name="close" size={24} color="#666" />
+            <Ionicons name="close" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
 
           {/* Warning icon */}
           <View style={styles.iconContainer}>
-            <Ionicons name="warning-outline" size={48} color="#ff9500" />
+            <Ionicons name="warning-outline" size={48} color={colors.warning} />
           </View>
 
           {/* Title */}
@@ -88,70 +89,62 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: spacing.lg,
   },
   modalContent: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: colors.background.primary,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
     width: "90%",
     maxWidth: 400,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
   },
   closeButton: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    padding: 4,
+    top: spacing.md,
+    right: spacing.md,
+    padding: spacing.xs,
   },
   iconContainer: {
-    marginBottom: 16,
-    marginTop: 8,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   message: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: typography.fontSizes.md,
+    color: colors.text.secondary,
     textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 24,
+    lineHeight: typography.lineHeights.normal * typography.fontSizes.md,
+    marginBottom: spacing.xl,
   },
   buttonContainer: {
     flexDirection: "row",
     width: "100%",
-    gap: 12,
+    gap: spacing.sm,
   },
   button: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: radii.sm,
   },
   cancelButton: {
-    borderColor: "#ddd",
+    borderColor: colors.border.primary,
   },
   confirmButton: {
     borderWidth: 0,
   },
   cancelButtonText: {
-    color: "#666",
-    fontWeight: "600",
+    color: colors.text.secondary,
+    fontWeight: typography.fontWeights.semibold,
   },
   confirmButtonText: {
-    color: "white",
-    fontWeight: "600",
+    color: colors.text.inverse,
+    fontWeight: typography.fontWeights.semibold,
   },
 });
 

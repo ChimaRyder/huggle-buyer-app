@@ -77,11 +77,6 @@ const styles = StyleSheet.create({
     width: "90%",
     maxWidth: 400,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
   },
   closeButton: {
     position: "absolute",

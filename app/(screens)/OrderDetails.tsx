@@ -11,9 +11,9 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   Alert,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -151,7 +151,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
@@ -169,7 +169,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
 
   if (error || !order) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
@@ -191,7 +191,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
   const statusInfo = getStatusInfo(order.status);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
@@ -210,11 +210,13 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
             <Text style={styles.orderIdText}>#{order.id.slice(-8).toUpperCase()}</Text>
           </View>
           <Text style={styles.orderDateText}>
-            Placed on {formatDate(order.createdAt)}
+            <Text style={styles.orderDateLabel}>Placed: </Text>
+            {formatDate(order.createdAt)}
           </Text>
           {order.updatedAt !== order.createdAt && (
             <Text style={styles.orderUpdateText}>
-              Updated {formatDate(order.updatedAt)}
+              <Text style={styles.orderUpdateLabel}>Updated: </Text>
+              {formatDate(order.updatedAt)}
             </Text>
           )}
         </View>
@@ -234,17 +236,17 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
                   <Text style={styles.productName} numberOfLines={2}>
                     {product.name}
                   </Text>
-                  <View style={styles.productDetails}>
+                  <Text style={styles.productDescription} numberOfLines={2}>
+                    {product.description}
+                  </Text>
+                  <Text style={styles.productQuantity}>
+                    x{order.quantity[index]}
+                  </Text>
+                  <View style={styles.productPriceContainer}>
                     <Text style={styles.productPrice}>
                       ${(order.unitPrices?.[index] || product.discountedPrice).toFixed(2)}
                     </Text>
-                    <Text style={styles.productQuantity}>
-                      Qty: {order.quantity[index]}
-                    </Text>
                   </View>
-                  <Text style={styles.productSubtotal}>
-                    Subtotal: ${((order.unitPrices?.[index] || product.discountedPrice) * order.quantity[index]).toFixed(2)}
-                  </Text>
                 </View>
               </View>
               
@@ -278,10 +280,20 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
               </Text>
               <TouchableOpacity
                 style={styles.storeButton}
-                onPress={() => router.push({
-                  pathname: "/(screens)/StoreHomepageScreen",
-                  params: { id: store?.id }
-                })}
+                onPress={() => {
+                  // Map grocery store IDs to restaurant IDs for StoreHomepageScreen
+                  const storeIdMap = {
+                    'grocery-1': '1', // Farm Fresh Market
+                    'grocery-5': '2', // Organic Harvest Co.
+                    'grocery-6': '3', // Tropical Paradise
+                  };
+                  const restaurantId = storeIdMap[store?.id as keyof typeof storeIdMap] || store?.id;
+                  
+                  router.push({
+                    pathname: "/(screens)/StoreHomepageScreen",
+                    params: { id: restaurantId }
+                  });
+                }}
               >
                 <Text style={styles.storeButtonText}>Visit Store</Text>
               </TouchableOpacity>
@@ -303,15 +315,6 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           </View>
         )}
 
-        {/* Order Notes */}
-        {order.notes && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Order Notes</Text>
-            <View style={styles.notesCard}>
-              <Text style={styles.notesText}>{order.notes}</Text>
-            </View>
-          </View>
-        )}
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -319,7 +322,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
       {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total Amount</Text>
+          <Text style={styles.totalLabel}>Total</Text>
           <Text style={styles.totalAmount}>${order.totalPrice.toFixed(2)}</Text>
         </View>
         
@@ -342,7 +345,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.background.tertiary,
   },
   header: {
     flexDirection: 'row',
@@ -350,11 +353,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    backgroundColor: colors.background.primary,
   },
   headerTitle: {
-    ...typography.h2,
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
   },
   scrollView: {
@@ -366,8 +369,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginTop: spacing.lg,
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border.light,
   },
   statusHeader: {
     flexDirection: 'row',
@@ -381,24 +382,30 @@ const styles = StyleSheet.create({
   },
   orderIdText: {
     ...typography.body2,
-    color: colors.text.secondary,
+    color: colors.text.tertiary,
     fontFamily: 'monospace',
   },
   orderDateText: {
     ...typography.body2,
     color: colors.text.secondary,
   },
+  orderDateLabel: {
+    fontWeight: typography.fontWeights.bold,
+  },
   orderUpdateText: {
     ...typography.caption,
     color: colors.text.secondary,
     marginTop: spacing.xs,
+  },
+  orderUpdateLabel: {
+    fontWeight: typography.fontWeights.bold,
   },
   section: {
     marginBottom: spacing.xl,
   },
   sectionTitle: {
     ...typography.h4,
-    color: colors.text.primary,
+    color: colors.text.tertiary,
     marginBottom: spacing.md,
   },
   productContainer: {
@@ -409,9 +416,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderRadius: 12,
     padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    ...shadows.sm,
   },
   productImage: {
     width: 80,
@@ -423,29 +427,32 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: spacing.md,
     justifyContent: 'space-between',
+    position: 'relative',
   },
   productName: {
     ...typography.body1,
     fontWeight: '600',
     color: colors.text.primary,
   },
-  productDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  productDescription: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+  },
+  productQuantity: {
+    ...typography.body2,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+  },
+  productPriceContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
   },
   productPrice: {
     ...typography.body2,
     color: colors.primary,
     fontWeight: '600',
-  },
-  productQuantity: {
-    ...typography.body2,
-    color: colors.text.secondary,
-  },
-  productSubtotal: {
-    ...typography.caption,
-    color: colors.text.secondary,
   },
   reviewButton: {
     flexDirection: 'row',
@@ -468,9 +475,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderRadius: 12,
     padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    ...shadows.sm,
   },
   storeImage: {
     width: 60,
@@ -509,26 +513,11 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  notesCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: 8,
-    padding: spacing.md,
-  },
-  notesText: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    fontStyle: 'italic',
   },
   footer: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
     backgroundColor: colors.background.primary,
-    ...shadows.lg,
   },
   totalContainer: {
     flexDirection: 'row',
@@ -539,9 +528,10 @@ const styles = StyleSheet.create({
   totalLabel: {
     ...typography.h3,
     color: colors.text.primary,
+    fontWeight: typography.fontWeights.bold,
   },
   totalAmount: {
-    ...typography.h2,
+    fontSize: typography.fontSizes.xl,
     color: colors.primary,
     fontWeight: '700',
   },

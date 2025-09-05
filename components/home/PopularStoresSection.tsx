@@ -3,7 +3,9 @@ import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { restaurants } from '@/data/food/mockData';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { colors } from '@/constants/theme';
@@ -11,15 +13,23 @@ import { colors } from '@/constants/theme';
 interface PopularStoresSectionProps {
   onRestaurantPress: (id: string) => void;
   onToggleFavorite: (id: string) => void;
+  onSeeAllPress: () => void;
 }
 
 const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({ 
   onRestaurantPress, 
-  onToggleFavorite 
+  onToggleFavorite,
+  onSeeAllPress
 }) => {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Popular Stores</Text>
+      <View style={styles.header}>
+        <Text style={styles.sectionTitle}>Popular Stores</Text>
+        <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
+          <Text style={styles.seeAllText}>See All</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
       <View style={styles.restaurantsContainer}>
         {restaurants.map((restaurant) => (
           <RestaurantCard
@@ -39,11 +49,25 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 24,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.text.primary,
-    marginBottom: 16,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: colors.primary,
+    marginRight: 4,
   },
   restaurantsContainer: {
     paddingHorizontal: 0,

@@ -127,6 +127,71 @@ export const mockProducts: BackendProduct[] = [
 
 // Mock Stores
 export const mockStores: BackendStore[] = [
+  // Grocery Stores for Orders
+  {
+    id: 'grocery-1',
+    sellerId: 'seller-1',
+    name: 'Farm Fresh Market',
+    storeDescription: 'Your neighborhood source for fresh, locally-sourced produce and organic fruits and vegetables. We partner with local farms to bring you the freshest products.',
+    storeImageUrl: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=300',
+    storeCoverUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800',
+    storeCategory: 'Grocery & Fresh Produce',
+    tags: ['grocery', 'fresh produce', 'organic', 'local', 'fruits', 'vegetables'],
+    address: '123 Farm Market Lane',
+    city: 'San Francisco',
+    province: 'California',
+    zipCode: '94105',
+    latitude: 37.7849,
+    longitude: -122.4094,
+    rating: 4.7,
+    reviews: 456,
+    isActive: true,
+    createdAt: '2023-01-15T10:00:00Z',
+    updatedAt: '2024-08-08T14:30:00Z'
+  },
+  {
+    id: 'grocery-5',
+    sellerId: 'seller-5',
+    name: 'Organic Harvest Co.',
+    storeDescription: 'Certified organic produce and specialty health foods. We believe in sustainable farming practices and providing the highest quality organic products to our community.',
+    storeImageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300',
+    storeCoverUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
+    storeCategory: 'Organic Foods',
+    tags: ['organic', 'health foods', 'sustainable', 'leafy greens', 'specialty produce'],
+    address: '456 Organic Way',
+    city: 'Berkeley',
+    province: 'California',
+    zipCode: '94704',
+    latitude: 37.8715,
+    longitude: -122.2730,
+    rating: 4.8,
+    reviews: 324,
+    isActive: true,
+    createdAt: '2023-03-20T09:00:00Z',
+    updatedAt: '2024-08-07T11:20:00Z'
+  },
+  {
+    id: 'grocery-6',
+    sellerId: 'seller-6',
+    name: 'Tropical Paradise',
+    storeDescription: 'Exotic fruits and tropical produce from around the world. Experience the flavors of the tropics with our carefully selected premium fruits and specialty items.',
+    storeImageUrl: 'https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=300',
+    storeCoverUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800',
+    storeCategory: 'Specialty Produce',
+    tags: ['exotic fruits', 'tropical', 'specialty', 'imported', 'premium'],
+    address: '789 Tropical Boulevard',
+    city: 'San Jose',
+    province: 'California',
+    zipCode: '95113',
+    latitude: 37.3382,
+    longitude: -121.8863,
+    rating: 4.6,
+    reviews: 278,
+    isActive: true,
+    createdAt: '2023-05-10T12:00:00Z',
+    updatedAt: '2024-08-06T16:45:00Z'
+  },
+  // Original stores (keeping for backward compatibility)
   {
     id: 'store-1',
     sellerId: 'seller-1',
@@ -261,30 +326,30 @@ export const mockOrders: BackendOrder[] = [
   {
     id: 'order-1',
     buyerId: 'buyer-1',
-    storeId: 'store-1',
-    storeName: 'TechHub Electronics',
-    productId: ['prod-1', 'prod-4'],
-    productNames: ['Wireless Bluetooth Headphones', 'Smart Fitness Watch'],
-    quantity: [1, 1],
-    unitPrices: [199.99, 279.99],
-    totalPrice: 479.98,
+    storeId: 'grocery-1',
+    storeName: 'Farm Fresh Market',
+    productId: ['101', '103'],
+    productNames: ['Organic Apples', 'Organic Carrots'],
+    quantity: [2, 1],
+    unitPrices: [3.99, 2.49],
+    totalPrice: 10.47,
     createdAt: '2024-08-08T15:30:00Z',
     updatedAt: '2024-08-08T16:00:00Z',
     status: OrderStatus.Confirmed,
     paymentStatus: PaymentStatus.Completed,
     deliveryAddress: '123 Main St, San Francisco, CA 94105',
-    notes: 'Please handle with care'
+    notes: 'Please select ripe apples'
   },
   {
     id: 'order-2',
     buyerId: 'buyer-1',
-    storeId: 'store-3',
-    storeName: 'Bean There Coffee',
-    productId: ['prod-3'],
-    productNames: ['Premium Coffee Beans'],
-    quantity: [2],
-    unitPrices: [19.99],
-    totalPrice: 39.98,
+    storeId: 'grocery-5',
+    storeName: 'Organic Harvest Co.',
+    productId: ['201', '202'],
+    productNames: ['Kale', 'Spinach'],
+    quantity: [1, 2],
+    unitPrices: [3.99, 2.99],
+    totalPrice: 9.97,
     createdAt: '2024-08-07T09:15:00Z',
     updatedAt: '2024-08-08T10:30:00Z',
     status: OrderStatus.ReadyForPickup,
@@ -294,17 +359,49 @@ export const mockOrders: BackendOrder[] = [
   {
     id: 'order-3',
     buyerId: 'buyer-1',
-    storeId: 'store-2',
-    storeName: 'Eco Fashion Co.',
-    productId: ['prod-2'],
-    productNames: ['Organic Cotton T-Shirt'],
+    storeId: 'grocery-6',
+    storeName: 'Tropical Paradise',
+    productId: ['301'],
+    productNames: ['Mango'],
     quantity: [3],
-    unitPrices: [34.99],
-    totalPrice: 104.97,
+    unitPrices: [4.99],
+    totalPrice: 14.97,
     createdAt: '2024-08-05T12:00:00Z',
     updatedAt: '2024-08-09T14:00:00Z',
     status: OrderStatus.Completed,
     paymentStatus: PaymentStatus.Completed,
+    deliveryAddress: '123 Main St, San Francisco, CA 94105'
+  },
+  {
+    id: 'order-4',
+    buyerId: 'buyer-1',
+    storeId: 'grocery-1',
+    storeName: 'Farm Fresh Market',
+    productId: ['102', '101'],
+    productNames: ['Bananas', 'Organic Apples'],
+    quantity: [5, 1],
+    unitPrices: [1.99, 3.99],
+    totalPrice: 13.94,
+    createdAt: '2024-08-06T14:20:00Z',
+    updatedAt: '2024-08-06T14:20:00Z',
+    status: OrderStatus.Pending,
+    paymentStatus: PaymentStatus.Completed,
+    deliveryAddress: '123 Main St, San Francisco, CA 94105'
+  },
+  {
+    id: 'order-5',
+    buyerId: 'buyer-1',
+    storeId: 'grocery-5',
+    storeName: 'Organic Harvest Co.',
+    productId: ['201'],
+    productNames: ['Kale'],
+    quantity: [2],
+    unitPrices: [3.99],
+    totalPrice: 7.98,
+    createdAt: '2024-08-04T11:45:00Z',
+    updatedAt: '2024-08-05T09:30:00Z',
+    status: OrderStatus.Cancelled,
+    paymentStatus: PaymentStatus.Refunded,
     deliveryAddress: '123 Main St, San Francisco, CA 94105'
   }
 ];
@@ -429,6 +526,122 @@ export const mockPosts = [
     caption: 'Freshly roasted Ethiopian beans ready for your morning brew ☕ Single-origin perfection!',
     likes: 203,
     createdAt: '2024-08-06T08:15:00Z'
+  },
+  {
+    id: 'post-4',
+    storeId: 'grocery-1',
+    storeName: 'Farm Fresh Market',
+    storeAvatar: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100',
+    images: [
+      'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600',
+      'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600'
+    ],
+    caption: '🍎 Fresh organic apples just arrived! Perfect for fall baking and snacking. 30% off this week only! #OrganicProduce #FreshFruit',
+    likes: 267,
+    createdAt: '2024-08-08T09:00:00Z'
+  },
+  {
+    id: 'post-5',
+    storeId: 'grocery-2',
+    storeName: 'Green Valley Grocers',
+    storeAvatar: 'https://images.unsplash.com/photo-1490885578174-acda8905e050?w=100',
+    images: [
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600'
+    ],
+    caption: '🥬 Weekly produce special! Get 20% off all leafy greens. Fresh kale, spinach, arugula and more! Perfect for your healthy smoothies and salads 💚 #HealthyEating #WeeklySpecial',
+    likes: 189,
+    createdAt: '2024-08-07T16:45:00Z'
+  },
+  {
+    id: 'post-6',
+    storeId: 'grocery-3',
+    storeName: 'Tropical Paradise',
+    storeAvatar: 'https://images.unsplash.com/photo-1515281508107-6e0d239c10a5?w=100',
+    images: [
+      'https://images.unsplash.com/photo-1618897996318-5a901fa6ca71?w=600',
+      'https://images.unsplash.com/photo-1603047579504-19419bf1a56d?w=600',
+      'https://images.unsplash.com/photo-1528825871115-3581a5387919?w=600'
+    ],
+    caption: '🥭🍍 Exotic fruit paradise! Fresh mangoes, pineapples, and dragon fruit now available. Buy 2 get 1 FREE on all tropical fruits! #TropicalFruits #ExoticProduce #SpecialDeal',
+    likes: 324,
+    createdAt: '2024-08-07T12:20:00Z'
+  },
+  {
+    id: 'post-7',
+    storeId: 'grocery-4',
+    storeName: 'Berry Best Market',
+    storeAvatar: 'https://images.unsplash.com/photo-1481349518771-20055b2a7b24?w=100',
+    images: [
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600',
+      'https://images.unsplash.com/photo-1583554425806-76ae3c4baf33?w=600'
+    ],
+    caption: '🍓 Berry season is here! Fresh strawberries and blueberries picked this morning. Perfect for desserts, smoothies, or just snacking! Limited supply - get them while they last! #FreshBerries #SeasonalProduce',
+    likes: 156,
+    createdAt: '2024-08-06T14:30:00Z'
+  },
+  {
+    id: 'post-8',
+    storeId: 'grocery-5',
+    storeName: 'Organic Harvest Co.',
+    storeAvatar: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=100',
+    images: [
+      'https://images.unsplash.com/photo-1582515073490-39981397c445?w=600',
+      'https://images.unsplash.com/photo-1598170845058-325f3c253194?w=600'
+    ],
+    caption: '🥕🍠 Root vegetable bonanza! Fresh organic carrots, sweet potatoes, beets and parsnips. All locally grown and pesticide-free. 25% off bundles of 3 or more! #OrganicVeggies #LocalProduce #HealthyChoices',
+    likes: 198,
+    createdAt: '2024-08-06T10:15:00Z'
+  },
+  {
+    id: 'post-9',
+    storeId: 'grocery-6',
+    storeName: 'Metro Fresh Foods',
+    storeAvatar: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=100',
+    images: [
+      'https://images.unsplash.com/photo-1594759312175-6bb4ba56480c?w=600'
+    ],
+    caption: '🛒 Weekend grocery haul special! Fill your cart with fresh produce and save big. Spend $50+ and get 15% off your entire order! Valid this weekend only 🎯 #WeekendSpecial #GroceryDeals #FreshProduce',
+    likes: 445,
+    createdAt: '2024-08-05T18:00:00Z'
+  },
+  {
+    id: 'post-10',
+    storeId: 'grocery-7',
+    storeName: 'Garden Fresh Market',
+    storeAvatar: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100',
+    images: [
+      'https://images.unsplash.com/photo-1585332168612-ef7c3f2c49e7?w=600',
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600'
+    ],
+    caption: '🌿 Herb garden fresh! Basil, cilantro, parsley, thyme and more. Hand-picked this morning for maximum flavor. Perfect for your homemade meals! Buy 3 herbs get the 4th FREE! #FreshHerbs #CookingIngredients #GardenFresh',
+    likes: 112,
+    createdAt: '2024-08-05T11:45:00Z'
+  },
+  {
+    id: 'post-11',
+    storeId: 'grocery-8',
+    storeName: 'City Farmers Market',
+    storeAvatar: 'https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?w=100',
+    images: [
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600',
+      'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600'
+    ],
+    caption: '🎪 Farmers Market Wednesday! Join us for the freshest local produce, artisanal goods, and community vibes. Every Wednesday 8AM-2PM. See you there! #FarmersMarket #LocalProduce #Community #WednesdayMarket',
+    likes: 287,
+    createdAt: '2024-08-04T20:00:00Z'
+  },
+  {
+    id: 'post-12',
+    storeId: 'grocery-1',
+    storeName: 'Farm Fresh Market',
+    storeAvatar: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100',
+    images: [
+      'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600'
+    ],
+    caption: '🥬 Spinach power! Fresh baby spinach leaves packed with iron and nutrients. Perfect for salads, smoothies, and cooking. Get your greens today! #SpinachPower #HealthyEating #IronRich #BabySpinach',
+    likes: 134,
+    createdAt: '2024-08-04T13:20:00Z'
   }
 ];
 

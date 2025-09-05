@@ -71,6 +71,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPre
       columnWrapperStyle={styles.row}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.container}
+      scrollEnabled={false}
     />
   );
 };
@@ -87,14 +88,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     width: "48%",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2.22,
-    elevation: 3,
   },
   imageContainer: {
     height: 120,

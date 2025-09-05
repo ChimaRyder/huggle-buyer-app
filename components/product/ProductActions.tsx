@@ -312,14 +312,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border.primary || 'rgba(0, 0, 0, 0.08)',
-    ...shadows.md,
   },
   disabledContainer: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border.primary || 'rgba(0, 0, 0, 0.08)',
-    ...shadows.lg,
   },
   disabledContent: {
     flexDirection: 'row',
@@ -346,7 +344,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,
     overflow: 'hidden',
-    ...shadows.xl,
   },
   sheetContent: {
     flex: 1,
@@ -410,13 +407,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: radii.xl,
     padding: spacing.md,
-    ...shadows.md,
   },
   quantityButton: {
     width: 50,
     height: 50,
     borderRadius: radii.xl,
-    ...shadows.sm,
   },
   quantityButtonGradient: {
     width: '100%',
@@ -453,7 +448,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 60,
     borderRadius: radii.xl,
-    ...shadows.md,
   },
   buttonGradient: {
     width: '100%',
@@ -476,7 +470,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     borderWidth: 2,
     borderColor: colors.primary,
-    ...shadows.md,
   },
   orderNowText: {
     color: colors.primary,
@@ -486,7 +479,6 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     borderRadius: radii.xl,
-    ...shadows.md,
     overflow: 'hidden',
   },
   confirmButtonGradient: {

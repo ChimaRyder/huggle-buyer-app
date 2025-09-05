@@ -3,22 +3,31 @@ import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { foodItems } from '@/data/food/mockData';
 import FoodItemCard from '@/components/food/FoodItemCard';
 import { colors } from '@/constants/theme';
 
 interface TrendingItemsSectionProps {
   onFoodItemPress: (itemId: string) => void;
+  onSeeAllPress: () => void;
 }
 
-const TrendingItemsSection: React.FC<TrendingItemsSectionProps> = ({ onFoodItemPress }) => {
+const TrendingItemsSection: React.FC<TrendingItemsSectionProps> = ({ onFoodItemPress, onSeeAllPress }) => {
   // Get trending items (popular items for now)
   const trendingItems = foodItems.filter(item => item.isPopular);
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Trending Items</Text>
+      <View style={styles.header}>
+        <Text style={styles.sectionTitle}>Trending Items</Text>
+        <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
+          <Text style={styles.seeAllText}>See All</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
       <View style={styles.foodItemsContainer}>
         {trendingItems.map((item) => (
           <View key={item.id} style={styles.foodItemWrapper}>
@@ -38,11 +47,25 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 24,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.text.primary,
-    marginBottom: 16,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: colors.primary,
+    marginRight: 4,
   },
   foodItemsContainer: {
     flexDirection: 'row',

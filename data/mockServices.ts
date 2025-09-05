@@ -39,6 +39,7 @@ import {
   searchMockProducts,
   searchMockStores
 } from './mockData';
+import { foodItems } from './food/mockData';
 
 // Simulate network delay
 const simulateDelay = (ms: number = 500): Promise<void> => {
@@ -53,6 +54,32 @@ const mockApiResponse = <T>(data: T, success = true, message = 'Success') => ({
   timestamp: new Date().toISOString()
 });
 
+// Helper function to get food item by ID and convert to BackendProduct format
+const getFoodItemById = (id: string): BackendProduct | null => {
+  const foodItem = foodItems.find(item => item.id === id);
+  if (!foodItem) return null;
+  
+  return {
+    id: foodItem.id,
+    name: foodItem.name,
+    description: foodItem.description,
+    productType: 'Food & Beverages',
+    coverImage: foodItem.image,
+    additionalImages: [],
+    originalPrice: foodItem.price * 1.2, // Simulate original price being higher
+    discountedPrice: foodItem.price,
+    expirationDate: '2025-12-31T23:59:59Z',
+    storeId: 'grocery-1', // Default store
+    isActive: true,
+    createdAt: '2024-08-01T10:00:00Z',
+    updatedAt: '2024-08-08T15:30:00Z',
+    stock: Math.floor(Math.random() * 100) + 20,
+    rating: foodItem.rating,
+    ratingCount: Math.floor(Math.random() * 200) + 50,
+    category: [foodItem.category.toLowerCase().replace(/\s+/g, '-')]
+  };
+};
+
 export class MockProductService {
   static async getAllProducts(): Promise<BackendProduct[]> {
     await simulateDelay();
@@ -61,6 +88,11 @@ export class MockProductService {
 
   static async getProductById(id: string): Promise<BackendProduct | null> {
     await simulateDelay();
+    // First try to get from food items (grocery products)
+    const foodProduct = getFoodItemById(id);
+    if (foodProduct) return foodProduct;
+    
+    // Fallback to old mock products if not found in food items
     return getMockProductById(id) || null;
   }
 

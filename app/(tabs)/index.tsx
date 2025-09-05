@@ -60,6 +60,16 @@ const HomeScreen = () => {
     router.push(`/(screens)/ProductScreen?id=${itemId}`);
   };
 
+  const handleSeeAllTrendingItems = () => {
+    router.push('/(screens)/TrendingProductsScreen');
+  };
+
+  const handleSeeAllPopularStores = () => {
+    // For now, we'll navigate to a search screen with a filter for popular stores
+    // You might want to create a dedicated screen for this later
+    router.push('/(screens)/SearchScreen');
+  };
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -79,11 +89,15 @@ const HomeScreen = () => {
           
           <CategorySection onCategoryPress={handleCategoryPress} />
           
-          <TrendingItemsSection onFoodItemPress={handleFoodItemPress} />
+          <TrendingItemsSection 
+            onFoodItemPress={handleFoodItemPress} 
+            onSeeAllPress={handleSeeAllTrendingItems}
+          />
           
           <PopularStoresSection 
             onRestaurantPress={handleRestaurantPress} 
             onToggleFavorite={handleToggleFavorite} 
+            onSeeAllPress={handleSeeAllPopularStores}
           />
         </ScrollView>
         

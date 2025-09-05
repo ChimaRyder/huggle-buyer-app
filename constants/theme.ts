@@ -93,6 +93,7 @@ export const palette = {
   
   // Neutral colors
   white: '#FFFFFF',
+  offWhite: '#FDFDFD', // Off-white color
   black: '#000000',
   gray50: '#FAFAFA',
   gray100: '#F5F5F5',
@@ -117,7 +118,7 @@ export const colors = {
     tertiary: palette.gray500,
     inverse: palette.white,
     primaryInverted: palette.white,
-    secondaryInverted: palette.gray300,
+    secondaryInverted: palette.offWhite,
     tertiaryInverted: palette.gray400,
     success: palette.success,
     info: palette.info,
@@ -128,7 +129,7 @@ export const colors = {
   // Background colors
   background: {
     primary: palette.white,
-    secondary: palette.gray50,
+    secondary: palette.offWhite,
     tertiary: palette.gray100,
     inverse: palette.gray900,
     success: palette.successLight,
@@ -144,7 +145,7 @@ export const colors = {
   // Border colors
   border: {
     primary: palette.gray300,
-    secondary: palette.gray400,
+    secondary: palette.offWhite,
     success: palette.success,
     info: palette.info,
     warning: palette.warning,
@@ -163,7 +164,7 @@ export const colors = {
     warning: palette.warning,
     danger: palette.danger,
     primaryInverted: palette.white,
-    secondaryInverted: palette.gray300,
+    secondaryInverted: palette.offWhite,
   },
   
   // Badge colors

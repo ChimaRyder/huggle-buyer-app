@@ -13,8 +13,8 @@ import {
   Modal,
   TextInput,
   Dimensions,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,17 +45,16 @@ const PostScreen: React.FC<PostScreenProps> = () => {
     const d = typeof date === "string" ? new Date(date) : date;
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
+    const diffWeeks = Math.floor(diffDays / 7);
     
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    
-    return d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
+    if (diffMinutes < 1) return 'just now';
+    if (diffMinutes < 60) return `${diffMinutes}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return `${diffWeeks}w`;
   };
 
   useEffect(() => {
@@ -132,16 +131,34 @@ const PostScreen: React.FC<PostScreenProps> = () => {
 
   const handleStorePress = () => {
     if (post?.storeId) {
+      // Map post store IDs back to restaurant IDs for StoreHomepageScreen
+      const storeIdMap = {
+        "grocery-1": "1", // Farm Fresh Market
+        "grocery-2": "4", // Green Valley Grocers -> Green Thumb Grocers
+        "grocery-3": "3", // Metro Fresh Foods -> Tropical Paradise
+        "grocery-4": "5", // Berry Best Market
+        "grocery-5": "2", // Organic Harvest Co.
+        "grocery-6": "3", // Metro Fresh Foods -> Tropical Paradise
+        "grocery-7": "6", // Garden Fresh Market -> Root Cellar
+        "grocery-8": "1", // City Farmers Market -> Farm Fresh Market
+        "store-1": "1",
+        "store-2": "2", 
+        "store-3": "3",
+        "store-4": "4"
+      };
+      
+      const restaurantId = storeIdMap[post.storeId as keyof typeof storeIdMap] || post.storeId;
+      
       router.push({
         pathname: "/(screens)/StoreHomepageScreen",
-        params: { id: post.storeId },
+        params: { id: restaurantId },
       });
     }
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.loadingContainer}>
           <View style={styles.loadingImage} />
           <View style={styles.loadingContent}>
@@ -156,7 +173,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
 
   if (error || !post) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
           <Text style={styles.errorText}>
@@ -171,7 +188,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -238,43 +255,32 @@ const PostScreen: React.FC<PostScreenProps> = () => {
 
         {/* Post actions */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.likeButton}
-            onPress={handleLikeToggle}
-          >
-            <Ionicons
-              name={liked ? "heart" : "heart-outline"}
-              size={28}
-              color={liked ? colors.error : colors.text.secondary}
-            />
-          </TouchableOpacity>
-        </View>
-        
-        {/* Like count */}
-        {likeCount > 0 && (
-          <View style={styles.likesContainer}>
+          <View style={styles.likeSection}>
             <Text style={styles.likesText}>
               {likeCount} {likeCount === 1 ? 'like' : 'likes'}
             </Text>
+            <TouchableOpacity
+              style={styles.likeButton}
+              onPress={handleLikeToggle}
+            >
+              <Ionicons
+                name={liked ? "heart" : "heart-outline"}
+                size={28}
+                color={liked ? colors.primary : colors.text.secondary}
+              />
+            </TouchableOpacity>
           </View>
-        )}
+        </View>
         
-        {/* Store info and caption */}
+        {/* Caption */}
         <View style={styles.contentContainer}>
-          <TouchableOpacity style={styles.storeInfo} onPress={handleStorePress}>
-            <Image
-              source={{ uri: post.storeAvatar }}
-              style={styles.storeAvatar}
-              resizeMode="cover"
-            />
-            <Text style={styles.storeName}>{post.storeName}</Text>
-            <Text style={styles.timestamp}>{formatDate(post.createdAt)}</Text>
-          </TouchableOpacity>
-          
           <Text style={styles.caption}>
-            <Text style={styles.storeNameInCaption}>{post.storeName}</Text>
+            <TouchableOpacity onPress={handleStorePress}>
+              <Text style={styles.storeNameInCaption}>{post.storeName}</Text>
+            </TouchableOpacity>
             {' '}{post.caption}
           </Text>
+          <Text style={styles.timestamp}>{formatDate(post.createdAt)}</Text>
         </View>
       </ScrollView>
       
@@ -359,7 +365,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.background.tertiary,
   },
   header: {
     flexDirection: 'row',
@@ -367,11 +373,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
   },
   headerTitle: {
-    ...typography.h2,
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
   },
   scrollView: {
@@ -410,42 +415,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  likeSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
   likeButton: {
     alignSelf: 'flex-start',
   },
-  likesContainer: {
-    paddingHorizontal: spacing.lg,
-  },
   likesText: {
-    ...typography.body2,
-    fontWeight: '600',
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
     color: colors.text.primary,
   },
   contentContainer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
   },
-  storeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  storeAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: spacing.sm,
-    backgroundColor: colors.background.secondary,
-  },
-  storeName: {
-    ...typography.body2,
-    fontWeight: '600',
-    color: colors.text.primary,
-    flex: 1,
-  },
   timestamp: {
-    ...typography.caption,
-    color: colors.text.secondary,
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.tertiary,
+    marginTop: spacing.xs,
   },
   caption: {
     ...typography.body2,
@@ -507,16 +498,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContainer: {
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 16,
     padding: spacing.xl,
     width: '90%',
     maxWidth: 400,
   },
   modalTitle: {
-    ...typography.h3,
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
     marginBottom: spacing.lg,
+    textAlign: 'center',
   },
   modalLabel: {
     ...typography.body2,

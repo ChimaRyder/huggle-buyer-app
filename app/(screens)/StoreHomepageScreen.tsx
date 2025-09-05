@@ -11,8 +11,10 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { restaurants, foodItems, foodCategories } from "@/data/food/mockData";
-import { colors } from "@/constants/theme";
+import { colors, spacing } from "@/constants/theme";
 import ProductGrid from "@/components/product/ProductGrid";
+import FeaturedPostCard from "@/components/posts/FeaturedPostCard";
+import { mockPosts } from "@/data/mockData";
 
 // Mock reviews data
 const mockReviews = [
@@ -55,6 +57,21 @@ export default function StoreHomepageScreen() {
 
   // Get featured products (popular items)
   const featuredProducts = storeProducts.filter(item => item.isPopular);
+
+  // Get posts for this store (map restaurant IDs to post store IDs)
+  const storeIdMap = {
+    "1": "grocery-1", // Farm Fresh Market
+    "2": "grocery-5", // Organic Harvest Co.
+    "3": "grocery-6", // Tropical Paradise
+    "4": "grocery-2", // Green Thumb Grocers -> Green Valley Grocers
+    "5": "grocery-4", // Berry Best -> Berry Best Market  
+    "6": "grocery-7"  // Root Cellar -> Garden Fresh Market
+  };
+  
+  const postStoreId = storeIdMap[id as keyof typeof storeIdMap];
+  const storePosts = mockPosts.filter(post => 
+    post.storeId === postStoreId
+  ).slice(0, 6); // Limit to 6 posts for the featured section
 
   // Get categories for this store
   const storeCategories = foodCategories.filter(category => 
@@ -100,11 +117,28 @@ export default function StoreHomepageScreen() {
 
   // Render featured tab content
   const renderFeaturedTab = () => (
-    <View style={styles.tabContent}>
-      <ProductGrid 
-        products={featuredProducts}
-        onProductPress={handleProductPress}
-      />
+    <View style={styles.featuredTabContent}>
+      {/* Posts Section */}
+      {storePosts.length > 0 && (
+        <View style={styles.postsSection}>
+          {storePosts.map((post) => (
+            <FeaturedPostCard 
+              key={post.id}
+              post={post}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* Products Section */}
+      {featuredProducts.length > 0 && (
+        <View style={styles.productsSection}>
+          <ProductGrid 
+            products={featuredProducts}
+            onProductPress={handleProductPress}
+          />
+        </View>
+      )}
     </View>
   );
 
@@ -422,33 +456,6 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     textAlign: "center",
   },
-  categoryCard: {
-    width: "48%",
-    height: 100,
-    borderRadius: 12,
-    marginBottom: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  categoryIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-    color: colors.text.inverse,
-  },
-  categoryName: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.text.inverse,
-    textAlign: "center",
-  },
   reviewCard: {
     backgroundColor: colors.background.secondary,
     padding: 15,
@@ -481,5 +488,16 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: "center",
     marginTop: 20,
+  },
+  featuredTabContent: {
+    flex: 1,
+  },
+  postsSection: {
+    backgroundColor: 'transparent',
+    paddingTop: spacing.lg,
+  },
+  productsSection: {
+    padding: 20,
+    backgroundColor: colors.background.tertiary,
   },
 });

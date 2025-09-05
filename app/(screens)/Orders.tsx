@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -8,23 +9,16 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
-import { Layout, Text } from "@ui-kitten/components";
-import { useAuth } from "@clerk/clerk-expo";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { PageTitle } from "../../components/common";
+import { Ionicons } from "@expo/vector-icons";
 import { OrderCard } from "../../components/order";
 import { ConfirmationModal } from "../../components/common";
-import {
-  getOrders,
-  fetchProductById,
-  fetchStoreById,
-  cancelOrder,
-} from "../../utils/api";
+import { mockOrders } from "../../data/mockData";
+import { colors, spacing, typography } from "@/constants/theme";
 import {
   BackendOrder,
-  BackendProduct,
-  BackendStore,
   OrderStatus,
 } from "../../types/BackendModels";
 
@@ -36,27 +30,28 @@ const tabs = [
   "Cancelled",
 ] as const;
 
-type TabType = (typeof tabs)[number];
-
-interface EnrichedOrder extends BackendOrder {
+interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
   productName?: string;
   productImage?: string;
   storeName?: string;
   storeLocation?: string;
   formattedDate?: string;
-  description?: string; // Added to support multi-item orders
+  description?: string;
   items?: Array<{
     image: any;
     name: string;
     price: string;
     quantity: number;
   }>;
-  totalPrice?: string; // Accept string for display
+  totalPrice?: string;
 }
 
 const Orders = () => {
   const router = useRouter();
-  const { getToken, userId } = useAuth();
+
+  const handleBackPress = () => {
+    router.back();
+  };
   const [selectedTab, setSelectedTab] = useState<
     "Pending" | "Confirmed" | "Ready for Pickup" | "Completed" | "Cancelled"
   >("Pending");
@@ -83,93 +78,81 @@ const Orders = () => {
   );
 
   const loadOrders = async () => {
-    if (!userId) {
-      setError("Please log in to view orders");
-      setLoading(false);
-      return;
-    }
-
     try {
       setError(null);
-      const token = await getToken({ template: "seller_app" });
-      const ordersData: BackendOrder[] = await getOrders(token);
+      
+      // Use mock data instead of API calls
+      const ordersData: BackendOrder[] = mockOrders;
 
-      const enrichedOrders = await Promise.all(
-        ordersData.map(async (order) => {
-          try {
-            // Support multiple products per order
-            const productIds = Array.isArray(order.productId)
-              ? order.productId
-              : [order.productId];
-            const quantities = Array.isArray(order.quantity)
-              ? order.quantity
-              : [order.quantity];
+      // Enrich orders with additional data
+      const enrichedOrders = ordersData.map((order) => {
+        try {
+          // Support multiple products per order
+          const productIds = Array.isArray(order.productId)
+            ? order.productId
+            : [order.productId];
+          const quantities = Array.isArray(order.quantity)
+            ? order.quantity
+            : [order.quantity];
+          const productNames = Array.isArray(order.productNames)
+            ? order.productNames
+            : [order.productNames || "Unknown Product"];
 
-            const productDataArr = await Promise.all(
-              productIds.map((pid) => fetchProductById(pid, token))
-            );
-            const storeData = await fetchStoreById(order.storeId, token);
+          // Compose items array for multi-item support
+          const items = productIds.map((_, idx) => ({
+            image: require("../../assets/images/sample-store.jpg"),
+            name: productNames[idx] || "Unknown Product",
+            price: order.unitPrices && order.unitPrices[idx] 
+              ? `₱${Number(order.unitPrices[idx]).toFixed(2)}` 
+              : "",
+            quantity: quantities[idx] || 1,
+          }));
 
-            // Compose items array for multi-item support
-            const items = productDataArr.map((product, idx) => ({
-              image: product?.coverImage
-                ? { uri: product.coverImage }
-                : require("../../assets/images/sample-store.jpg"),
-              name: product?.name || "Unknown Product",
-              price: product?.price
-                ? `₱${Number(product.price).toFixed(2)}`
-                : "",
-              quantity: quantities[idx] || 1,
-            }));
+          // Compose total price
+          const totalPrice = `₱${order.totalPrice.toFixed(2)}`;
 
-            // Compose total price
-            const totalPrice = `₱${order.totalPrice.toFixed(2)}`;
-
-            // Compose product name for single/multi
-            let productName = "Unknown Product";
-            if (productDataArr.length === 1) {
-              productName = productDataArr[0]?.name || "Unknown Product";
-            } else if (productDataArr.length > 1) {
-              const firstName = productDataArr[0]?.name || "Unknown Product";
-              productName = `${firstName} + ${productDataArr.length - 1} more`;
-            }
-
-            // Compose description for single/multi
-            let description = "";
-            if (productDataArr.length === 1) {
-              description = `Quantity: ${quantities[0]}`;
-            } else {
-              description = `${productDataArr.length} items`;
-            }
-
-            return {
-              ...order,
-              productName,
-              productImage: items[0]?.image,
-              storeName: storeData?.name || "Unknown Store",
-              storeLocation: storeData
-                ? `${storeData.city}, ${storeData.province}`
-                : "Unknown Location",
-              formattedDate: formatOrderDate(order.createdAt),
-              description,
-              items,
-              totalPrice,
-            };
-          } catch (error) {
-            console.error(`Error enriching order ${order.id}:`, error);
-            return {
-              ...order,
-              productName: "Unknown Product",
-              storeName: "Unknown Store",
-              storeLocation: "Unknown Location",
-              formattedDate: formatOrderDate(order.createdAt),
-              description: "",
-              items: [],
-              totalPrice: `₱${order.totalPrice.toFixed(2)}`,
-            };
+          // Compose product name for single/multi
+          let productName = "Unknown Product";
+          if (productNames.length === 1) {
+            productName = productNames[0] || "Unknown Product";
+          } else if (productNames.length > 1) {
+            const firstName = productNames[0] || "Unknown Product";
+            productName = `${firstName} + ${productNames.length - 1} more`;
           }
-        })
-      );
+
+          // Compose description for single/multi
+          let description = "";
+          if (productNames.length === 1) {
+            description = `Quantity: ${quantities[0]}`;
+          } else {
+            description = `${productNames.length} items`;
+          }
+
+          return {
+            ...order,
+            productName,
+            productImage: items[0]?.image,
+            storeName: order.storeName || "Unknown Store",
+            storeLocation: order.deliveryAddress || "Unknown Location",
+            formattedDate: formatOrderDate(order.createdAt),
+            description,
+            items,
+            totalPrice,
+          };
+        } catch (error) {
+          console.error(`Error enriching order ${order.id}:`, error);
+          return {
+            ...order,
+            productName: "Unknown Product",
+            storeName: "Unknown Store",
+            storeLocation: "Unknown Location",
+            formattedDate: formatOrderDate(order.createdAt),
+            description: "",
+            items: [],
+            totalPrice: `₱${order.totalPrice.toFixed(2)}`,
+          };
+        }
+      });
 
       setOrders(enrichedOrders);
     } catch (error) {
@@ -249,10 +232,8 @@ const Orders = () => {
 
     try {
       setCancelling(true);
-      const token = await getToken({ template: "seller_app" });
-
-      await cancelOrder(orderToCancel.id, token);
-
+      
+      // Update order status in mock data
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === orderToCancel.id
@@ -296,123 +277,150 @@ const Orders = () => {
 
   if (loading) {
     return (
-      <Layout style={styles.container}>
-        <PageTitle title="Orders" />
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Orders</Text>
+          <View style={styles.headerPlaceholder} />
+        </View>
+        
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#548C2F" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading your orders...</Text>
         </View>
-      </Layout>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <Layout style={styles.container}>
-        <PageTitle title="Orders" />
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Orders</Text>
+          <View style={styles.headerPlaceholder} />
+        </View>
+        
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadOrders}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      </Layout>
+      </SafeAreaView>
     );
   }
 
   return (
-    <Layout style={styles.container}>
-      <PageTitle title="Orders" />
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Orders</Text>
+        <View style={styles.headerPlaceholder} />
+      </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabsScrollContainer}
-        style={styles.tabsScroll}
-      >
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => setSelectedTab(tab)}
-            style={[styles.tab, selectedTab === tab && styles.activeTab]}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                selectedTab === tab && styles.activeTabText,
-              ]}
-            >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {filtered.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No {selectedTab.toLowerCase()} orders found
-            </Text>
-            <Text style={styles.emptySubtext}>
-              {selectedTab === "Pending"
-                ? "Orders you place will appear here"
-                : `You don't have any ${selectedTab.toLowerCase()} orders yet`}
-            </Text>
-          </View>
-        ) : (
-          filtered.map((order) => (
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsScrollContainer}
+        >
+          {tabs.map((tab) => (
             <TouchableOpacity
-              key={order.id}
-              onPress={() => handleOrderPress(order)}
-              style={styles.orderCardContainer}
+              key={tab}
+              style={[
+                styles.tab,
+                selectedTab === tab && styles.activeTab,
+              ]}
+              onPress={() => setSelectedTab(tab)}
             >
-              <OrderCard
-                order={{
-                  id: order.id,
-                  date: order.formattedDate || "Unknown date",
-                  productName: order.productName || "Unknown Product",
-                  price: `₱${order.totalPrice?.toString() ?? "0.00"}`,
-                  description:
-                    order.description ||
-                    (Array.isArray(order.quantity)
-                      ? `${order.quantity.length} items`
-                      : `Quantity: ${order.quantity}`),
-                  storeName: order.storeName || "Unknown Store",
-                  location: order.storeLocation || "Unknown Location",
-                  status: getStatusFromEnum(order.status) as
-                    | "Pending"
-                    | "Confirmed"
-                    | "Ready for Pickup"
-                    | "Completed"
-                    | "Cancelled",
-                  image: order.productImage
-                    ? order.productImage
-                    : require("../../assets/images/sample-store.jpg"),
-                  items: order.items,
-                  totalPrice: order.totalPrice,
-                }}
-                showCancelButton={canCancelOrder(order.status)}
-                onCancel={() => handleCancelPress(order)}
-              />
+              <Text
+                style={[
+                  styles.tabText,
+                  selectedTab === tab && styles.activeTabText,
+                ]}
+              >
+                {tab}
+              </Text>
             </TouchableOpacity>
-          ))
-        )}
+          ))}
+        </ScrollView>
+      </View>
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {filtered.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No {selectedTab.toLowerCase()} orders found
+              </Text>
+              <Text style={styles.emptySubtext}>
+                {selectedTab === "Pending"
+                  ? "Orders you place will appear here"
+                  : `You don't have any ${selectedTab.toLowerCase()} orders yet`}
+              </Text>
+            </View>
+          ) : (
+            filtered.map((order) => (
+              <TouchableOpacity
+                key={order.id}
+                onPress={() => handleOrderPress(order)}
+                style={styles.orderCardContainer}
+              >
+                <OrderCard
+                  order={{
+                    id: order.id,
+                    date: order.formattedDate || "Unknown date",
+                    productName: order.productName || "Unknown Product",
+                    price: `₱${order.totalPrice?.toString() ?? "0.00"}`,
+                    description:
+                      order.description ||
+                      (Array.isArray(order.quantity)
+                        ? `${order.quantity.length} items`
+                        : `Quantity: ${order.quantity}`),
+                    storeName: order.storeName || "Unknown Store",
+                    location: order.storeLocation || "Unknown Location",
+                    status: getStatusFromEnum(order.status) as
+                      | "Pending"
+                      | "Confirmed"
+                      | "Ready for Pickup"
+                      | "Completed"
+                      | "Cancelled",
+                    image: order.productImage
+                      ? order.productImage
+                      : require("../../assets/images/sample-store.jpg"),
+                    items: order.items || [],
+                    totalPrice: order.totalPrice || "₱0.00",
+                  }}
+                  showCancelButton={canCancelOrder(order.status)}
+                  onCancel={() => handleCancelPress(order)}
+                />
+              </TouchableOpacity>
+            ))
+          )}
       </ScrollView>
 
       <ConfirmationModal
         visible={showCancelModal}
         title="Cancel Order"
         message={`Are you sure you want to cancel your order for "${orderToCancel?.productName}"? This action cannot be undone.`}
-        confirmText="Cancel Order"
+        confirmText="Cancel"
         cancelText="Keep Order"
-        confirmButtonColor="#dc3545"
+        confirmButtonColor={colors.danger}
         onConfirm={handleCancelOrder}
         onCancel={() => {
           setShowCancelModal(false);
@@ -420,7 +428,7 @@ const Orders = () => {
         }}
         loading={cancelling}
       />
-    </Layout>
+    </SafeAreaView>
   );
 };
 
@@ -429,92 +437,119 @@ export default Orders;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f8f8",
+    backgroundColor: colors.background.tertiary,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
+  },
+  backButton: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerPlaceholder: {
+    width: 24, // Same width as icons for centering
+  },
+  headerTitle: {
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+  },
+  tabContainer: {
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
+  },
+  tabsScrollContainer: {
+    flexDirection: "row",
+    paddingHorizontal: spacing.sm,
+  },
+  tab: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: "center",
+    minWidth: 80,
+  },
+  activeTab: {
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primary,
+  },
+  tabText: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.text.secondary,
+    fontWeight: typography.fontWeights.medium,
+  },
+  activeTabText: {
+    color: colors.primary,
+    fontWeight: typography.fontWeights.semibold,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: spacing.xl,
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#666",
+    marginTop: spacing.sm,
+    fontSize: typography.fontSizes.lg,
+    color: colors.text.secondary,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: spacing.xl,
   },
   errorText: {
-    fontSize: 16,
-    color: "#d32f2f",
+    fontSize: typography.fontSizes.lg,
+    color: colors.text.danger,
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   retryButton: {
-    backgroundColor: "#548C2F",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  tabsScrollContainer: {
-    paddingHorizontal: 12,
-    alignItems: "center",
-  },
-  tabsScroll: {
-    marginBottom: 27,
-    maxHeight: 52,
-  },
-  tab: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#104911",
-    paddingBottom: 6,
-    marginHorizontal: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
-  },
-  activeTab: {
-    borderBottomColor: "#F9A620",
-  },
-  tabText: {
-    color: "#104911",
-    fontWeight: "bold",
-  },
-  activeTabText: {
-    color: "#F9A620",
+    color: colors.text.inverse,
+    fontWeight: typography.fontWeights.bold,
   },
   scrollContainer: {
+    paddingTop: spacing.lg,
     paddingBottom: 120,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background.tertiary,
   },
   orderCardContainer: {
-    marginBottom: 0,
+    marginBottom: spacing.md,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: 60,
-    paddingHorizontal: 20,
+    paddingTop: spacing.xxxl,
+    paddingHorizontal: spacing.xl,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#666",
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.secondary,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: spacing.xs,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: "#999",
+    fontSize: typography.fontSizes.md,
+    color: colors.text.tertiary,
     textAlign: "center",
   },
 });
