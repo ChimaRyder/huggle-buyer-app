@@ -111,6 +111,10 @@ export const palette = {
 export const colors = {
   ...palette,
   
+  // Alias for danger (commonly referenced as error)
+  error: palette.danger,
+  successDark: palette.successDark,
+  
   // Text colors
   text: {
     primary: palette.gray900,

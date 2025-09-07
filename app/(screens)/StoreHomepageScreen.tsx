@@ -16,27 +16,6 @@ import ProductGrid from "@/components/product/ProductGrid";
 import FeaturedPostCard from "@/components/posts/FeaturedPostCard";
 import { mockPosts } from "@/data/mockData";
 
-// Mock reviews data
-const mockReviews = [
-  {
-    id: "1",
-    buyerId: "user1",
-    message: "Great service and fresh produce!",
-    rating: 5,
-    imageUrls: [],
-    createdAt: "2023-05-15T10:30:00Z",
-    showExpandButton: true,
-  },
-  {
-    id: "2",
-    buyerId: "user2",
-    message: "Fast delivery and excellent quality.",
-    rating: 4,
-    imageUrls: [],
-    createdAt: "2023-05-10T14:20:00Z",
-    showExpandButton: true,
-  },
-];
 
 export default function StoreHomepageScreen() {
   const router = useRouter();
@@ -152,6 +131,26 @@ export default function StoreHomepageScreen() {
     </View>
   );
 
+  // Render posts tab content
+  const renderPostsTab = () => (
+    <View style={styles.postsTabFullContent}>
+      {storePosts.length > 0 ? (
+        <View style={styles.postsTabContent}>
+          {storePosts.map((post) => (
+            <FeaturedPostCard 
+              key={post.id}
+              post={post}
+            />
+          ))}
+        </View>
+      ) : (
+        <View style={styles.emptyPostsContainer}>
+          <Text style={styles.emptyPostsText}>No posts available</Text>
+        </View>
+      )}
+    </View>
+  );
+
   // Render categories tab content
   const renderCategoriesTab = () => (
     <View style={styles.tabContent}>
@@ -167,39 +166,13 @@ export default function StoreHomepageScreen() {
     </View>
   );
 
-  // Render reviews tab content
-  const renderReviewsTab = () => (
-    <View style={styles.tabContent}>
-      {mockReviews.map((review) => (
-        <View key={review.id} style={styles.reviewCard}>
-          <View style={styles.reviewHeader}>
-            <Text style={styles.reviewerName}>Customer {review.id}</Text>
-            <View style={styles.ratingContainer}>
-              {[...Array(5)].map((_, i) => (
-                <Ionicons 
-                  key={i}
-                  name="star" 
-                  size={14} 
-                  color={i < review.rating ? colors.warning : colors.text.tertiary} 
-                />
-              ))}
-            </View>
-          </View>
-          <Text style={styles.reviewText}>{review.message}</Text>
-          <Text style={styles.reviewDate}>
-            {new Date(review.createdAt).toLocaleDateString()}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
 
   // Tab configuration
   const tabs = [
     { key: "Featured", label: "Featured" },
     { key: "Products", label: "Products" },
+    { key: "Posts", label: "Posts" },
     { key: "Categories", label: "Categories" },
-    { key: "Reviews", label: "Reviews" },
   ];
 
   return (
@@ -234,13 +207,16 @@ export default function StoreHomepageScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.storeDetails}>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={16} color={colors.warning} />
+          <Text style={styles.locationText}>{store.distance}</Text>
+          <Text style={styles.dotSeparator}> • </Text>
+          <TouchableOpacity 
+            style={styles.reviewsContainer}
+            onPress={() => router.push(`/(screens)/ReviewsScreen?id=${id}`)}
+          >
             <Text style={styles.ratingText}>{store.rating}</Text>
-          </View>
-          <Text style={styles.deliveryInfo}>
-            {store.distance}
-          </Text>
+            <Ionicons name="star" size={16} color={colors.warning} />
+            <Text style={styles.reviewsText}> Reviews (100+)</Text>
+          </TouchableOpacity>
         </View>
         {store.promotion && !isFreeDeliveryPromo && (
           <View style={styles.promotionBanner}>
@@ -292,8 +268,8 @@ export default function StoreHomepageScreen() {
       <ScrollView style={styles.contentContainer}>
         {activeTab === "Featured" && renderFeaturedTab()}
         {activeTab === "Products" && renderProductsTab()}
+        {activeTab === "Posts" && renderPostsTab()}
         {activeTab === "Categories" && renderCategoriesTab()}
-        {activeTab === "Reviews" && renderReviewsTab()}
       </ScrollView>
     </View>
   );
@@ -351,19 +327,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
   },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  ratingText: {
-    marginLeft: 5,
-    fontSize: 16,
-    color: colors.text.primary,
-  },
-  deliveryInfo: {
+  locationText: {
     fontSize: 16,
     color: colors.text.secondary,
+  },
+  dotSeparator: {
+    fontSize: 16,
+    color: colors.text.secondary,
+  },
+  ratingText: {
+    fontSize: 16,
+    color: colors.text.primary,
+    marginRight: 3,
+  },
+  reviewsText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+  },
+  reviewsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   promotionBanner: {
     backgroundColor: colors.dangerLight,
@@ -456,33 +439,6 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     textAlign: "center",
   },
-  reviewCard: {
-    backgroundColor: colors.background.secondary,
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  reviewHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  reviewerName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.text.primary,
-  },
-  reviewText: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    lineHeight: 20,
-    marginBottom: 10,
-  },
-  reviewDate: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-  },
   backButtonText: {
     fontSize: 16,
     color: colors.primary,
@@ -499,5 +455,22 @@ const styles = StyleSheet.create({
   productsSection: {
     padding: 20,
     backgroundColor: colors.background.tertiary,
+  },
+  postsTabFullContent: {
+    flex: 1,
+  },
+  postsTabContent: {
+    backgroundColor: 'transparent',
+    paddingTop: spacing.lg,
+  },
+  emptyPostsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyPostsText: {
+    fontSize: 16,
+    color: colors.text.secondary,
   },
 });

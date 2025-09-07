@@ -13,49 +13,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { foodItems, restaurants } from "@/data/food/mockData";
 import { colors } from "@/constants/theme";
 import { ReviewCard } from "@/components/review";
+import { getMockReviewsByProductId } from "@/data/mockData";
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Mock reviews data
-const mockReviews = [
-  {
-    id: "1",
-    buyerId: "user1",
-    message: "Fresh and delicious! Will buy again. The apples were perfectly ripe and sweet.",
-    rating: 5,
-    imageUrls: [],
-    createdAt: "2023-05-15T10:30:00Z",
-    showExpandButton: true,
-  },
-  {
-    id: "2",
-    buyerId: "user2",
-    message: "Good quality produce. Arrived fresh and well packaged. Will order again.",
-    rating: 4,
-    imageUrls: [],
-    createdAt: "2023-05-10T14:20:00Z",
-    showExpandButton: true,
-  },
-  {
-    id: "3",
-    buyerId: "user3",
-    message: "Excellent service and quality. The organic apples were the best I've had in months!",
-    rating: 5,
-    imageUrls: [],
-    createdAt: "2023-05-05T09:15:00Z",
-    showExpandButton: true,
-  },
-  {
-    id: "4",
-    buyerId: "user4",
-    message: "Fresh and tasty. Delivery was on time. Great experience overall.",
-    rating: 4,
-    imageUrls: [],
-    createdAt: "2023-04-28T16:45:00Z",
-    showExpandButton: true,
-  },
-];
 
 export default function ProductScreen() {
   const router = useRouter();
@@ -69,6 +31,9 @@ export default function ProductScreen() {
 
   // Find the store that sells this product (using first store as example)
   const store = restaurants[0];
+
+  // Get reviews for this specific product
+  const mockReviews = getMockReviewsByProductId(product?.id || '');
 
   // If product not found, show error
   if (!product) {
@@ -107,8 +72,7 @@ export default function ProductScreen() {
   };
 
   const handleViewAllReviews = () => {
-    // In a real app, this would navigate to a full reviews screen
-    console.log("View all reviews");
+    router.push(`/(screens)/ReviewsScreen?id=${store.id}&productId=${product.id}`);
   };
 
   const handleReviewScroll = (event) => {
@@ -219,7 +183,15 @@ export default function ProductScreen() {
             >
               {mockReviews.map((review) => (
                 <View key={review.id} style={styles.reviewSlide}>
-                  <ReviewCard {...review} />
+                  <ReviewCard 
+                    buyerId={review.buyerId}
+                    reviewerName={review.buyerName}
+                    message={review.content}
+                    rating={review.rating}
+                    imageUrls={review.imageUrls || []}
+                    createdAt={review.createdAt}
+                    showExpandButton={true}
+                  />
                 </View>
               ))}
             </ScrollView>

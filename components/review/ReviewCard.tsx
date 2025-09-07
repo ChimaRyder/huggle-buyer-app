@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Text, Image, TouchableOpacity, ScrollView, Modal, Dimensions } from "react-native";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { fontSizes, spacing, radii, shadows } from "../../constants/theme";
+import { fontSizes, spacing, radii, shadows, colors } from "../../constants/theme";
 
 interface ReviewCardProps {
   reviewerName?: string;
@@ -12,6 +12,7 @@ interface ReviewCardProps {
   createdAt?: string;
   showExpandButton?: boolean;
   isCompact?: boolean;
+  productName?: string;
 }
 
 const { width } = Dimensions.get('window');
@@ -25,6 +26,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   createdAt,
   showExpandButton = false,
   isCompact = false,
+  productName,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
@@ -81,13 +83,21 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               <FontAwesome
                 name="star"
                 size={16}
-                color="#FFD700"
+                color={colors.warning}
                 style={styles.star}
                 accessibilityLabel="Star icon"
               />
               <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
             </View>
           </View>
+
+          {/* Product name (for store reviews) */}
+          {productName && (
+            <View style={styles.productNameContainer}>
+              <Ionicons name="bag-check-outline" size={16} color={colors.primaryDark} style={styles.productIcon} />
+              <Text style={styles.productNameText}>{productName}</Text>
+            </View>
+          )}
 
           {/* Message */}
           {hasMessage && (
@@ -161,7 +171,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 style={styles.closeButton}
                 onPress={() => setSelectedImageIndex(null)}
               >
-                <Ionicons name="close" size={24} color="white" />
+                <Ionicons name="close" size={24} color={colors.text.inverse} />
               </TouchableOpacity>
               
               {selectedImageIndex !== null && (
@@ -197,7 +207,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: colors.background.primary,
     borderRadius: radii.md,
     marginVertical: spacing.sm,
     minHeight: 80,
@@ -209,7 +219,7 @@ const styles = StyleSheet.create({
   },
   accentLine: {
     width: 4,
-    backgroundColor: "#104911",
+    backgroundColor: colors.primary,
     borderTopLeftRadius: radii.md,
     borderBottomLeftRadius: radii.md,
   },
@@ -229,12 +239,12 @@ const styles = StyleSheet.create({
   reviewerName: {
     fontSize: fontSizes.md,
     fontWeight: "600",
-    color: "#222",
+    color: colors.text.primary,
     marginBottom: 2,
   },
   dateText: {
     fontSize: fontSizes.xs,
-    color: "#666",
+    color: colors.text.secondary,
   },
   ratingContainer: {
     flexDirection: "row",
@@ -245,15 +255,29 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: fontSizes.sm,
-    color: "#104911",
+    color: colors.primary,
     fontWeight: "bold",
+  },
+  productNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  productIcon: {
+    marginRight: spacing.xs,
+  },
+  productNameText: {
+    fontSize: fontSizes.sm,
+    color: colors.primaryDark,
+    fontWeight: "500",
   },
   messageContainer: {
     marginBottom: spacing.sm,
   },
   message: {
     fontSize: fontSizes.sm,
-    color: "#444",
+    color: colors.text.secondary,
     lineHeight: 20,
   },
   expandButton: {
@@ -262,7 +286,7 @@ const styles = StyleSheet.create({
   },
   expandButtonText: {
     fontSize: fontSizes.sm,
-    color: "#104911",
+    color: colors.primary,
     fontWeight: "600",
   },
   imagesContainer: {
@@ -281,7 +305,7 @@ const styles = StyleSheet.create({
   },
   moreImagesText: {
     fontSize: fontSizes.xs,
-    color: "#666",
+    color: colors.text.secondary,
     marginTop: spacing.xs,
   },
   
@@ -326,7 +350,7 @@ const styles = StyleSheet.create({
   imageCounter: {
     position: "absolute",
     bottom: 50,
-    color: "white",
+    color: colors.text.inverse,
     fontSize: fontSizes.md,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     paddingHorizontal: 12,

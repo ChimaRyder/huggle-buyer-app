@@ -5,7 +5,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { MockOrderService } from '../data/mockServices';
-import type { BackendOrder, OrderStatus, CreateOrderRequest, UpdateOrderRequest } from '../types/BackendModels';
+import type { BackendOrder, CreateOrderRequest, UpdateOrderRequest } from '../types/BackendModels';
+import { OrderStatus } from '../types/BackendModels';
 
 interface UseOrdersOptions {
   status?: OrderStatus;

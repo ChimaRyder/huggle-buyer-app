@@ -278,49 +278,6 @@ export const mockStores: BackendStore[] = [
   }
 ];
 
-// Mock Reviews
-export const mockReviews: BackendReview[] = [
-  {
-    id: 'review-1',
-    productId: 'prod-1',
-    buyerId: 'buyer-1',
-    buyerName: 'John Smith',
-    buyerAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-    content: 'Amazing sound quality! The noise cancellation works perfectly and the battery life is exactly as advertised.',
-    imageUrls: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'],
-    rating: 5,
-    createdAt: '2024-08-05T14:30:00Z',
-    updatedAt: null,
-    isVerifiedPurchase: true
-  },
-  {
-    id: 'review-2',
-    productId: 'prod-1',
-    buyerId: 'buyer-2',
-    buyerName: 'Sarah Johnson',
-    buyerAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b412?w=100',
-    content: 'Great headphones but took a while to get used to the fit. Sound quality is excellent though.',
-    imageUrls: null,
-    rating: 4,
-    createdAt: '2024-08-03T10:15:00Z',
-    updatedAt: null,
-    isVerifiedPurchase: true
-  },
-  {
-    id: 'review-3',
-    productId: 'prod-3',
-    buyerId: 'buyer-3',
-    buyerName: 'Mike Chen',
-    buyerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-    content: 'Best coffee I\'ve ever had! The chocolate notes really come through. Will definitely order again.',
-    imageUrls: ['https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400'],
-    rating: 5,
-    createdAt: '2024-08-07T08:20:00Z',
-    updatedAt: null,
-    isVerifiedPurchase: true
-  }
-];
-
 // Mock Orders
 export const mockOrders: BackendOrder[] = [
   {
@@ -713,6 +670,257 @@ export const mockConversations = [
   }
 ];
 
+// Mock Reviews Data
+export const mockReviews: BackendReview[] = [
+  // Reviews for prod-1 (Wireless Bluetooth Headphones) from store-1
+  {
+    id: 'review-1',
+    productId: 'prod-1',
+    buyerId: 'buyer-1',
+    buyerName: 'Sarah M.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b332c902?w=100',
+    content: 'Amazing sound quality! The noise cancellation works perfectly and the battery life is exactly as advertised. Highly recommend!',
+    imageUrls: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'],
+    rating: 5,
+    createdAt: '2024-08-05T14:30:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-2',
+    productId: 'prod-1',
+    buyerId: 'buyer-2',
+    buyerName: 'John D.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+    content: 'Great headphones overall. The sound is crisp and clear. Only minor issue is they can get a bit uncomfortable after long use.',
+    imageUrls: [],
+    rating: 4,
+    createdAt: '2024-08-03T10:15:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-3',
+    productId: 'prod-1',
+    buyerId: 'buyer-3',
+    buyerName: 'Emma R.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
+    content: 'Perfect for travel! The active noise cancellation is a game changer on flights.',
+    imageUrls: ['https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400'],
+    rating: 5,
+    createdAt: '2024-08-01T16:45:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  
+  // Reviews for prod-2 (Organic Cotton T-Shirt) from store-1
+  {
+    id: 'review-4',
+    productId: 'prod-2',
+    buyerId: 'buyer-4',
+    buyerName: 'Mike T.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
+    content: 'Super soft and comfortable. The fit is perfect and the quality feels premium.',
+    imageUrls: [],
+    rating: 5,
+    createdAt: '2024-08-04T11:20:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-5',
+    productId: 'prod-2',
+    buyerId: 'buyer-5',
+    buyerName: 'Lisa K.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+    content: 'Love the sustainable aspect! The shirt is well-made and the organic cotton feels great.',
+    imageUrls: ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400'],
+    rating: 4,
+    createdAt: '2024-08-02T09:30:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  
+  // Reviews for prod-3 (Ethiopian Coffee Beans) from store-2
+  {
+    id: 'review-6',
+    productId: 'prod-3',
+    buyerId: 'buyer-6',
+    buyerName: 'David W.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
+    content: 'Best coffee I\'ve ever had! The flavor profile is incredible - fruity notes with perfect balance.',
+    imageUrls: ['https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400'],
+    rating: 5,
+    createdAt: '2024-08-06T08:00:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-7',
+    productId: 'prod-3',
+    buyerId: 'buyer-7',
+    buyerName: 'Anna P.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+    content: 'Really good coffee, though a bit pricey. The single-origin quality definitely shows.',
+    imageUrls: [],
+    rating: 4,
+    createdAt: '2024-08-04T12:45:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-8',
+    productId: 'prod-3',
+    buyerId: 'buyer-8',
+    buyerName: 'Carlos M.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=100',
+    content: 'Amazing aroma and taste. You can really taste the difference in quality!',
+    imageUrls: ['https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400'],
+    rating: 5,
+    createdAt: '2024-08-01T07:30:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  
+  // Additional reviews for different products to have variety
+  {
+    id: 'review-9',
+    productId: 'prod-1',
+    buyerId: 'buyer-9',
+    buyerName: 'Rachel H.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=100',
+    content: 'Good value for money. The build quality could be better but for the price, it\'s solid.',
+    imageUrls: [],
+    rating: 3,
+    createdAt: '2024-07-30T15:20:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-10',
+    productId: 'prod-2',
+    buyerId: 'buyer-10',
+    buyerName: 'Tom S.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100',
+    content: 'Decent shirt but runs a bit small. Would recommend ordering a size up.',
+    imageUrls: [],
+    rating: 3,
+    createdAt: '2024-07-29T13:10:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  
+  // Reviews for Food Items (101 = Organic Apples, 102 = Bananas, 103 = Organic Carrots)
+  {
+    id: 'review-11',
+    productId: '101',
+    buyerId: 'buyer-11',
+    buyerName: 'Jennifer L.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+    content: 'These organic apples are absolutely delicious! Crisp, sweet, and perfect for my kids\' lunches.',
+    imageUrls: ['https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=400'],
+    rating: 5,
+    createdAt: '2024-08-08T09:15:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-12',
+    productId: '101',
+    buyerId: 'buyer-12',
+    buyerName: 'Robert K.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
+    content: 'Great quality apples. Fresh and crunchy. Will definitely order again.',
+    imageUrls: [],
+    rating: 4,
+    createdAt: '2024-08-06T14:30:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-13',
+    productId: '101',
+    buyerId: 'buyer-13',
+    buyerName: 'Maria G.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+    content: 'Good apples but a bit expensive. Quality is worth it though.',
+    imageUrls: [],
+    rating: 4,
+    createdAt: '2024-08-04T11:20:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-14',
+    productId: '102',
+    buyerId: 'buyer-14',
+    buyerName: 'Alex B.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+    content: 'Perfect bananas! Just the right ripeness and great for smoothies.',
+    imageUrls: ['https://images.unsplash.com/photo-1603833797131-3c0a18fcb6b1?w=400'],
+    rating: 5,
+    createdAt: '2024-08-07T16:45:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-15',
+    productId: '102',
+    buyerId: 'buyer-15',
+    buyerName: 'Linda W.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
+    content: 'Fresh bananas, good quality. My family loves them!',
+    imageUrls: [],
+    rating: 4,
+    createdAt: '2024-08-05T08:30:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  
+  // Reviews for product 103 (Organic Carrots) - Store 1
+  {
+    id: 'review-16',
+    productId: '103',
+    buyerId: 'buyer-16',
+    buyerName: 'Kevin R.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
+    content: 'These organic carrots are fantastic! So crunchy and sweet. Perfect for cooking and snacking.',
+    imageUrls: ['https://images.unsplash.com/photo-1582515073490-39981397c445?w=400'],
+    rating: 5,
+    createdAt: '2024-08-07T10:15:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  
+  // Reviews for Store 2 products (201, 202, 203) 
+  {
+    id: 'review-17',
+    productId: '201',
+    buyerId: 'buyer-17',
+    buyerName: 'Amanda T.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+    content: 'Excellent organic kale! Fresh and crisp, perfect for my green smoothies.',
+    imageUrls: [],
+    rating: 5,
+    createdAt: '2024-08-06T07:45:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  },
+  {
+    id: 'review-18',
+    productId: '202',
+    buyerId: 'buyer-18',
+    buyerName: 'Steve M.',
+    buyerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+    content: 'Great spinach quality. Leaves are tender and flavorful.',
+    imageUrls: ['https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400'],
+    rating: 4,
+    createdAt: '2024-08-04T14:20:00Z',
+    updatedAt: null,
+    isVerifiedPurchase: true
+  }
+];
+
 // Helper functions to get mock data
 export const getMockProductById = (id: string): BackendProduct | undefined => {
   return mockProducts.find(product => product.id === id);
@@ -724,6 +932,30 @@ export const getMockStoreById = (id: string): BackendStore | undefined => {
 
 export const getMockReviewsByProductId = (productId: string): BackendReview[] => {
   return mockReviews.filter(review => review.productId === productId);
+};
+
+export const getMockReviewsByStoreId = (storeId: string): BackendReview[] => {
+  // First try to get products from main mockProducts
+  const storeProducts = mockProducts.filter(product => product.storeId === storeId);
+  let storeProductIds = storeProducts.map(product => product.id);
+  
+  // For food stores, add the food item IDs based on store ID
+  const foodStoreProductMapping: Record<string, string[]> = {
+    '1': ['101', '102', '103'], // Farm Fresh Market
+    '2': ['201', '202', '203'], // Organic Harvest
+    '3': ['301', '302', '303'], // Tropical Paradise
+    '4': ['401', '402'], // Green Thumb Grocers
+    '5': ['501', '502'], // Berry Best
+    '6': ['601', '602'], // Root Cellar
+  };
+  
+  // Add food items for this store if it exists in the mapping
+  if (foodStoreProductMapping[storeId]) {
+    storeProductIds = [...storeProductIds, ...foodStoreProductMapping[storeId]];
+  }
+  
+  // Return all reviews for products from this store
+  return mockReviews.filter(review => storeProductIds.includes(review.productId));
 };
 
 export const getMockOrdersByStatus = (status: OrderStatus): BackendOrder[] => {
