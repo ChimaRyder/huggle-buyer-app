@@ -1,148 +1,312 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
   TextInput,
+  TouchableOpacity,
   FlatList,
   Image,
+  Platform,
+  Keyboard,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radii } from '@/constants/theme';
+import { restaurants } from '@/data/food/mockData';
+import { mockStores } from '@/data/mockData';
 
-// Mock conversation data
-const mockMessages = [
-  {
-    id: '1',
-    text: "Hi there! Are you interested in the organic vegetables I have available today?",
-    sender: 'seller',
-    timestamp: '10:30 AM',
-  },
-  {
-    id: '2',
-    text: "Yes, I'd like to get some tomatoes and carrots. How much are they?",
-    sender: 'buyer',
-    timestamp: '10:32 AM',
-  },
-  {
-    id: '3',
-    text: "Tomatoes are $3/lb and carrots are $2/lb. They're all organic and freshly harvested this morning!",
-    sender: 'seller',
-    timestamp: '10:33 AM',
-  },
-  {
-    id: '4',
-    text: "That sounds great! I'll take 2 lbs of tomatoes and 3 lbs of carrots. When can I pick them up?",
-    sender: 'buyer',
-    timestamp: '10:35 AM',
-  },
-  {
-    id: '5',
-    text: "Your order is ready for pickup anytime today between 2-6 PM. Just let me know when you're on your way!",
-    sender: 'seller',
-    timestamp: '10:36 AM',
-  },
-  {
-    id: '6',
-    text: "Perfect! I'll be there around 4 PM.",
-    sender: 'buyer',
-    timestamp: '10:37 AM',
-  },
-];
+interface Message {
+  id: string;
+  text: string;
+  timestamp: string;
+  isFromUser: boolean;
+  isRead?: boolean;
+}
 
-const sellerInfo = {
-  name: 'Green Garden Store',
-  avatar: 'https://placehold.co/100x100/548C2F/FFFFFF?text=GGS',
-};
-
-export default function ChatDetailScreen() {
+export default function ChatScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
   const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
 
-  const renderMessage = ({ item }: { item: typeof mockMessages[0] }) => {
-    const isSeller = item.sender === 'seller';
+  // Memoize the store info to prevent unnecessary re-renders
+  const store = useMemo(() => {
+    const restaurant = restaurants.find(restaurant => restaurant.id === id);
+    const mockStore = mockStores.find(store => store.id === id);
     
-    return (
-      <View style={[
-        styles.messageContainer,
-        isSeller ? styles.sellerMessageContainer : styles.buyerMessageContainer
-      ]}>
-        {isSeller && (
-          <Image source={{ uri: sellerInfo.avatar }} style={styles.avatar} />
-        )}
-        
-        <View style={[
-          styles.messageBubble,
-          isSeller ? styles.sellerBubble : styles.buyerBubble
-        ]}>
-          {!isSeller && (
-            <Text style={styles.senderName}>
-              {isSeller ? sellerInfo.name : 'You'}
-            </Text>
-          )}
-          <Text style={[
-            styles.messageText,
-            isSeller ? styles.sellerText : styles.buyerText
-          ]}>
-            {item.text}
-          </Text>
-          <Text style={styles.timestamp}>{item.timestamp}</Text>
-        </View>
-      </View>
-    );
-  };
-
-  const sendMessage = () => {
-    if (message.trim()) {
-      // In a real app, this would send the message to the backend
-      setMessage('');
+    if (restaurant) {
+      return {
+        id: restaurant.id,
+        name: restaurant.name,
+        image: restaurant.image,
+        rating: restaurant.rating,
+        distance: restaurant.distance,
+        type: 'restaurant' as const
+      };
     }
-  };
+    
+    if (mockStore) {
+      return {
+        id: mockStore.id,
+        name: mockStore.name,
+        image: mockStore.storeImageUrl,
+        rating: mockStore.rating,
+        distance: `${mockStore.city}, ${mockStore.province}`,
+        type: 'store' as const
+      };
+    }
+    
+    return null;
+  }, [id]);
+
+  // Generate mock conversation
+  useEffect(() => {
+    if (!store) return;
+
+    // Generate contextual messages based on store type
+    const isGroceryStore = store.type === 'store' || store.name.toLowerCase().includes('market') || store.name.toLowerCase().includes('organic');
+    
+    const mockMessages: Message[] = [
+      {
+        id: '1',
+        text: `Hi! Welcome to ${store.name}. How can we help you today?`,
+        timestamp: '10:30 AM',
+        isFromUser: false,
+        isRead: true,
+      },
+      {
+        id: '2',
+        text: isGroceryStore 
+          ? 'Hi! I wanted to ask about the organic produce you have available.'
+          : 'Hello! I saw your menu and wanted to ask about your popular items.',
+        timestamp: '10:32 AM',
+        isFromUser: true,
+        isRead: true,
+      },
+      {
+        id: '3',
+        text: isGroceryStore
+          ? 'Great choice! We have fresh organic produce delivered daily. Our popular items include organic apples, leafy greens, and seasonal vegetables. What are you looking for specifically?'
+          : 'Thanks for your interest! Our most popular items are freshly prepared and we use locally sourced ingredients. What type of cuisine are you in the mood for?',
+        timestamp: '10:33 AM',
+        isFromUser: false,
+        isRead: true,
+      },
+      {
+        id: '4',
+        text: isGroceryStore
+          ? 'Perfect! Do you have any Honeycrisp apples in stock?'
+          : 'I\'d love to try something healthy and fresh. What do you recommend?',
+        timestamp: '10:35 AM',
+        isFromUser: true,
+        isRead: true,
+      },
+      {
+        id: '5',
+        text: isGroceryStore
+          ? 'Yes! We have fresh Honeycrisp apples at $3.99 per lb. They\'re crisp and sweet - perfect for snacking. Would you like me to set some aside for you?'
+          : 'I recommend our fresh salad bowls with seasonal ingredients! We also have fruit smoothies made with local produce. Would you like to see our healthy menu options?',
+        timestamp: '10:36 AM',
+        isFromUser: false,
+        isRead: false,
+      },
+    ];
+
+    setMessages(mockMessages);
+  }, [store]);
+
+  // Keyboard event listeners
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        // Scroll to bottom when keyboard appears
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
+
+  // Memoize callback functions to prevent re-renders
+  const scrollToBottom = useCallback(() => {
+    flatListRef.current?.scrollToEnd({ animated: false });
+  }, []);
+
+  const handleSendMessage = useCallback(() => {
+    if (message.trim().length === 0) return;
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text: message.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isFromUser: true,
+      isRead: false,
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    setMessage('');
+
+    // Auto-scroll to bottom
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+
+    // Simulate store response after 2 seconds
+    setTimeout(() => {
+      const isGroceryStore = store?.type === 'store' || store?.name.toLowerCase().includes('market') || store?.name.toLowerCase().includes('organic');
+      
+      const responses = isGroceryStore ? [
+        "Thanks for your message! Let me check our current inventory for you.",
+        "I'll verify what we have in stock and get back to you shortly.",
+        "Great! I'll make sure to have that ready for pickup.",
+        "Perfect! Is there anything else from our fresh selection I can help you with?",
+        "Let me check with our produce team about availability.",
+        "I'll set that aside for you. When would you like to pick it up?",
+      ] : [
+        "Thanks for your message! I'll get back to you shortly.",
+        "Let me check that for you with our kitchen team.",
+        "I'll make sure to have that prepared for you!",
+        "Great! Is there anything else from our menu I can help you with?",
+        "Let me see what our chef recommends today.",
+        "Perfect! Would you like to place an order or ask about ingredients?",
+      ];
+      
+      const storeResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        text: responses[Math.floor(Math.random() * responses.length)] || "Thanks for your message!",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isFromUser: false,
+        isRead: false,
+      };
+
+      setMessages(prev => [...prev, storeResponse]);
+      
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }, 2000);
+  }, [message, store]);
+
+  const renderMessage = ({ item }: { item: Message }) => (
+    <View style={[
+      styles.messageContainer,
+      item.isFromUser ? styles.userMessageContainer : styles.storeMessageContainer
+    ]}>
+      <View style={[
+        styles.messageBubble,
+        item.isFromUser ? styles.userMessageBubble : styles.storeMessageBubble
+      ]}>
+        <Text style={[
+          styles.messageText,
+          item.isFromUser ? styles.userMessageText : styles.storeMessageText
+        ]}>
+          {item.text}
+        </Text>
+        <Text style={[
+          styles.messageTime,
+          item.isFromUser ? styles.userMessageTime : styles.storeMessageTime
+        ]}>
+          {item.timestamp}
+        </Text>
+      </View>
+    </View>
+  );
+
+  if (!store) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Store not found</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <View style={styles.sellerInfo}>
-          <Image source={{ uri: sellerInfo.avatar }} style={styles.headerAvatar} />
-          <Text style={styles.sellerName}>{sellerInfo.name}</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          
+          <View style={styles.headerInfo}>
+            <Image source={{ uri: store.image }} style={styles.storeAvatar} />
+            <View style={styles.storeInfo}>
+              <Text style={styles.storeName} numberOfLines={1}>
+                {store.name}
+              </Text>
+              <Text style={styles.storeStatus}>Online</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.headerAction}>
+            <Ionicons name="ellipsis-vertical" size={24} color="black" />
+          </TouchableOpacity>
         </View>
-        <MaterialIcons name="more-vert" size={24} color={colors.text.primary} />
-      </View>
-      
-      <FlatList
-        data={mockMessages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMessage}
-        contentContainerStyle={styles.messagesContainer}
-        showsVerticalScrollIndicator={false}
-        inverted={false}
-      />
-      
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.messageInput}
-          placeholder="Type a message..."
-          value={message}
-          onChangeText={setMessage}
-          multiline
+
+        {/* Messages List */}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          style={styles.messagesList}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={scrollToBottom}
         />
-        <TouchableOpacity 
-          style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
-          onPress={sendMessage}
-          disabled={!message.trim()}
-        >
-          <MaterialIcons 
-            name="send" 
-            size={20} 
-            color={message.trim() ? colors.white : colors.text.tertiary} 
-          />
-        </TouchableOpacity>
+
+        {/* Input Area */}
+        <View style={[styles.inputContainer, { marginBottom: keyboardHeight }]}>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.textInput}
+              value={message}
+              onChangeText={setMessage}
+              placeholder={`Message ${store?.name || 'store'}...`}
+              placeholderTextColor={colors.text.secondary}
+              multiline
+              maxLength={500}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                message.trim().length === 0 && styles.sendButtonDisabled
+              ]}
+              onPress={handleSendMessage}
+              disabled={message.trim().length === 0}
+            >
+              <Ionicons 
+                name="send" 
+                size={20} 
+                color={message.trim().length > 0 ? colors.text.inverse : colors.text.secondary} 
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -151,118 +315,156 @@ export default function ChatDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.background.tertiary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.background.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.primary,
   },
-  sellerInfo: {
+  headerBackButton: {
+    padding: spacing.xs,
+    marginRight: spacing.sm,
+  },
+  headerInfo: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  headerAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  storeAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     marginRight: spacing.sm,
   },
-  sellerName: {
+  storeInfo: {
+    flex: 1,
+  },
+  storeName: {
     fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.semibold as any,
+    fontWeight: typography.fontWeights.semibold,
     color: colors.text.primary,
   },
-  messagesContainer: {
-    padding: spacing.lg,
-    paddingBottom: 0,
+  storeStatus: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.success,
+    marginTop: 2,
+  },
+  headerAction: {
+    padding: spacing.xs,
+    marginLeft: spacing.sm,
+  },
+  messagesList: {
+    flex: 1,
+  },
+  messagesContent: {
+    paddingVertical: spacing.sm,
   },
   messageContainer: {
-    flexDirection: 'row',
-    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
+    marginVertical: spacing.xs,
+  },
+  userMessageContainer: {
     alignItems: 'flex-end',
   },
-  sellerMessageContainer: {
-    justifyContent: 'flex-start',
-  },
-  buyerMessageContainer: {
-    justifyContent: 'flex-end',
-  },
-  avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    marginRight: spacing.sm,
+  storeMessageContainer: {
+    alignItems: 'flex-start',
   },
   messageBubble: {
     maxWidth: '80%',
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radii.lg,
   },
-  sellerBubble: {
-    backgroundColor: colors.background.tertiary,
-    borderBottomLeftRadius: 4,
-  },
-  buyerBubble: {
+  userMessageBubble: {
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: radii.xs,
   },
-  senderName: {
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold as any,
-    color: colors.text.secondary,
-    marginBottom: 4,
+  storeMessageBubble: {
+    backgroundColor: colors.background.primary,
+    borderBottomLeftRadius: radii.xs,
   },
   messageText: {
     fontSize: typography.fontSizes.md,
     lineHeight: typography.lineHeights.normal * typography.fontSizes.md,
   },
-  sellerText: {
+  userMessageText: {
+    color: colors.text.inverse,
+  },
+  storeMessageText: {
     color: colors.text.primary,
   },
-  buyerText: {
-    color: colors.white,
-  },
-  timestamp: {
+  messageTime: {
     fontSize: typography.fontSizes.xs,
-    color: colors.text.tertiary,
-    marginTop: 4,
+    marginTop: spacing.xs,
+  },
+  userMessageTime: {
+    color: colors.text.inverse,
+    opacity: 0.8,
     textAlign: 'right',
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: spacing.lg,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.primary,
+  storeMessageTime: {
+    color: colors.text.secondary,
   },
-  messageInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-    borderRadius: radii.xl,
+  inputContainer: {
+    backgroundColor: 'transparent',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    marginRight: spacing.sm,
-    maxHeight: 100,
+    paddingBottom: spacing.lg,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: colors.background.primary,
+    borderRadius: radii.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    minHeight: 44,
+  },
+  textInput: {
+    flex: 1,
     fontSize: typography.fontSizes.md,
     color: colors.text.primary,
+    maxHeight: 100,
+    paddingVertical: spacing.sm,
+    textAlignVertical: 'top',
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderRadius: radii.full,
+    width: 36,
+    height: 36,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
   },
   sendButtonDisabled: {
-    backgroundColor: colors.background.tertiary,
+    backgroundColor: 'transparent',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  errorText: {
+    fontSize: typography.fontSizes.xl,
+    color: colors.text.primary,
+    marginBottom: spacing.lg,
+  },
+  backButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+  },
+  backButtonText: {
+    color: colors.text.inverse,
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
   },
 });

@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   headerTitle: {
-    fontSize: typography.fontSizes.xxxl,
+    fontSize: typography.fontSizes.xxl,
     fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
   },
