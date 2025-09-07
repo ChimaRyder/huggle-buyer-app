@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
+import { profileMenuItems } from '@/data/profile/menuItems';
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -22,45 +23,6 @@ const ProfileScreen = () => {
     signOut();
     router.replace('/');
   };
-
-  const menuItems = [
-    {
-      id: 'orders',
-      title: 'My Orders',
-      icon: 'receipt-outline',
-      screen: '/(screens)/Orders',
-    },
-    {
-      id: 'favorites',
-      title: 'Favorite Stores',
-      icon: 'heart-outline',
-      screen: '/(screens)/FavoritesScreen',
-    },
-    {
-      id: 'addresses',
-      title: 'Saved Addresses',
-      icon: 'location-outline',
-      screen: 'AddressesScreen',
-    },
-    {
-      id: 'payments',
-      title: 'Payment Methods',
-      icon: 'card-outline',
-      screen: 'PaymentMethodsScreen',
-    },
-    {
-      id: 'settings',
-      title: 'Settings',
-      icon: 'settings-outline',
-      screen: 'SettingsScreen',
-    },
-    {
-      id: 'support',
-      title: 'Help & Support',
-      icon: 'help-circle-outline',
-      screen: 'SupportScreen',
-    },
-  ];
 
   const handleMenuItemPress = (screen: string) => {
     if (screen === '/(screens)/Orders' || screen === '/(screens)/FavoritesScreen') {
@@ -90,7 +52,7 @@ const ProfileScreen = () => {
 
         {/* Menu Items */}
         <View style={styles.menuContainer}>
-          {menuItems.map((item) => (
+          {profileMenuItems.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={styles.menuItem}

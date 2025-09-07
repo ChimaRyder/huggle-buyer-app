@@ -15,26 +15,25 @@ import { useAuth } from "@clerk/clerk-expo";
 import { ReviewCard } from "../../components/review";
 import { fetchReviews } from "../../utils/reviews";
 import { BackendReview } from "../../types/BackendModels";
+import { reviewFilterOptions, reviewSortOptions } from "../../data/reviews/filterOptions";
 
 type FilterType = 'all' | '5' | '4' | '3' | '2' | '1' | 'photos';
 type SortType = 'newest' | 'oldest' | 'highest' | 'lowest';
 
-const FILTER_OPTIONS = [
-  { key: 'all' as FilterType, label: 'All Reviews', icon: 'list' },
-  { key: '5' as FilterType, label: '5 Stars', icon: 'star' },
-  { key: '4' as FilterType, label: '4 Stars', icon: 'star' },
-  { key: '3' as FilterType, label: '3 Stars', icon: 'star' },
-  { key: '2' as FilterType, label: '2 Stars', icon: 'star' },
-  { key: '1' as FilterType, label: '1 Star', icon: 'star' },
-  { key: 'photos' as FilterType, label: 'With Photos', icon: 'camera' },
-];
+// Transform the imported filter options to match the expected structure
+const FILTER_OPTIONS = reviewFilterOptions.map(option => ({
+  key: option.id as FilterType,
+  label: option.label === 'All' ? 'All Reviews' : option.label,
+  icon: option.id === 'all' ? 'list' : option.id === 'photos' ? 'camera' : 'star'
+}));
 
-const SORT_OPTIONS = [
-  { key: 'newest' as SortType, label: 'Newest First' },
-  { key: 'oldest' as SortType, label: 'Oldest First' },
-  { key: 'highest' as SortType, label: 'Highest Rating' },
-  { key: 'lowest' as SortType, label: 'Lowest Rating' },
-];
+// Transform the imported sort options to match the expected structure  
+const SORT_OPTIONS = reviewSortOptions.map(option => ({
+  key: option.id as SortType,
+  label: option.label === 'Newest' ? 'Newest First' : 
+         option.label === 'Oldest' ? 'Oldest First' : 
+         option.label
+}));
 
 export default function AllReviewsScreen() {
   const router = useRouter();

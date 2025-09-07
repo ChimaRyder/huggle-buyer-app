@@ -21,14 +21,7 @@ import {
   BackendOrder,
   OrderStatus,
 } from "../../types/BackendModels";
-
-const tabs = [
-  "Pending",
-  "Confirmed",
-  "Ready for Pickup",
-  "Completed",
-  "Cancelled",
-] as const;
+import { orderStatusTabs } from "../../data/orders/orderTabs";
 
 interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
   productName?: string;
@@ -335,7 +328,7 @@ const Orders = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabsScrollContainer}
         >
-          {tabs.map((tab) => (
+          {orderStatusTabs.map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[
