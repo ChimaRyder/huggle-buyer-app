@@ -45,7 +45,7 @@ const HomeScreen = () => {
   };
 
   const handleCategoryPress = (categoryId: string) => {
-    router.push({ pathname: '/(screens)/TrendingProductsScreen', params: { productType: categoryId } });
+    router.push({ pathname: '/(screens)/food/CategoryScreen', params: { categoryId: categoryId } });
   };
 
   const handleCartPress = () => {
