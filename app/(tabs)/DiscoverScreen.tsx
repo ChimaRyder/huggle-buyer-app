@@ -207,7 +207,7 @@ const DiscoverScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.tertiary,
   },
   header: {
     flexDirection: 'row',

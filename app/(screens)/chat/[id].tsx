@@ -302,7 +302,7 @@ export default function ChatScreen() {
               <Ionicons 
                 name="send" 
                 size={20} 
-                color={message.trim().length > 0 ? colors.text.inverse : colors.text.secondary} 
+                color={message.trim().length > 0 ? colors.successDark : colors.text.tertiary} 
               />
             </TouchableOpacity>
           </View>

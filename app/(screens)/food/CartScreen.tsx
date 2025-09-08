@@ -54,7 +54,7 @@ const CartScreen = () => {
       Alert.alert('Empty Cart', 'Please add items to your cart before checkout');
       return;
     }
-    router.push('/screens/food/OrderConfirmationScreen');
+    router.push('/(screens)/food/OrderConfirmationScreen');
   };
 
   const handleIncrease = (id: string) => {
@@ -213,7 +213,7 @@ const CartScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background.secondary, // Light gray background for better contrast
+    backgroundColor: colors.background.tertiary, // Light gray background
   },
   header: {
     flexDirection: 'row',

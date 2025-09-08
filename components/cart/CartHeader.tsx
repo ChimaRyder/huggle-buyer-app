@@ -17,7 +17,7 @@ const CartHeader: React.FC<CartHeaderProps> = ({ onBack, title }) => {
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={onBack} style={styles.headerButton}>
-        <Ionicons name="arrow-back" size={24} color="#000000" />
+        <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>{title}</Text>
       <View style={styles.headerSpacer} />
@@ -32,8 +32,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: colors.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    borderBottomColor: colors.border.primary,
   },
   headerButton: {
     padding: 4,
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.primary,
   },
   headerSpacer: {
     width: 32,

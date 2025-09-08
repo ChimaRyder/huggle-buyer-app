@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/constants/theme';
 
 const OrderConfirmationScreen = () => {
   const router = useRouter();
@@ -21,7 +22,7 @@ const OrderConfirmationScreen = () => {
       <View style={styles.container}>
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
+            <Ionicons name="checkmark-circle" size={80} color={colors.success} />
           </View>
           
           <Text style={styles.title}>Order Placed Successfully!</Text>
@@ -50,7 +51,7 @@ const OrderConfirmationScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.tertiary,
   },
   container: {
     flex: 1,
@@ -68,36 +69,36 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.text.primary,
     textAlign: 'center',
     marginBottom: 16,
   },
   description: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.text.secondary,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
   },
   orderInfo: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: colors.background.primary,
     borderRadius: 12,
     padding: 16,
     width: '100%',
   },
   orderLabel: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: colors.text.secondary,
     marginBottom: 4,
   },
   orderValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.primary,
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.success,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text.inverse,
   },
 });
 

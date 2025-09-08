@@ -227,31 +227,30 @@ const NotificationScreen = () => {
   return (
     <MenuProvider>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color={colors.text.primary}
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Notifications</Text>
+          <TouchableOpacity 
+            style={styles.markAllButton}
+            onPress={markAllAsRead}
+          >
+            <Ionicons
+              name="checkmark-done"
+              size={24}
+              color={colors.text.primary}
+            />
+          </TouchableOpacity>
+        </View>
         <View style={styles.container}>
-          <View style={styles.headerContainer}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons
-                name="arrow-back"
-                size={24}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-            <Text style={styles.header}>Notifications</Text>
-            <TouchableOpacity 
-              style={styles.markAllButton}
-              onPress={markAllAsRead}
-            >
-              <Ionicons
-                name="checkmark-done"
-                size={24}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.divider} />
           <FlatList
             data={notifications}
             keyExtractor={(item) => item.id}
@@ -264,7 +263,7 @@ const NotificationScreen = () => {
                 tintColor={colors.primary}
               />
             }
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 }}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Ionicons 
@@ -315,51 +314,47 @@ const formatTimeAgo = (dateString: string) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.tertiary,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.tertiary,
     paddingHorizontal: 16,
   },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-    minHeight: 44, // Ensures vertical centering and proper touch target size
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
   },
   backButton: {
-    padding: 8,
-    marginRight: 8,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  header: {
+  headerTitle: {
     fontSize: 22,
-    fontFamily: "Poppins-SemiBold",
+    fontWeight: '700',
     color: colors.text.primary,
-    flex: 1,
-    textAlign: "center",
   },
   markAllButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.primary,
-    marginBottom: 16,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   card: {
     flexDirection: "row",
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.primary,
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
     borderLeftWidth: 4,
     borderLeftColor: colors.primary,
   },
@@ -384,7 +379,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
-    fontFamily: "Poppins-SemiBold",
+    fontWeight: '600',
     color: colors.text.primary,
     marginBottom: 2,
   },
@@ -392,17 +387,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text.secondary,
     marginBottom: 4,
-    fontFamily: "Poppins-Regular",
+    fontWeight: '400',
   },
   date: {
     fontSize: 12,
     color: colors.text.tertiary,
-    fontFamily: "Poppins-Regular",
+    fontWeight: '400',
   },
   menuOptionText: {
     padding: 8,
     fontSize: 14,
-    fontFamily: "Poppins-Regular",
+    fontWeight: '400',
   },
   emptyContainer: {
     flex: 1,
@@ -412,7 +407,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 20,
-    fontFamily: "Poppins-SemiBold",
+    fontWeight: '600',
     color: colors.text.primary,
     marginTop: 16,
     marginBottom: 8,
@@ -420,7 +415,7 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: colors.text.secondary,
-    fontFamily: "Poppins-Regular",
+    fontWeight: '400',
     textAlign: "center",
     paddingHorizontal: 32,
   },
