@@ -24,22 +24,10 @@ export const profileMenuItems: ProfileMenuItem[] = [
     screen: '/(screens)/FavoritesScreen',
   },
   {
-    id: 'addresses',
-    title: 'Saved Addresses',
-    icon: 'location-outline',
-    screen: 'AddressesScreen',
-  },
-  {
-    id: 'payments',
-    title: 'Payment Methods',
-    icon: 'card-outline',
-    screen: 'PaymentMethodsScreen',
-  },
-  {
     id: 'settings',
     title: 'Settings',
     icon: 'settings-outline',
-    screen: 'SettingsScreen',
+    screen: '/(screens)/SettingsScreen',
   },
   {
     id: 'support',
