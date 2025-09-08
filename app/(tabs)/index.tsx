@@ -71,7 +71,7 @@ const HomeScreen = () => {
   };
 
   const handleLocationPress = () => {
-    router.push('/screens/MapsScreen');
+    router.push('/(screens)/MapsScreen');
   };
 
   return (

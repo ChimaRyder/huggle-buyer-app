@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -11,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { restaurants } from '@/data/food/mockData';
-import { colors } from '@/constants/theme';
+import { colors, spacing, typography } from '@/constants/theme';
 
 const FavoritesScreen = () => {
   const router = useRouter();
@@ -20,7 +21,11 @@ const FavoritesScreen = () => {
   const favoriteRestaurants = restaurants.filter(restaurant => restaurant.isFavorite);
   
   const handleRestaurantPress = (id: string) => {
-    router.push(`/screens/food/RestaurantDetailScreen?id=${id}`);
+    router.push(`/(screens)/StoreHomepageScreen?id=${id}`);
+  };
+
+  const handleBackPress = () => {
+    router.back();
   };
   
   const handleToggleFavorite = (id: string) => {
@@ -31,8 +36,11 @@ const FavoritesScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
-        <Ionicons name="heart" size={24} color={colors.primary} style={styles.headerIcon} />
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Favorite Stores</Text>
+        <View style={styles.headerPlaceholder} />
       </View>
       
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -64,48 +72,60 @@ const FavoritesScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.tertiary,
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background.primary,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.primary,
   },
-  headerIcon: {
-    marginRight: 12,
+  backButton: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerPlaceholder: {
+    width: 24, // Same width as icons for centering
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
   },
   container: {
     flex: 1,
+    backgroundColor: colors.background.tertiary,
   },
   restaurantsContainer: {
-    padding: 16,
+    padding: spacing.lg,
+    paddingBottom: 120, // Extra bottom padding for better scrolling experience
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 64,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxxl,
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   emptyDescription: {
-    fontSize: 16,
-    color: colors.text.tertiary,
+    fontSize: typography.fontSizes.md,
+    color: colors.text.secondary,
     textAlign: 'center',
+    lineHeight: typography.lineHeights.normal * typography.fontSizes.md,
   },
 });
 

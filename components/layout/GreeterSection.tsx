@@ -176,7 +176,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
               <Text
                 style={[
                   styles.locationText,
-                  { textDecorationLine: "underline", color: colors.text.tertiary },
+                  { color: colors.text.tertiary },
                 ]}
               >
                 {location}
