@@ -81,7 +81,7 @@ const DiscoverScreen = () => {
   };
 
   const handlePostPress = (post: Post) => {
-    router.push(`/(screens)/PostScreen?id=${post.id}`);
+    router.push(`/(screens)/store/PostScreen?id=${post.id}`);
   };
 
   const formatLikes = (likes: number): string => {

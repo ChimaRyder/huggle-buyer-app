@@ -56,7 +56,7 @@ const FeaturedPostCard: React.FC<FeaturedPostCardProps> = ({ post }) => {
   };
 
   const handlePress = () => {
-    router.push(`/(screens)/PostScreen?id=${post.id}`);
+    router.push(`/(screens)/store/PostScreen?id=${post.id}`);
   };
 
   const handleLike = () => {
@@ -64,7 +64,7 @@ const FeaturedPostCard: React.FC<FeaturedPostCardProps> = ({ post }) => {
   };
 
   const handleStorePress = () => {
-    router.push(`/(screens)/StoreHomepageScreen?id=${post.storeId}`);
+    router.push(`/(screens)/store/StoreHomepageScreen?id=${post.storeId}`);
   };
 
   return (
@@ -136,7 +136,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderRadius: radii.xl,
     overflow: 'hidden',
-    ...shadows.md,
   },
   postImage: {
     width: width - (spacing.md * 2),

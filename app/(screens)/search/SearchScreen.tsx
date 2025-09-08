@@ -64,7 +64,7 @@ const SearchScreen = () => {
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
       router.push({
-        pathname: '/(screens)/SearchResultsScreen',
+        pathname: '/(screens)/search/SearchResultsScreen',
         params: { query: searchQuery }
       });
     }
@@ -74,17 +74,17 @@ const SearchScreen = () => {
     // For categories and restaurants, we can search directly
     if (suggestion.type === 'category') {
       router.push({
-        pathname: '/(screens)/SearchResultsScreen',
+        pathname: '/(screens)/search/SearchResultsScreen',
         params: { query: suggestion.text }
       });
     } else if (suggestion.type === 'restaurant') {
       router.push({
-        pathname: '/(screens)/SearchResultsScreen',
+        pathname: '/(screens)/search/SearchResultsScreen',
         params: { query: suggestion.text }
       });
     } else if (suggestion.type === 'food') {
       router.push({
-        pathname: '/(screens)/SearchResultsScreen',
+        pathname: '/(screens)/search/SearchResultsScreen',
         params: { query: suggestion.text }
       });
     }

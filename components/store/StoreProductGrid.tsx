@@ -289,7 +289,7 @@ const StoreProductGrid: React.FC<StoreProductGridProps> = ({
     <TouchableOpacity
       key={product.id}
       style={styles.card}
-      onPress={() => router.push(`/(screens)/ProductScreen?id=${product.id}`)}
+      onPress={() => router.push(`/(screens)/store/ProductScreen?id=${product.id}`)}
     >
       <View style={styles.imageContainer}>
         <Image source={product.image} style={styles.image} />

@@ -74,8 +74,8 @@ const MasonryFeed: React.FC<MasonryFeedProps> = ({
         onPress={() =>
           router.push(
             isProduct
-              ? { pathname: "/(screens)/ProductScreen", params: { id: item.id } }
-              : { pathname: "/(screens)/PostScreen", params: { id: item.id } }
+              ? { pathname: "/(screens)/store/ProductScreen", params: { id: item.id } }
+              : { pathname: "/(screens)/store/PostScreen", params: { id: item.id } }
           )
         }
       >

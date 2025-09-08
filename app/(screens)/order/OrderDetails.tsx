@@ -17,11 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { MockOrderService, MockProductService, MockStoreService } from "../../data/mockServices";
-import type { BackendOrder, BackendProduct, BackendStore } from "../../types/BackendModels";
-import { OrderStatus } from "../../types/BackendModels";
-import { ProductListCard } from "../../components/product";
-import { OrderMap } from "../../components/order";
+import { MockOrderService, MockProductService, MockStoreService } from "@/data/mockServices";
+import type { BackendOrder, BackendProduct, BackendStore } from "@/types/BackendModels";
+import { OrderStatus } from "@/types/BackendModels";
+import { ProductListCard } from "@/components/product";
+import { OrderMap } from "@/components/order";
 import { colors, spacing, typography, shadows } from "@/constants/theme";
 
 interface OrderDetailsProps {
@@ -138,7 +138,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
 
   const handleWriteReview = (productId: string) => {
     router.push({
-      pathname: "/(screens)/ReviewProductScreen",
+      pathname: "/(screens)/order/ReviewProductScreen",
       params: { productId, storeId: order?.storeId }
     });
   };
@@ -290,7 +290,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
                   const restaurantId = storeIdMap[store?.id as keyof typeof storeIdMap] || store?.id;
                   
                   router.push({
-                    pathname: "/(screens)/StoreHomepageScreen",
+                    pathname: "/(screens)/store/StoreHomepageScreen",
                     params: { id: restaurantId }
                   });
                 }}

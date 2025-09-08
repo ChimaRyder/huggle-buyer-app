@@ -15,19 +15,19 @@ export const profileMenuItems: ProfileMenuItem[] = [
     id: 'orders',
     title: 'My Orders',
     icon: 'receipt-outline',
-    screen: '/(screens)/Orders',
+    screen: '/(screens)/order/Orders',
   },
   {
     id: 'favorites',
     title: 'Favorite Stores',
     icon: 'heart-outline',
-    screen: '/(screens)/FavoritesScreen',
+    screen: '/(screens)/profile/FavoritesScreen',
   },
   {
     id: 'settings',
     title: 'Settings',
     icon: 'settings-outline',
-    screen: '/(screens)/SettingsScreen',
+    screen: '/(screens)/profile/SettingsScreen',
   },
   {
     id: 'support',

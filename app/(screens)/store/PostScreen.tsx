@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
-import { MockPostService, MockStoreService } from "../../data/mockServices";
+import { MockPostService, MockStoreService } from "@/data/mockServices";
 import { colors, spacing, typography } from "@/constants/theme";
 
 const { width } = Dimensions.get("window");
@@ -150,7 +150,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
       const restaurantId = storeIdMap[post.storeId as keyof typeof storeIdMap] || post.storeId;
       
       router.push({
-        pathname: "/(screens)/StoreHomepageScreen",
+        pathname: "/(screens)/store/StoreHomepageScreen",
         params: { id: restaurantId },
       });
     }

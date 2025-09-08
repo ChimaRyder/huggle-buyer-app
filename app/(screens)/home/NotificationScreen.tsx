@@ -104,19 +104,19 @@ const mockNotifications: Notification[] = [
 const getIconForType = (type: NotificationType) => {
   switch (type) {
     case "OrderReady":
-      return require("../../assets/icons/bell.png");
+      return require("@/assets/icons/bell.png");
     case "OrderConfirmed":
-      return require("../../assets/icons/bell.png");
+      return require("@/assets/icons/bell.png");
     case "NewProduct":
-      return require("../../assets/icons/bell.png");
+      return require("@/assets/icons/bell.png");
     case "PriceDrop":
-      return require("../../assets/icons/bell.png");
+      return require("@/assets/icons/bell.png");
     case "SeasonalOffer":
-      return require("../../assets/icons/bell.png");
+      return require("@/assets/icons/bell.png");
     case "DeliveryUpdate":
-      return require("../../assets/icons/location.png");
+      return require("@/assets/icons/location.png");
     default:
-      return require("../../assets/icons/bell.png");
+      return require("@/assets/icons/bell.png");
   }
 };
 
@@ -155,9 +155,9 @@ const NotificationScreen = () => {
     
     // Navigate based on notification type
     if (notif.type === "OrderReady" || notif.type === "OrderConfirmed" || notif.type === "DeliveryUpdate") {
-      router.push("/(screens)/Orders");
+      router.push("/(screens)/order/Orders");
     } else if (notif.type === "NewProduct") {
-      router.push("/(screens)/SearchScreen");
+      router.push("/(screens)/search/SearchScreen");
     }
   };
 

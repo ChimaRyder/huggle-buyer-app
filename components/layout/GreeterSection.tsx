@@ -134,7 +134,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
     const router = useRouter();
     return (
       <TouchableOpacity
-        onPress={() => router.push("/(screens)/NotificationScreen")}
+        onPress={() => router.push("/(screens)/home/NotificationScreen")}
         style={{ position: "relative" }}
         activeOpacity={0.7}
       >

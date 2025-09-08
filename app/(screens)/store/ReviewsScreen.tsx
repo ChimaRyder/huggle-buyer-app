@@ -10,11 +10,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from "react-native";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ReviewCard } from "../../components/review";
-import { colors } from "../../constants/theme";
-import { getMockReviewsByProductId, getMockReviewsByStoreId } from "../../data/mockData";
-import { BackendReview } from "../../types/BackendModels";
-import { foodItems } from "../../data/food/mockData";
+import { ReviewCard } from "@/components/review";
+import { colors } from "@/constants/theme";
+import { getMockReviewsByProductId, getMockReviewsByStoreId } from "@/data/mockData";
+import { BackendReview } from "@/types/BackendModels";
+import { foodItems } from "@/data/food/mockData";
 
 
 export default function ReviewsScreen() {

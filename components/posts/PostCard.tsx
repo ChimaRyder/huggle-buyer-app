@@ -45,7 +45,7 @@ const PostCard: React.FC<PostCardProps> = ({
   };
 
   const handlePress = () => {
-    router.push(`/(screens)/PostScreen?id=${post.id}`);
+    router.push(`/(screens)/store/PostScreen?id=${post.id}`);
   };
 
   // Calculate size based on prop

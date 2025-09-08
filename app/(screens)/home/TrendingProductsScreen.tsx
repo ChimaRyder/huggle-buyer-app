@@ -4,9 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing, typography } from "@/constants/theme";
-import { ProductGrid } from "../../components/product";
-import { foodItems } from "../../data/food/mockData";
-import { FoodItem } from "../../data/food/models";
+import { ProductGrid } from "@/components/product";
+import { foodItems } from "@/data/food/mockData";
+import { FoodItem } from "@/data/food/models";
 
 export default function TrendingProductsScreen() {
   const { productType } = useLocalSearchParams();
@@ -35,7 +35,7 @@ export default function TrendingProductsScreen() {
   }, [productType]);
 
   const handleProductPress = (productId: string) => {
-    router.push(`/(screens)/ProductScreen?id=${productId}`);
+    router.push(`/(screens)/store/ProductScreen?id=${productId}`);
   };
 
   const handleBackPress = () => {

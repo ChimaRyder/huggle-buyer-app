@@ -53,14 +53,14 @@ const SearchResultsScreen = () => {
 
   const handleStorePress = (id: string) => {
     router.push({
-      pathname: "/(screens)/StoreHomepageScreen",
+      pathname: "/(screens)/store/StoreHomepageScreen",
       params: { id },
     });
   };
 
   const handleProductPress = (id: string) => {
     router.push({
-      pathname: "/(screens)/ProductScreen",
+      pathname: "/(screens)/store/ProductScreen",
       params: { id },
     });
   };
@@ -94,7 +94,7 @@ const SearchResultsScreen = () => {
           onFocus={() => {
             // Navigate back to the search screen
             router.back();
-            router.replace({pathname: '/(screens)/SearchScreen', params: {initialQuery: searchQuery}});
+            router.replace({pathname: '/(screens)/search/SearchScreen', params: {initialQuery: searchQuery}});
           }}
         />
       </View>

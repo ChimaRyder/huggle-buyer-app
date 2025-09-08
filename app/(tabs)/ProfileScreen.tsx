@@ -25,7 +25,7 @@ const ProfileScreen = () => {
   };
 
   const handleMenuItemPress = (screen: string) => {
-    if (screen === '/(screens)/Orders' || screen === '/(screens)/FavoritesScreen' || screen === '/(screens)/SettingsScreen') {
+    if (screen === '/(screens)/order/Orders' || screen === '/(screens)/profile/FavoritesScreen' || screen === '/(screens)/profile/SettingsScreen') {
       router.push(screen);
     } else {
       // For now, we'll just show an alert since these screens don't exist yet

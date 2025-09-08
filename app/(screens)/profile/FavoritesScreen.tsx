@@ -21,7 +21,7 @@ const FavoritesScreen = () => {
   const favoriteRestaurants = restaurants.filter(restaurant => restaurant.isFavorite);
   
   const handleRestaurantPress = (id: string) => {
-    router.push(`/(screens)/StoreHomepageScreen?id=${id}`);
+    router.push(`/(screens)/store/StoreHomepageScreen?id=${id}`);
   };
 
   const handleBackPress = () => {

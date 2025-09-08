@@ -72,7 +72,7 @@ export const CategoryCarousel: React.FC = () => {
           style={styles.categoryButton}
           onPress={() => {
             router.push({
-              pathname: '/(screens)/TrendingProductsScreen',
+              pathname: '/(screens)/home/TrendingProductsScreen',
               params: { productType: category.id },
             });
           }}

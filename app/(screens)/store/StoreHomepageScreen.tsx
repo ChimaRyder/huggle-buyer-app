@@ -80,7 +80,7 @@ export default function StoreHomepageScreen() {
   };
 
   const handleProductPress = (productId: string) => {
-    router.push(`/(screens)/ProductScreen?id=${productId}`);
+    router.push(`/(screens)/store/ProductScreen?id=${productId}`);
   };
 
   // Render category item
@@ -211,7 +211,7 @@ export default function StoreHomepageScreen() {
           <Text style={styles.dotSeparator}> • </Text>
           <TouchableOpacity 
             style={styles.reviewsContainer}
-            onPress={() => router.push(`/(screens)/ReviewsScreen?id=${id}`)}
+            onPress={() => router.push(`/(screens)/store/ReviewsScreen?id=${id}`)}
           >
             <Text style={styles.ratingText}>{store.rating}</Text>
             <Ionicons name="star" size={16} color={colors.warning} />

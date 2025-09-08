@@ -54,7 +54,7 @@ const CartScreen = () => {
       Alert.alert('Empty Cart', 'Please add items to your cart before checkout');
       return;
     }
-    router.push('/(screens)/food/OrderConfirmationScreen');
+    router.push('/(screens)/cart/OrderConfirmationScreen');
   };
 
   const handleIncrease = (id: string) => {

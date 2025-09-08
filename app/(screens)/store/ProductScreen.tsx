@@ -68,11 +68,11 @@ export default function ProductScreen() {
   };
 
   const navigateToStore = () => {
-    router.push(`/(screens)/StoreHomepageScreen?id=${store.id}`);
+    router.push(`/(screens)/store/StoreHomepageScreen?id=${store.id}`);
   };
 
   const handleViewAllReviews = () => {
-    router.push(`/(screens)/ReviewsScreen?id=${store.id}&productId=${product.id}`);
+    router.push(`/(screens)/store/ReviewsScreen?id=${store.id}&productId=${product.id}`);
   };
 
   const handleReviewScroll = (event) => {

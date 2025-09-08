@@ -13,9 +13,9 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
-import { updateBuyerLocation } from "../../utils/api";
+import { updateBuyerLocation } from "@/utils/api";
 import * as Location from "expo-location";
-import { fetchBuyerById } from "../../utils/user";
+import { fetchBuyerById } from "@/utils/user";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height } = Dimensions.get("window");

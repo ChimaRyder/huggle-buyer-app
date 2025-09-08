@@ -13,15 +13,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { OrderCard } from "../../components/order";
-import { ConfirmationModal } from "../../components/common";
-import { mockOrders } from "../../data/mockData";
+import { OrderCard } from "@/components/order";
+import { ConfirmationModal } from "@/components/common";
+import { mockOrders } from "@/data/mockData";
 import { colors, spacing, typography } from "@/constants/theme";
 import {
   BackendOrder,
   OrderStatus,
-} from "../../types/BackendModels";
-import { orderStatusTabs } from "../../data/orders/orderTabs";
+} from "@/types/BackendModels";
+import { orderStatusTabs } from "@/data/orders/orderTabs";
 
 interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
   productName?: string;
@@ -93,7 +93,7 @@ const Orders = () => {
 
           // Compose items array for multi-item support
           const items = productIds.map((_, idx) => ({
-            image: require("../../assets/images/sample-store.jpg"),
+            image: require("@/assets/images/sample-store.jpg"),
             name: productNames[idx] || "Unknown Product",
             price: order.unitPrices && order.unitPrices[idx] 
               ? `₱${Number(order.unitPrices[idx]).toFixed(2)}` 
@@ -212,7 +212,7 @@ const Orders = () => {
 
   const handleOrderPress = (order: EnrichedOrder) => {
     router.push({
-      pathname: "/(screens)/OrderDetails" as any,
+      pathname: "/(screens)/order/OrderDetails" as any,
       params: {
         orderId: order.id,
         isReadOnly: "true",
@@ -395,7 +395,7 @@ const Orders = () => {
                       | "Cancelled",
                     image: order.productImage
                       ? order.productImage
-                      : require("../../assets/images/sample-store.jpg"),
+                      : require("@/assets/images/sample-store.jpg"),
                     items: order.items || [],
                     totalPrice: order.totalPrice || "₱0.00",
                   }}

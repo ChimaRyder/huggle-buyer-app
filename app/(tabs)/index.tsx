@@ -36,7 +36,7 @@ const HomeScreen = () => {
   };
 
   const handleRestaurantPress = (id: string) => {
-    router.push(`/(screens)/StoreHomepageScreen?id=${id}`);
+    router.push(`/(screens)/store/StoreHomepageScreen?id=${id}`);
   };
 
   const handleToggleFavorite = (id: string) => {
@@ -45,33 +45,33 @@ const HomeScreen = () => {
   };
 
   const handleCategoryPress = (categoryId: string) => {
-    router.push({ pathname: '/(screens)/food/CategoryScreen', params: { categoryId: categoryId } });
+    router.push({ pathname: '/(screens)/home/CategoryScreen', params: { categoryId: categoryId } });
   };
 
   const handleCartPress = () => {
-    router.push('/(screens)/food/CartScreen');
+    router.push('/(screens)/cart/CartScreen');
   };
 
   const handleSearchFocus = () => {
-    router.push('/(screens)/SearchScreen');
+    router.push('/(screens)/search/SearchScreen');
   };
 
   const handleFoodItemPress = (itemId: string) => {
-    router.push(`/(screens)/ProductScreen?id=${itemId}`);
+    router.push(`/(screens)/store/ProductScreen?id=${itemId}`);
   };
 
   const handleSeeAllTrendingItems = () => {
-    router.push('/(screens)/TrendingProductsScreen');
+    router.push('/(screens)/home/TrendingProductsScreen');
   };
 
   const handleSeeAllPopularStores = () => {
     // For now, we'll navigate to a search screen with a filter for popular stores
     // You might want to create a dedicated screen for this later
-    router.push('/(screens)/SearchScreen');
+    router.push('/(screens)/search/SearchScreen');
   };
 
   const handleLocationPress = () => {
-    router.push('/(screens)/MapsScreen');
+    router.push('/(screens)/home/MapsScreen');
   };
 
   return (
