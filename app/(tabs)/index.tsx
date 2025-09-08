@@ -70,6 +70,10 @@ const HomeScreen = () => {
     router.push('/(screens)/SearchScreen');
   };
 
+  const handleLocationPress = () => {
+    router.push('/screens/MapsScreen');
+  };
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -85,7 +89,10 @@ const HomeScreen = () => {
             />
           }
         >
-          <GreeterSection onSearchFocus={handleSearchFocus} />
+          <GreeterSection 
+            onSearchFocus={handleSearchFocus} 
+            onLocationPress={handleLocationPress}
+          />
           
           <CategorySection onCategoryPress={handleCategoryPress} />
           
