@@ -12,9 +12,7 @@ import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ReviewCard } from "@/components/review";
 import { colors } from "@/constants/theme";
-import { getMockReviewsByProductId, getMockReviewsByStoreId } from "@/data/mockData";
 import { BackendReview } from "@/types/BackendModels";
-import { foodItems } from "@/data/food/mockData";
 
 
 export default function ReviewsScreen() {
@@ -23,24 +21,21 @@ export default function ReviewsScreen() {
   
   const [refreshing, setRefreshing] = useState(false);
   
-  // Get reviews based on whether we're showing product-specific or store-wide reviews
-  const reviews: BackendReview[] = productId 
-    ? getMockReviewsByProductId(productId as string)
-    : getMockReviewsByStoreId(storeId as string);
+  // TODO: Get reviews from API based on storeId and productId
+  const reviews: BackendReview[] = [];
   
   // Debug logging
   console.log('ReviewsScreen - storeId:', storeId, 'productId:', productId, 'reviews found:', reviews.length);
 
-  // Helper function to get product name by productId
+  // TODO: Get product name from API
   const getProductName = (productId: string): string | undefined => {
-    const product = foodItems.find(item => item.id === productId);
-    return product?.name;
+    return undefined;
   };
 
-  // Simulate refresh with mock data
+  // TODO: Implement refresh with API call
   const handleRefresh = () => {
     setRefreshing(true);
-    // Simulate API delay
+    // TODO: Call API to refresh reviews
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);

@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radii } from '@/constants/theme';
-import { mockPosts } from '@/data/mockData';
+// TODO: Replace with API call to fetch discover posts
 
 const { width } = Dimensions.get('window');
 const GRID_COLUMNS = 3;
@@ -40,17 +40,8 @@ const DiscoverScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Filter to show only grocery-related posts (posts with grocery store IDs or food-related content)
-  const groceryPosts = mockPosts.filter(post => 
-    post.storeId.includes('grocery') || 
-    post.caption.toLowerCase().includes('fresh') ||
-    post.caption.toLowerCase().includes('organic') ||
-    post.caption.toLowerCase().includes('produce') ||
-    post.caption.toLowerCase().includes('fruit') ||
-    post.caption.toLowerCase().includes('vegetable') ||
-    post.caption.toLowerCase().includes('berry') ||
-    post.caption.toLowerCase().includes('herb')
-  );
+  // TODO: Replace with API call to fetch discover posts
+  const groceryPosts: Post[] = [];
 
   useEffect(() => {
     loadPosts();
@@ -59,14 +50,10 @@ const DiscoverScreen = () => {
   const loadPosts = async () => {
     setLoading(true);
     try {
-      // Simulate API loading delay
+      // TODO: Replace with actual API call to fetch discover posts
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Sort posts by creation date (newest first) and mix in some non-grocery posts for variety
-      const allPosts = [...groceryPosts, ...mockPosts.filter(p => !groceryPosts.includes(p)).slice(0, 3)];
-      const sortedPosts = allPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      setPosts(sortedPosts);
+      setPosts([]);
     } catch (error) {
       console.error('Error loading posts:', error);
     } finally {
@@ -176,6 +163,29 @@ const DiscoverScreen = () => {
             />
           ))}
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        {renderHeader()}
+        <ScrollView
+          contentContainerStyle={styles.emptyContainer}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          <Ionicons name="compass-outline" size={64} color={colors.text.tertiary} />
+          <Text style={styles.emptyTitle}>No posts available</Text>
+          <Text style={styles.emptySubtitle}>Check back later for new content from stores!</Text>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -310,6 +320,26 @@ const styles = StyleSheet.create({
   loadingItem: {
     backgroundColor: colors.background.secondary,
     borderRadius: radii.lg,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  emptyTitle: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.secondary,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: typography.fontSizes.md,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+    lineHeight: typography.lineHeights.normal * typography.fontSizes.md,
   },
 });
 

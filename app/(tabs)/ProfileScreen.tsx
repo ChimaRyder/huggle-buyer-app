@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
-import { profileMenuItems } from '@/data/profile/menuItems';
+// TODO: Replace with API call to fetch user profile menu items
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -23,6 +23,13 @@ const ProfileScreen = () => {
     signOut();
     router.replace('/');
   };
+
+  // TODO: Replace with API call to fetch user profile menu items
+  const profileMenuItems = [
+    { id: 1, title: 'My Orders', icon: 'receipt-outline', screen: '/(screens)/order/Orders' },
+    { id: 2, title: 'Favorites', icon: 'heart-outline', screen: '/(screens)/profile/FavoritesScreen' },
+    { id: 3, title: 'Settings', icon: 'settings-outline', screen: '/(screens)/profile/SettingsScreen' },
+  ];
 
   const handleMenuItemPress = (screen: string) => {
     if (screen === '/(screens)/order/Orders' || screen === '/(screens)/profile/FavoritesScreen' || screen === '/(screens)/profile/SettingsScreen') {

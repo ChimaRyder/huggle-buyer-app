@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
-import { MockPostService, MockStoreService } from "@/data/mockServices";
+// TODO: Replace with API service imports
 import { colors, spacing, typography } from "@/constants/theme";
 
 const { width } = Dimensions.get("window");
@@ -63,7 +63,8 @@ const PostScreen: React.FC<PostScreenProps> = () => {
       setError(null);
       try {
         // Get post from mock data
-        const allPosts = await MockPostService.getAllPosts();
+        // TODO: Replace with API call
+        const allPosts: any[] = []; // await ApiService.getAllPosts();
         const postData = allPosts.find(p => p.id === id);
         
         if (!postData) {
@@ -76,7 +77,8 @@ const PostScreen: React.FC<PostScreenProps> = () => {
         
         // Fetch store info
         if (postData.storeId) {
-          const storeData = await MockStoreService.getStoreById(postData.storeId);
+          // TODO: Replace with API call
+          const storeData = null; // await ApiService.getStoreById(postData.storeId);
           setStore(storeData);
         }
       } catch (err: any) {

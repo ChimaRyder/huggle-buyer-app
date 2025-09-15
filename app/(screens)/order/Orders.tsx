@@ -15,13 +15,13 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { OrderCard } from "@/components/order";
 import { ConfirmationModal } from "@/components/common";
-import { mockOrders } from "@/data/mockData";
+// TODO: Replace with API service import
 import { colors, spacing, typography } from "@/constants/theme";
 import {
   BackendOrder,
   OrderStatus,
 } from "@/types/BackendModels";
-import { orderStatusTabs } from "@/data/orders/orderTabs";
+// TODO: Move to constants or fetch from API
 
 interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
   productName?: string;
@@ -75,7 +75,8 @@ const Orders = () => {
       setError(null);
       
       // Use mock data instead of API calls
-      const ordersData: BackendOrder[] = mockOrders;
+      // TODO: Fetch orders from API
+      const ordersData: BackendOrder[] = [];
 
       // Enrich orders with additional data
       const enrichedOrders = ordersData.map((order) => {
@@ -328,7 +329,7 @@ const Orders = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabsScrollContainer}
         >
-          {orderStatusTabs.map((tab) => (
+          {["Pending", "Confirmed", "Ready for Pickup", "Completed", "Cancelled"].map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[

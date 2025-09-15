@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { MockOrderService, MockProductService, MockStoreService } from "@/data/mockServices";
+// TODO: Replace with API service imports
 import type { BackendOrder, BackendProduct, BackendStore } from "@/types/BackendModels";
 import { OrderStatus } from "@/types/BackendModels";
 import { ProductListCard } from "@/components/product";
@@ -74,7 +74,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
       setError(null);
 
       // Fetch order details
-      const orderData = await MockOrderService.getOrderById(orderId);
+      // TODO: Replace with API call
+      const orderData = null; // await ApiService.getOrderById(orderId);
       if (!orderData) {
         throw new Error('Order not found');
       }
@@ -82,12 +83,13 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
 
       // Fetch all products
       const productsData = await Promise.all(
-        orderData.productId.map(id => MockProductService.getProductById(id))
+        [] // TODO: Fetch products from API
       );
       setProducts(productsData.filter(Boolean) as BackendProduct[]);
 
       // Fetch store details
-      const storeData = await MockStoreService.getStoreById(orderData.storeId);
+      // TODO: Replace with API call
+      const storeData = null; // await ApiService.getStoreById(orderData.storeId);
       setStore(storeData);
 
     } catch (error: any) {
@@ -115,10 +117,11 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           onPress: async () => {
             try {
               setCancelling(true);
-              await MockOrderService.updateOrder({
-                id: order.id,
-                status: 4 // Cancelled
-              });
+              // TODO: Replace with API call
+              // await ApiService.updateOrder({
+              //   id: order.id,
+              //   status: 4 // Cancelled
+              // });
               setOrder({ ...order, status: 4 });
               Alert.alert(
                 "Order Cancelled",

@@ -21,7 +21,7 @@ import {
   EmptyCart
 } from '@/components/cart';
 import { colors } from '@/constants/theme';
-import { mockCartItems } from '@/data/cart/mockCartItems';
+// TODO: Remove mock data loading - cart data should come from CartContext API integration
 
 const CartScreen = () => {
   const router = useRouter();
@@ -39,15 +39,8 @@ const CartScreen = () => {
   const [isEditingInstructions, setIsEditingInstructions] = useState<string | null>(null);
   const [instructionText, setInstructionText] = useState('');
 
-  // Add mock data to cart on component mount if cart is empty
-  useEffect(() => {
-    if (items.length === 0) {
-      // Add sample items to the cart
-      mockCartItems.forEach(item => {
-        addItem(item);
-      });
-    }
-  }, [items.length, addItem]);
+  // TODO: Remove mock data loading - cart data should come from CartContext with API integration
+  // useEffect removed - cart data should be managed by CartContext and persisted via API
 
   const handleCheckout = () => {
     if (items.length === 0) {

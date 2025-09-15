@@ -11,14 +11,14 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
-import { restaurants } from '@/data/food/mockData';
+// TODO: Replace with API call to fetch favorite restaurants
 import { colors, spacing, typography } from '@/constants/theme';
 
 const FavoritesScreen = () => {
   const router = useRouter();
   
-  // Filter to show only favorite restaurants
-  const favoriteRestaurants = restaurants.filter(restaurant => restaurant.isFavorite);
+  // TODO: Replace with API call to fetch favorite restaurants
+  const favoriteRestaurants: any[] = [];
   
   const handleRestaurantPress = (id: string) => {
     router.push(`/(screens)/store/StoreHomepageScreen?id=${id}`);

@@ -11,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { restaurants, foodItems } from "@/data/food/mockData";
 import RestaurantCard from "@/components/restaurant/RestaurantCard";
 import FoodItemCard from "@/components/food/FoodItemCard";
 import { colors } from "@/constants/theme";
@@ -24,7 +23,7 @@ const SearchResultsScreen = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState(query);
 
-  // Filter results based on search query
+  // TODO: Implement API search functionality
   useEffect(() => {
     if (!searchQuery) {
       setStores([]);
@@ -32,23 +31,9 @@ const SearchResultsScreen = () => {
       return;
     }
 
-    // Filter restaurants
-    const filteredRestaurants = restaurants.filter(restaurant => 
-      restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.categories.some(category => 
-        category.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    );
-
-    // Filter food items
-    const filteredFoodItems = foodItems.filter(item => 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    setStores(filteredRestaurants);
-    setProducts(filteredFoodItems);
+    // TODO: Implement API call to search restaurants and products
+    setStores([]);
+    setProducts([]);
   }, [searchQuery]);
 
   const handleStorePress = (id: string) => {

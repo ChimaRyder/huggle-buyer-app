@@ -5,32 +5,24 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing, typography } from "@/constants/theme";
 import { ProductGrid } from "@/components/product";
-import { foodItems } from "@/data/food/mockData";
-import { FoodItem } from "@/data/food/models";
 
 export default function TrendingProductsScreen() {
   const { productType } = useLocalSearchParams();
   const router = useRouter();
-  const [products, setProducts] = useState<FoodItem[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [title, setTitle] = useState("");
 
   useEffect(() => {
-    let filteredProducts: FoodItem[] = [];
+    // TODO: Implement API call to fetch trending/category products
     let screenTitle = "";
 
     if (productType && typeof productType === "string") {
-      // Filter products by category
-      filteredProducts = foodItems.filter(item => 
-        item.category === productType
-      );
       screenTitle = `${productType}`;
     } else {
-      // Show trending products (popular items)
-      filteredProducts = foodItems.filter(item => item.isPopular);
       screenTitle = "Trending Products";
     }
 
-    setProducts(filteredProducts);
+    setProducts([]);
     setTitle(screenTitle);
   }, [productType]);
 

@@ -3,15 +3,9 @@
  * Centralized exports for all custom hooks
  */
 
-// Mock API hooks
-export { useProducts } from './useMockProducts';
-export { useCart } from './useMockCart';
-export { useOrders } from './useMockOrders';
-export { useStores } from './useMockStores';
-
-// Legacy API hooks (for compatibility)
-export { useProducts as useProductsLegacy } from './useProducts';
-export { useCart as useCartLegacy } from './useCart';
+// API hooks (use these for actual API integration)
+export { useProducts } from './useProducts';
+export { useCart } from './useCart';
 export { useFavorites } from './useFavorites';
 
 // Re-export existing hooks for convenience

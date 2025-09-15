@@ -10,10 +10,8 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { foodItems, restaurants } from "@/data/food/mockData";
 import { colors } from "@/constants/theme";
 import { ReviewCard } from "@/components/review";
-import { getMockReviewsByProductId } from "@/data/mockData";
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -26,29 +24,27 @@ export default function ProductScreen() {
   const scrollViewRef = useRef(null);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
 
-  // Find the product in mock data
-  const product = foodItems.find(item => item.id === id);
+  // TODO: Fetch product details from API
+  const product = null;
 
-  // Find the store that sells this product (using first store as example)
-  const store = restaurants[0];
+  // TODO: Fetch store details from API
+  const store = null;
 
-  // Get reviews for this specific product
-  const mockReviews = getMockReviewsByProductId(product?.id || '');
+  // TODO: Fetch reviews from API
+  const mockReviews: any[] = [];
 
-  // If product not found, show error
-  if (!product) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Product not found</Text>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // TODO: Remove this when API integration is complete
+  return (
+    <View style={styles.container}>
+      <Text style={styles.errorText}>Product loading...</Text>
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Text style={styles.backButtonText}>Go Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   // Calculate average rating
   const averageRating = mockReviews.length > 0 

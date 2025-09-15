@@ -5,28 +5,18 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing, typography } from "@/constants/theme";
 import { ProductGrid } from "@/components/product";
-import { foodItems, foodCategories } from "@/data/food/mockData";
-import { FoodItem } from "@/data/food/models";
 
 export default function CategoryScreen() {
   const { categoryId } = useLocalSearchParams();
   const router = useRouter();
-  const [products, setProducts] = useState<FoodItem[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [categoryName, setCategoryName] = useState("");
 
   useEffect(() => {
     if (categoryId && typeof categoryId === "string") {
-      // Find the category name
-      const category = foodCategories.find(cat => cat.id === categoryId);
-      const categoryTitle = category ? category.name : "Category";
-      
-      // Filter products by category name
-      const filteredProducts = foodItems.filter(item => 
-        item.category === categoryTitle
-      );
-
-      setProducts(filteredProducts);
-      setCategoryName(categoryTitle);
+      // TODO: Implement API call to fetch category and products
+      setCategoryName("Category");
+      setProducts([]);
     }
   }, [categoryId]);
 

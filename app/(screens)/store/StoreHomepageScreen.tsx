@@ -10,11 +10,10 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { restaurants, foodItems, foodCategories } from "@/data/food/mockData";
 import { colors, spacing } from "@/constants/theme";
 import ProductGrid from "@/components/product/ProductGrid";
 import FeaturedPostCard from "@/components/posts/FeaturedPostCard";
-import { mockPosts } from "@/data/mockData";
+// TODO: Remove mock data imports and implement API integration
 
 
 export default function StoreHomepageScreen() {
@@ -23,57 +22,40 @@ export default function StoreHomepageScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState("Featured");
 
-  // Find the store in mock data
-  const store = restaurants.find(restaurant => restaurant.id === id);
+  // TODO: Replace with API call to fetch store data by ID
+  const store = null; // Will be fetched from API
 
-  // Filter products for this store (using first 3 restaurants as examples)
-  const storeProducts = foodItems.filter(item => {
-    if (id === "1") return ["101", "102", "103"].includes(item.id);
-    if (id === "2") return ["201", "202"].includes(item.id);
-    if (id === "3") return ["301", "302"].includes(item.id);
-    return false;
-  });
+  // TODO: Replace with API call to fetch store products
+  const storeProducts: any[] = []; // Will be fetched from API
 
-  // Get featured products (popular items)
-  const featuredProducts = storeProducts.filter(item => item.isPopular);
+  // TODO: Replace with API call to fetch featured products for this store
+  const featuredProducts: any[] = []; // Will be fetched from API
 
-  // Get posts for this store (map restaurant IDs to post store IDs)
-  const storeIdMap = {
-    "1": "grocery-1", // Farm Fresh Market
-    "2": "grocery-5", // Organic Harvest Co.
-    "3": "grocery-6", // Tropical Paradise
-    "4": "grocery-2", // Green Thumb Grocers -> Green Valley Grocers
-    "5": "grocery-4", // Berry Best -> Berry Best Market  
-    "6": "grocery-7"  // Root Cellar -> Garden Fresh Market
-  };
-  
-  const postStoreId = storeIdMap[id as keyof typeof storeIdMap];
-  const storePosts = mockPosts.filter(post => 
-    post.storeId === postStoreId
-  ).slice(0, 6); // Limit to 6 posts for the featured section
+  // TODO: Replace with API call to fetch store posts
+  const storePosts: any[] = []; // Will be fetched from API
 
-  // Get categories for this store
-  const storeCategories = foodCategories.filter(category => 
-    store?.categories.includes(category.name)
-  );
+  // TODO: Replace with API call to fetch store categories
+  const storeCategories: any[] = []; // Will be fetched from API
 
-  // If store not found, show error
+  // If store not found, show loading state (TODO: implement proper loading and error handling)
   if (!store) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Store not found</Text>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>Go Back</Text>
-        </TouchableOpacity>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading store...</Text>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
-  // Check if the promotion is about free delivery
-  const isFreeDeliveryPromo = store.promotion && store.promotion.toLowerCase().includes('free delivery');
+  // TODO: Check if the promotion is about free delivery (implement when store data is available)
+  const isFreeDeliveryPromo = false;
 
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite);
@@ -84,7 +66,7 @@ export default function StoreHomepageScreen() {
   };
 
   // Render category item
-  const renderCategoryItem = ({ item }: { item: typeof foodCategories[0] }) => (
+  const renderCategoryItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
       style={[styles.categoryCard, { backgroundColor: item.color }]}
       onPress={() => console.log("Category pressed:", item.id)}
@@ -98,7 +80,7 @@ export default function StoreHomepageScreen() {
   const renderFeaturedTab = () => (
     <View style={styles.featuredTabContent}>
       {/* Posts Section */}
-      {storePosts.length > 0 && (
+      {storePosts.length > 0 ? (
         <View style={styles.postsSection}>
           {storePosts.map((post) => (
             <FeaturedPostCard 
@@ -107,15 +89,25 @@ export default function StoreHomepageScreen() {
             />
           ))}
         </View>
+      ) : (
+        <View style={styles.emptyContentContainer}>
+          <Text style={styles.emptyContentText}>No featured posts available</Text>
+          <Text style={styles.emptyContentSubtext}>Posts will appear here when available</Text>
+        </View>
       )}
 
       {/* Products Section */}
-      {featuredProducts.length > 0 && (
+      {featuredProducts.length > 0 ? (
         <View style={styles.productsSection}>
           <ProductGrid 
             products={featuredProducts}
             onProductPress={handleProductPress}
           />
+        </View>
+      ) : (
+        <View style={styles.emptyContentContainer}>
+          <Text style={styles.emptyContentText}>No featured products available</Text>
+          <Text style={styles.emptyContentSubtext}>Featured products will appear here when available</Text>
         </View>
       )}
     </View>
@@ -124,10 +116,17 @@ export default function StoreHomepageScreen() {
   // Render products tab content
   const renderProductsTab = () => (
     <View style={styles.tabContent}>
-      <ProductGrid 
-        products={storeProducts}
-        onProductPress={handleProductPress}
-      />
+      {storeProducts.length > 0 ? (
+        <ProductGrid 
+          products={storeProducts}
+          onProductPress={handleProductPress}
+        />
+      ) : (
+        <View style={styles.emptyContentContainer}>
+          <Text style={styles.emptyContentText}>No products available</Text>
+          <Text style={styles.emptyContentSubtext}>Products will appear here when available</Text>
+        </View>
+      )}
     </View>
   );
 
@@ -146,6 +145,7 @@ export default function StoreHomepageScreen() {
       ) : (
         <View style={styles.emptyPostsContainer}>
           <Text style={styles.emptyPostsText}>No posts available</Text>
+          <Text style={styles.emptyContentSubtext}>Posts will appear here when available</Text>
         </View>
       )}
     </View>
@@ -154,15 +154,22 @@ export default function StoreHomepageScreen() {
   // Render categories tab content
   const renderCategoriesTab = () => (
     <View style={styles.tabContent}>
-      <FlatList
-        data={storeCategories}
-        renderItem={renderCategoryItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.categoryRow}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.categoryContainer}
-      />
+      {storeCategories.length > 0 ? (
+        <FlatList
+          data={storeCategories}
+          renderItem={renderCategoryItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.categoryRow}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.categoryContainer}
+        />
+      ) : (
+        <View style={styles.emptyContentContainer}>
+          <Text style={styles.emptyContentText}>No categories available</Text>
+          <Text style={styles.emptyContentSubtext}>Categories will appear here when available</Text>
+        </View>
+      )}
     </View>
   );
 
@@ -179,10 +186,9 @@ export default function StoreHomepageScreen() {
     <View style={styles.container}>
       {/* Store Banner */}
       <View style={styles.bannerContainer}>
-        <Image 
-          source={{ uri: store.image }} 
-          style={styles.bannerImage} 
-        />
+        <View style={styles.placeholderBanner}>
+          <Text style={styles.placeholderText}>Store Image</Text>
+        </View>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => router.back()}
@@ -194,7 +200,7 @@ export default function StoreHomepageScreen() {
       {/* Store Info with Favorite Button */}
       <View style={styles.storeInfo}>
         <View style={styles.storeHeader}>
-          <Text style={styles.storeName}>{store.name}</Text>
+          <Text style={styles.storeName}>Store Name Loading...</Text>
           <TouchableOpacity 
             style={styles.favoriteButton}
             onPress={toggleFavorite}
@@ -207,37 +213,21 @@ export default function StoreHomepageScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.storeDetails}>
-          <Text style={styles.locationText}>{store.distance}</Text>
+          <Text style={styles.locationText}>Distance loading...</Text>
           <Text style={styles.dotSeparator}> • </Text>
           <TouchableOpacity 
             style={styles.reviewsContainer}
             onPress={() => router.push(`/(screens)/store/ReviewsScreen?id=${id}`)}
           >
-            <Text style={styles.ratingText}>{store.rating}</Text>
+            <Text style={styles.ratingText}>-</Text>
             <Ionicons name="star" size={16} color={colors.warning} />
-            <Text style={styles.reviewsText}> Reviews (100+)</Text>
+            <Text style={styles.reviewsText}> Reviews loading...</Text>
           </TouchableOpacity>
         </View>
-        {store.promotion && !isFreeDeliveryPromo && (
-          <View style={styles.promotionBanner}>
-            <Text style={styles.promotionText}>{store.promotion}</Text>
-          </View>
-        )}
         <View style={styles.categoriesContainer}>
-          {store.categories.map((categoryName, index) => {
-            // Find the category in foodCategories to get its color
-            const category = foodCategories.find(cat => cat.name === categoryName);
-            const backgroundColor = category ? category.color : colors.primary;
-            
-            return (
-              <View 
-                key={index} 
-                style={[styles.categoryBadge, { backgroundColor }]}
-              >
-                <Text style={styles.categoryText}>{categoryName}</Text>
-              </View>
-            );
-          })}
+          <View style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>
+            <Text style={styles.categoryText}>Loading categories...</Text>
+          </View>
         </View>
       </View>
 
@@ -472,5 +462,47 @@ const styles = StyleSheet.create({
   emptyPostsText: {
     fontSize: 16,
     color: colors.text.secondary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: colors.text.primary,
+    marginBottom: 20,
+  },
+  placeholderBanner: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: colors.background.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  emptyContentContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyContentText: {
+    fontSize: 18,
+    color: colors.text.primary,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyContentSubtext: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
 });

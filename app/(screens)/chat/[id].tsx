@@ -14,8 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radii } from '@/constants/theme';
-import { restaurants } from '@/data/food/mockData';
-import { mockStores } from '@/data/mockData';
+// TODO: Replace with API service imports
 
 interface Message {
   id: string;
@@ -33,33 +32,19 @@ export default function ChatScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  // Memoize the store info to prevent unnecessary re-renders
+  // TODO: Fetch store info from API
   const store = useMemo(() => {
-    const restaurant = restaurants.find(restaurant => restaurant.id === id);
-    const mockStore = mockStores.find(store => store.id === id);
+    // TODO: Replace with API call to get store by ID
+    return {
+      id: id as string,
+      name: 'Store',
+      image: '',
+      rating: 0,
+      distance: '0 km',
+      type: 'restaurant' as const
+    };
     
-    if (restaurant) {
-      return {
-        id: restaurant.id,
-        name: restaurant.name,
-        image: restaurant.image,
-        rating: restaurant.rating,
-        distance: restaurant.distance,
-        type: 'restaurant' as const
-      };
-    }
-    
-    if (mockStore) {
-      return {
-        id: mockStore.id,
-        name: mockStore.name,
-        image: mockStore.storeImageUrl,
-        rating: mockStore.rating,
-        distance: `${mockStore.city}, ${mockStore.province}`,
-        type: 'store' as const
-      };
-    }
-    
+    // TODO: Remove this mock store logic when API is integrated
     return null;
   }, [id]);
 

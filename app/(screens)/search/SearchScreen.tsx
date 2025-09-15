@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { restaurants, foodItems, foodCategories } from '@/data/food/mockData';
+// TODO: Replace with API call to fetch search suggestions
 import { colors } from '@/constants/theme';
 import {
   SearchHeader,
@@ -18,36 +18,9 @@ import {
   SearchEmptyState
 } from '@/components/search';
 
-// Generate search suggestions from mock data
+// TODO: Replace with API call to fetch search suggestions
 const generateSuggestions = () => {
-  const suggestions = [];
-  
-  // Add popular food items
-  const popularItems = foodItems.filter(item => item.isPopular);
-  suggestions.push(...popularItems.map(item => ({
-    id: `item_${item.id}`,
-    type: 'food',
-    text: item.name,
-    category: item.category,
-  })));
-  
-  // Add restaurant names
-  suggestions.push(...restaurants.map(restaurant => ({
-    id: `restaurant_${restaurant.id}`,
-    type: 'restaurant',
-    text: restaurant.name,
-    category: 'Restaurant',
-  })));
-  
-  // Add food categories
-  suggestions.push(...foodCategories.map(category => ({
-    id: `category_${category.id}`,
-    type: 'category',
-    text: category.name,
-    category: 'Category',
-  })));
-  
-  return suggestions.slice(0, 20); // Limit to 20 suggestions
+  return [];
 };
 
 const SearchScreen = () => {
@@ -141,13 +114,21 @@ const SearchScreen = () => {
       ) : (
         <View style={styles.suggestionsContainer}>
           <Text style={styles.suggestionsTitle}>Popular Searches</Text>
-          <FlatList
-            data={suggestions}
-            renderItem={renderSuggestionItem}
-            keyExtractor={(item) => item.id}
-            style={styles.suggestionsList}
-            showsVerticalScrollIndicator={false}
-          />
+          {suggestions.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="search-outline" size={64} color={colors.text.tertiary} />
+              <Text style={styles.emptyTitle}>No suggestions available</Text>
+              <Text style={styles.emptySubtitle}>Start typing to search for products or stores</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={suggestions}
+              renderItem={renderSuggestionItem}
+              keyExtractor={(item) => item.id}
+              style={styles.suggestionsList}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
         </View>
       )}
     </SafeAreaView>
@@ -191,6 +172,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.tertiary,
     marginTop: 2,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingTop: 64,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
 

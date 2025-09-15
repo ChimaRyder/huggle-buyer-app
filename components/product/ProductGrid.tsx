@@ -7,17 +7,30 @@ import {
   TouchableOpacity,
   FlatList,
 } from "react-native";
-import { FoodItem } from "@/data/food/models";
+// TODO: Create proper product model interface
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 
+// TODO: Replace with proper product interface
+interface ProductItem {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  price: number;
+  rating?: number;
+  isPopular?: boolean;
+  isVegetarian?: boolean;
+  isVegan?: boolean;
+}
+
 interface ProductGridProps {
-  products: FoodItem[];
+  products: ProductItem[];
   onProductPress: (productId: string) => void;
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPress }) => {
-  const renderProduct = ({ item }: { item: FoodItem }) => (
+  const renderProduct = ({ item }: { item: ProductItem }) => (
     <TouchableOpacity
       style={styles.productCard}
       onPress={() => onProductPress(item.id)}

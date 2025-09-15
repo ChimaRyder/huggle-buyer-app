@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { foodCategories } from '@/data/food/mockData';
+// TODO: Replace with API call to fetch food categories
 import { colors } from '@/constants/theme';
 
 interface CategorySectionProps {
@@ -14,6 +14,19 @@ interface CategorySectionProps {
 }
 
 const CategorySection: React.FC<CategorySectionProps> = ({ onCategoryPress }) => {
+  // TODO: Replace with API call to fetch food categories
+  const foodCategories: any[] = [];
+
+  if (foodCategories.length === 0) {
+    return (
+      <View style={styles.section}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No categories available</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.section}>
       <ScrollView 
@@ -66,6 +79,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text.inverse,
     textAlign: 'center',
+  },
+  emptyContainer: {
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.text.tertiary,
   },
 });
 

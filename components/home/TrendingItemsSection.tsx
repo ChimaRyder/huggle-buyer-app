@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { foodItems } from '@/data/food/mockData';
+// TODO: Replace with API call to fetch trending food items
 import FoodItemCard from '@/components/food/FoodItemCard';
 import { colors } from '@/constants/theme';
 
@@ -16,8 +16,8 @@ interface TrendingItemsSectionProps {
 }
 
 const TrendingItemsSection: React.FC<TrendingItemsSectionProps> = ({ onFoodItemPress, onSeeAllPress }) => {
-  // Get trending items (popular items for now)
-  const trendingItems = foodItems.filter(item => item.isPopular);
+  // TODO: Replace with API call to fetch trending food items
+  const trendingItems: any[] = [];
 
   return (
     <View style={styles.section}>
@@ -29,14 +29,20 @@ const TrendingItemsSection: React.FC<TrendingItemsSectionProps> = ({ onFoodItemP
         </TouchableOpacity>
       </View>
       <View style={styles.foodItemsContainer}>
-        {trendingItems.map((item) => (
-          <View key={item.id} style={styles.foodItemWrapper}>
-            <FoodItemCard 
-              item={item} 
-              onPress={() => onFoodItemPress(item.id)} 
-            />
+        {trendingItems.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No trending items available</Text>
           </View>
-        ))}
+        ) : (
+          trendingItems.map((item) => (
+            <View key={item.id} style={styles.foodItemWrapper}>
+              <FoodItemCard 
+                item={item} 
+                onPress={() => onFoodItemPress(item.id)} 
+              />
+            </View>
+          ))
+        )}
       </View>
     </View>
   );
@@ -75,6 +81,15 @@ const styles = StyleSheet.create({
   foodItemWrapper: {
     width: '48%',
     marginBottom: 16,
+  },
+  emptyContainer: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    width: '100%',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.text.tertiary,
   },
 });
 

@@ -12,12 +12,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing, typography, radii } from '@/constants/theme';
-import { generateMockChats, type ChatConversation } from '@/data/chat/mockMessages';
+// TODO: Replace with API call to fetch chat conversations
+type ChatConversation = {
+  id: string;
+  storeId: string;
+  storeName: string;
+  storeImage: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  isOnline: boolean;
+};
 
 export default function ChatListScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [chats] = useState<ChatConversation[]>(generateMockChats());
+  // TODO: Replace with API call to fetch chat conversations
+  const [chats] = useState<ChatConversation[]>([]);
 
   // Filter chats based on search query
   const filteredChats = chats.filter(chat =>

@@ -15,7 +15,6 @@ import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { colors, spacing, typography } from "@/constants/theme";
-import { foodItems } from "@/data/food/mockData";
 
 // Mock function to simulate image upload
 const mockUploadImage = async (uri: string, name: string, folder: string) => {
@@ -38,8 +37,8 @@ export default function ReviewProductScreen() {
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Get product details for display
-  const product = foodItems.find(item => item.id === productId);
+  // TODO: Get product details from API
+  const product = null;
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({

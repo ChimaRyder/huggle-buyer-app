@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { restaurants } from '@/data/food/mockData';
+// TODO: Replace with API call to fetch popular restaurants
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { colors } from '@/constants/theme';
 
@@ -21,6 +21,9 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
   onToggleFavorite,
   onSeeAllPress
 }) => {
+  // TODO: Replace with API call to fetch popular restaurants
+  const restaurants: any[] = [];
+
   return (
     <View style={styles.section}>
       <View style={styles.header}>
@@ -31,14 +34,20 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
         </TouchableOpacity>
       </View>
       <View style={styles.restaurantsContainer}>
-        {restaurants.map((restaurant) => (
-          <RestaurantCard
-            key={restaurant.id}
-            restaurant={restaurant}
-            onPress={() => onRestaurantPress(restaurant.id)}
-            onToggleFavorite={onToggleFavorite}
-          />
-        ))}
+        {restaurants.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No popular stores available</Text>
+          </View>
+        ) : (
+          restaurants.map((restaurant) => (
+            <RestaurantCard
+              key={restaurant.id}
+              restaurant={restaurant}
+              onPress={() => onRestaurantPress(restaurant.id)}
+              onToggleFavorite={onToggleFavorite}
+            />
+          ))
+        )}
       </View>
     </View>
   );
@@ -71,6 +80,14 @@ const styles = StyleSheet.create({
   },
   restaurantsContainer: {
     paddingHorizontal: 0,
+  },
+  emptyContainer: {
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.text.tertiary,
   },
 });
 
