@@ -1,18 +1,30 @@
 /**
- * Services Index
- * Centralized exports for all service classes
+ * Services Export
+ * Central export file for all service modules
  */
 
-// API Client
-export { apiClient, ApiClient } from './apiClient';
-export type { RequestConfig, ApiClientOptions } from './apiClient';
+export { productService } from './productService';
+export { locationService } from './locationService';
+export { userService } from './userService';
+export { orderService } from './orderService';
 
-// Domain Services
-export { ProductService } from './productService';
+// Re-export types for convenience
+export type {
+  Location,
+  Store,
+} from './locationService';
 
-// Future services can be added here:
-// export { UserService } from './userService';
-// export { OrderService } from './orderService';
-// export { ReviewService } from './reviewService';
-// export { CartService } from './cartService';
-// export { StoreService } from './storeService';
+export type {
+  UserProfile,
+  UserAddress,
+  UserPreferences,
+  UpdateUserProfileRequest,
+} from './userService';
+
+export type {
+  Order,
+  OrderItem,
+  OrderStatus,
+  DeliveryAddress,
+  CreateOrderRequest,
+} from './orderService';

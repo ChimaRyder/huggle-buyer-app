@@ -3,23 +3,21 @@
  * Handles all product-related API operations
  */
 
-import { apiClient } from './apiClient';
+import type { ApiClient } from '@/contexts/ApiContext';
 import { API_ENDPOINTS } from '@/constants/config';
 import type { 
   BackendProduct,
-  ProductsResponse,
-  ProductResponse,
   CreateProductRequest,
   UpdateProductRequest,
 } from '@/types/BackendModels';
 import type { ApiResponse, PaginationParams } from '@/types/common';
 
-export class ProductService {
+export const productService = {
   /**
    * Fetch all products with optional filtering
    */
-  static async getAllProducts(
-    token: string,
+  async getAllProducts(
+    client: ApiClient,
     options: {
       productType?: string;
       pagination?: PaginationParams;
@@ -44,12 +42,7 @@ export class ProductService {
         endpoint += `?${queryParams.toString()}`;
       }
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await apiClient.get<BackendProduct[]>(endpoint, headers);
-      return response;
+      return await client.get<BackendProduct[]>(endpoint);
     } catch (error) {
       console.error('Error fetching products:', error);
       return {
@@ -57,21 +50,18 @@ export class ProductService {
         error: error instanceof Error ? error.message : 'Failed to fetch products',
       };
     }
-  }
+  },
 
   /**
    * Fetch a single product by ID
    */
-  static async getProductById(
-    productId: string,
-    token: string | null = null
+  async getProductById(
+    client: ApiClient,
+    productId: string
   ): Promise<ApiResponse<BackendProduct>> {
     try {
       const endpoint = API_ENDPOINTS.products.byId(productId);
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-
-      const response = await apiClient.get<BackendProduct>(endpoint, headers);
-      return response;
+      return await client.get<BackendProduct>(endpoint);
     } catch (error) {
       console.error(`Error fetching product ${productId}:`, error);
       return {
@@ -79,20 +69,18 @@ export class ProductService {
         error: error instanceof Error ? error.message : 'Failed to fetch product',
       };
     }
-  }
+  },
 
   /**
    * Fetch products by store ID
    */
-  static async getProductsByStoreId(
-    storeId: string,
-    token: string | null = null
+  async getProductsByStoreId(
+    client: ApiClient,
+    storeId: string
   ): Promise<ApiResponse<BackendProduct[]>> {
     try {
       const endpoint = API_ENDPOINTS.products.byStore(storeId);
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-
-      const response = await apiClient.get<BackendProduct[]>(endpoint, headers);
+      const response = await client.get<BackendProduct[]>(endpoint);
       
       // Handle different response formats from the backend
       if (response.success && response.data) {
@@ -120,26 +108,17 @@ export class ProductService {
         error: error instanceof Error ? error.message : 'Failed to fetch store products',
       };
     }
-  }
+  },
 
   /**
    * Create a new product (for seller/admin use)
    */
-  static async createProduct(
-    productData: CreateProductRequest,
-    token: string
+  async createProduct(
+    client: ApiClient,
+    productData: CreateProductRequest
   ): Promise<ApiResponse<BackendProduct>> {
     try {
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await apiClient.post<BackendProduct>(
-        '/api/products',
-        productData,
-        headers
-      );
-      return response;
+      return await client.post<BackendProduct>('/api/products', productData);
     } catch (error) {
       console.error('Error creating product:', error);
       return {
@@ -147,26 +126,20 @@ export class ProductService {
         error: error instanceof Error ? error.message : 'Failed to create product',
       };
     }
-  }
+  },
 
   /**
    * Update an existing product
    */
-  static async updateProduct(
-    productData: UpdateProductRequest,
-    token: string
+  async updateProduct(
+    client: ApiClient,
+    productData: UpdateProductRequest
   ): Promise<ApiResponse<BackendProduct>> {
     try {
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await apiClient.put<BackendProduct>(
+      return await client.put<BackendProduct>(
         `/api/products/${productData.id}`,
-        productData,
-        headers
+        productData
       );
-      return response;
     } catch (error) {
       console.error('Error updating product:', error);
       return {
@@ -174,25 +147,17 @@ export class ProductService {
         error: error instanceof Error ? error.message : 'Failed to update product',
       };
     }
-  }
+  },
 
   /**
    * Delete a product
    */
-  static async deleteProduct(
-    productId: string,
-    token: string
+  async deleteProduct(
+    client: ApiClient,
+    productId: string
   ): Promise<ApiResponse<void>> {
     try {
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await apiClient.delete<void>(
-        `/api/products/${productId}`,
-        headers
-      );
-      return response;
+      return await client.delete<void>(`/api/products/${productId}`);
     } catch (error) {
       console.error('Error deleting product:', error);
       return {
@@ -200,14 +165,14 @@ export class ProductService {
         error: error instanceof Error ? error.message : 'Failed to delete product',
       };
     }
-  }
+  },
 
   /**
    * Search products by query
    */
-  static async searchProducts(
+  async searchProducts(
+    client: ApiClient,
     query: string,
-    token: string,
     options: {
       category?: string;
       minPrice?: number;
@@ -227,12 +192,7 @@ export class ProductService {
       if (pagination?.limit) queryParams.append('limit', pagination.limit.toString());
 
       const endpoint = `/api/products/search?${queryParams.toString()}`;
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await apiClient.get<BackendProduct[]>(endpoint, headers);
-      return response;
+      return await client.get<BackendProduct[]>(endpoint);
     } catch (error) {
       console.error('Error searching products:', error);
       return {
@@ -240,7 +200,5 @@ export class ProductService {
         error: error instanceof Error ? error.message : 'Failed to search products',
       };
     }
-  }
-}
-
-export default ProductService;
+  },
+};
