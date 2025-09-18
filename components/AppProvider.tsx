@@ -8,7 +8,8 @@ import Toast from 'react-native-toast-message';
 
 import { ErrorBoundary } from './common';
 import { AppStateProvider } from '@/context/AppStateContext';
-import { ApiProvider } from '@/contexts/ApiContext';
+import { ApiProvider } from '@/context/ApiContext';
+import { LocationProvider } from '@/context/LocationContext';
 import { handleError, ErrorType, ErrorSeverity } from '@/utils/errorHandler';
 
 interface AppProviderProps {
@@ -47,11 +48,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       fallback={renderErrorFallback}
     >
       <ApiProvider>
-        <AppStateProvider>
-          {children}
-          {/* Global Toast Messages */}
-          <Toast />
-        </AppStateProvider>
+        <LocationProvider>
+          <AppStateProvider>
+            {children}
+            {/* Global Toast Messages */}
+            <Toast />
+          </AppStateProvider>
+        </LocationProvider>
       </ApiProvider>
     </ErrorBoundary>
   );

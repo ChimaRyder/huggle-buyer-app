@@ -1,8 +1,3 @@
-/**
- * API Context
- * Centralized API client with Clerk authentication and error handling
- */
-
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { config } from '@/constants/config';
@@ -41,7 +36,7 @@ export function ApiProvider({ children }: ApiProviderProps) {
 
   const request = async <T = unknown>(
     endpoint: string,
-    config: RequestConfig = {}
+    requestConfig: RequestConfig = {}
   ): Promise<ApiResponse<T>> => {
     const url = `${config.apiBaseUrl}${endpoint}`;
     const {
@@ -49,11 +44,15 @@ export function ApiProvider({ children }: ApiProviderProps) {
       headers = {},
       body,
       timeout = 10000,
-    } = config;
+    } = requestConfig;
 
     try {
-      // Get Clerk token
-      const token = await getToken();
+      console.log('🌐 ApiClient: Making request to:', url);
+      console.log('🌐 ApiClient: Method:', method);
+      console.log('🌐 ApiClient: Body:', body);
+      
+      const token = await getToken({template: "seller_app"});
+      console.log('🔑 ApiClient: Got token:', token ? 'YES' : 'NO');
       
       const requestHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -64,6 +63,8 @@ export function ApiProvider({ children }: ApiProviderProps) {
       if (token) {
         requestHeaders.Authorization = `Bearer ${token}`;
       }
+
+      console.log('📋 ApiClient: Request headers:', requestHeaders);
 
       const requestInit: RequestInit = {
         method,
@@ -80,9 +81,15 @@ export function ApiProvider({ children }: ApiProviderProps) {
       });
 
       clearTimeout(timeoutId);
+      
+      console.log('📥 ApiClient: Response status:', response.status, response.statusText);
+      console.log('📥 ApiClient: Response ok:', response.ok);
+
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.log('❌ ApiClient: Response not ok - status:', response.status, 'error text:', errorText);
+        
         const apiError = createAPIError(
           `HTTP ${response.status}: ${errorText}`,
           response.status,
@@ -95,12 +102,33 @@ export function ApiProvider({ children }: ApiProviderProps) {
         };
       }
 
-      const data = await response.json();
-      return {
-        success: true,
-        data,
-      };
+      try {
+        const data = await response.json();
+        console.log('✅ ApiClient: Success response data:', data);
+        console.log('✅ ApiClient: Response data type:', typeof data, 'Is Array:', Array.isArray(data));
+        return {
+          success: true,
+          data,
+        };
+      } catch (jsonError) {
+        // If response is not valid JSON, treat as API error
+        const apiError = createAPIError(
+          `Invalid response format: ${jsonError instanceof Error ? jsonError.message : 'Unknown JSON error'}`,
+          response.status,
+          'INVALID_JSON'
+        );
+        
+        return {
+          success: false,
+          error: apiError.userMessage || apiError.message,
+        };
+      }
     } catch (error) {
+      console.log('❌ ApiClient: Caught error:', error);
+      console.log('❌ ApiClient: Error type:', typeof error);
+      console.log('❌ ApiClient: Error name:', error instanceof Error ? error.name : 'Not an Error object');
+      console.log('❌ ApiClient: Error message:', error instanceof Error ? error.message : String(error));
+      
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           const timeoutError = createNetworkError('Request timeout');

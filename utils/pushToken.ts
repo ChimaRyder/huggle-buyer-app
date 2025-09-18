@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./api";
+import { config } from "@/constants/config";
 
 export interface PushToken {
   pushToken: string;
@@ -20,7 +20,7 @@ export const addPushToken = async (
   token: string | null
 ) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/pushtoken`, {
+    const response = await fetch(`${config.apiBaseUrl}/api/buyers/push-tokens`, {
       method: "POST",
       headers: buildHeaders(token),
       body: JSON.stringify(pushToken),
@@ -43,7 +43,7 @@ export const addPushToken = async (
 
 export const getPushToken = async (token: string | null) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/pushtoken`, {
+    const response = await fetch(`${config.apiBaseUrl}/api/buyers/push-tokens`, {
       headers: buildHeaders(token),
     });
     if (!response.ok) {
@@ -61,10 +61,10 @@ export const updatePushToken = async (
   token: string | null
 ) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/pushtoken`, {
+    const response = await fetch(`${config.apiBaseUrl}/api/buyers/push-tokens/${pushToken.userId}`, {
       method: "PUT",
       headers: buildHeaders(token),
-      body: JSON.stringify(pushToken),
+      body: JSON.stringify({ isActive: pushToken.isActive }),
     });
     if (!response.ok) {
       return null;
@@ -81,10 +81,10 @@ export const disablePushToken = async (
   token: string | null
 ) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/pushtoken/disable`, {
-      method: "POST",
+    const response = await fetch(`${config.apiBaseUrl}/api/buyers/push-tokens/${pushToken.userId}`, {
+      method: "PUT",
       headers: buildHeaders(token),
-      body: JSON.stringify(pushToken),
+      body: JSON.stringify({ isActive: false }),
     });
     if (!response.ok) {
       return null;

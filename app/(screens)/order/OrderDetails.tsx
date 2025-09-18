@@ -20,7 +20,6 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 // TODO: Replace with API service imports
 import type { BackendOrder, BackendProduct, BackendStore } from "@/types/BackendModels";
 import { OrderStatus } from "@/types/BackendModels";
-import { ProductListCard } from "@/components/product";
 import { OrderMap } from "@/components/order";
 import { colors, spacing, typography, shadows } from "@/constants/theme";
 

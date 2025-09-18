@@ -1,8 +1,3 @@
-/**
- * Application configuration constants
- * Centralized configuration for environment variables and app settings
- */
-
 interface AppConfig {
   apiBaseUrl: string;
   isDevelopment: boolean;
@@ -10,18 +5,10 @@ interface AppConfig {
   version: string;
 }
 
+
 const getApiBaseUrl = (): string => {
-  // Use environment variable if available, otherwise fallback to development URL
-  return "https://huggle-backend-jh2l.onrender.com";
-  // if (process.env.EXPO_PUBLIC_API_BASE_URL) {
-  //   return process.env.EXPO_PUBLIC_API_BASE_URL;
-  // }
-  
-  // // Development vs Production URLs
-  // if (__DEV__) {
-  //   return "https://l4f9xg2c-5132.asse.devtunnels.ms";
-  // } else {
-  // }
+  // return "https://rpbwh9rd-5132.asse.devtunnels.ms";
+  return "https://rpbwh9rd-5132.asse.devtunnels.ms"
 };
 
 export const config: AppConfig = {
@@ -65,5 +52,10 @@ export const API_ENDPOINTS = {
   reviews: {
     byProduct: (productId: string) => `/api/reviews/product/${productId}`,
     create: "/api/reviews",
+  },
+  locations: {
+    list: "/api/buyers/locations",
+    create: "/api/buyers/locations",
+    delete: (id: string) => `/api/buyers/locations/${id}`,
   },
 } as const;

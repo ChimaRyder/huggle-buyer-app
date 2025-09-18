@@ -15,9 +15,9 @@ import { tokenCache } from "../utils/cache";
 
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import Toast from 'react-native-toast-message';
 import mainTheme from '@/assets/themes/main-theme.json'
 import { CartProvider } from "@/context/CartContext";
+import { AppProvider } from "@/components/AppProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -46,19 +46,21 @@ export default function RootLayout() {
         publishableKey={publishableKey || ""}
         tokenCache={tokenCache}
       >
-        <CartProvider>
-          <ApplicationProvider
-            {...eva}
-            theme={{...eva.light, ...mainTheme}}
-          >
-            <ThemeProvider
-              value={DefaultTheme}
+        <AppProvider>
+          <CartProvider>
+            <ApplicationProvider
+              {...eva}
+              theme={{...eva.light, ...mainTheme}}
             >
-              <Slot />
-              <StatusBar style="light" backgroundColor="#4CAF50" />
-            </ThemeProvider>
-          </ApplicationProvider>
-        </CartProvider>
+              <ThemeProvider
+                value={DefaultTheme}
+              >
+                <Slot />
+                <StatusBar style="light" backgroundColor="#4CAF50" />
+              </ThemeProvider>
+            </ApplicationProvider>
+          </CartProvider>
+        </AppProvider>
       </ClerkProvider>
     </GestureHandlerRootView>
   );
