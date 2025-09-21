@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
 } from "react-native";
 import * as Location from "expo-location";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useUser, useAuth } from "@clerk/clerk-expo";
@@ -15,6 +14,7 @@ import { getUnreadNotificationCount } from "../../utils/notificationApi";
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { GreetingSearchBox } from "@/components/home";
+import { useLocationContext, SavedLocation } from "@/context/LocationContext";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -31,10 +31,17 @@ interface GreeterSectionProps {
 }
 
 const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSearchFocus }) => {
-  const [location, setLocation] = useState<string>("Fetching location...");
+  const [displayLocation, setDisplayLocation] = useState<string>("Fetching location...");
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useUser();
   const { getToken } = useAuth();
+  const { currentLocation, savedLocations } = useLocationContext();
+
+  // Helper function to truncate location text to 25 characters
+  const truncateLocation = (text: string, maxLength: number = 25): string => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength - 3) + '...';
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -56,79 +63,173 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
     };
   }, [user, getToken]);
 
-  // Fetch and display the last pinned location from AsyncStorage if available
-  useFocusEffect(
-    React.useCallback(() => {
-      let isActive = true;
-      (async () => {
-        try {
-          const stored = await AsyncStorage.getItem("userLocation");
-          if (stored) {
-            const coords = JSON.parse(stored);
-            // Reverse geocode the pinned coordinates
-            const address = await Location.reverseGeocodeAsync(coords);
-            if (address.length > 0) {
-              const {
-                street,
-                district,
-                subregion,
-                city,
-                region,
-                country,
-              } = address[0];
-              const parts = [
-                `${street} ${district}`,
-                `${city} ${region}`,
-                subregion,
-              ]
-                .filter(Boolean)
-                .slice(0, 4);
-              if (isActive) setLocation(parts.join(", "));
-            } else {
-              if (isActive) setLocation("Unknown pinned location");
-            }
+  // Helper function to find if current location matches a saved location
+  const findMatchingSavedLocation = (current: typeof currentLocation) => {
+    if (!current || !savedLocations.length) return null;
+    
+    // Find saved location with matching coordinates (within small tolerance)
+    return savedLocations.find(saved => {
+      const latDiff = Math.abs(saved.latitude - current.latitude);
+      const lngDiff = Math.abs(saved.longitude - current.longitude);
+      // Consider locations within ~100m as the same (roughly 0.001 degrees)
+      return latDiff < 0.001 && lngDiff < 0.001;
+    });
+  };
+
+  // Helper function to check if coordinates look like they might be from a saved location
+  // (as a fallback when fetchAllLocations fails)
+  const isLikelyUserSavedLocation = (current: typeof currentLocation) => {
+    if (!current) return false;
+    // This is a heuristic - if coordinates have been set programmatically (like from a map selection)
+    // they often have many decimal places, unlike device GPS which tends to be less precise
+    const latDecimals = (current.latitude.toString().split('.')[1] || '').length;
+    const lngDecimals = (current.longitude.toString().split('.')[1] || '').length;
+    return latDecimals > 10 || lngDecimals > 10;
+  };
+
+  // Update display location when currentLocation from context changes
+  useEffect(() => {
+    const updateDisplayLocation = async () => {
+      try {
+        if (currentLocation) {
+          // Check if current location is a saved location (has label property)
+          if ('label' in currentLocation && currentLocation.label) {
+            // Use the saved location's label
+            const truncatedLabel = truncateLocation(currentLocation.label);
+            setDisplayLocation(truncatedLabel);
+            return;
+          }
+          
+          // Fallback: check if this location matches a saved location by coordinates
+          const matchingSavedLocation = findMatchingSavedLocation(currentLocation);
+          if (matchingSavedLocation) {
+            // Use the saved location's label
+            const truncatedLabel = truncateLocation(matchingSavedLocation.label);
+            setDisplayLocation(truncatedLabel);
+            return;
+          }
+          
+          // Additional fallback: if this looks like a user-selected location but we can't fetch saved locations
+          // show a generic "Selected Location" label instead of trying to geocode
+          if (isLikelyUserSavedLocation(currentLocation) && savedLocations.length === 0) {
+            setDisplayLocation(truncateLocation("Selected Location"));
+            return;
+          }
+          
+          // Use the selected location from LocationContext if available
+          if (currentLocation.address) {
+            // Use the address from the context if it exists
+            const truncatedLocation = truncateLocation(currentLocation.address);
+            setDisplayLocation(truncatedLocation);
           } else {
-            // Fallback to device location
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== "granted") {
-              if (isActive) setLocation("Location permission denied");
-              return;
-            }
-            const loc = await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.High,
+            // Reverse geocode the coordinates from context
+            const address = await Location.reverseGeocodeAsync({
+              latitude: currentLocation.latitude,
+              longitude: currentLocation.longitude,
             });
-            const address = await Location.reverseGeocodeAsync(loc.coords);
             if (address.length > 0) {
-              const {
-                street,
-                district,
-                subregion,
-                city,
-                region,
-                country,
-              } = address[0];
-              const parts = [
-                `${street} ${district}`,
-                `${city} ${region}`,
-                subregion,
-              ]
-                .filter(Boolean)
-                .slice(0, 4);
-              if (isActive) setLocation(parts.join(", "));
+              const addressInfo = address[0];
+              
+              // Create a more reliable location string by prioritizing key components
+              const locationParts = [];
+              
+              // Priority 1: Street or name (most specific)
+              if (addressInfo.street) {
+                locationParts.push(addressInfo.street);
+              } else if (addressInfo.name) {
+                locationParts.push(addressInfo.name);
+              }
+              
+              // Priority 2: District or subregion (neighborhood level)
+              if (addressInfo.district) {
+                locationParts.push(addressInfo.district);
+              } else if (addressInfo.subregion) {
+                locationParts.push(addressInfo.subregion);
+              }
+              
+              // Priority 3: City (always try to include)
+              if (addressInfo.city) {
+                locationParts.push(addressInfo.city);
+              }
+              
+              // Fallback: Use region if city is missing
+              if (!addressInfo.city && addressInfo.region) {
+                locationParts.push(addressInfo.region);
+              }
+              
+              const locationString = locationParts.length > 0 
+                ? locationParts.join(", ")
+                : `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`;
+                
+              const truncatedLocation = truncateLocation(locationString);
+              setDisplayLocation(truncatedLocation);
             } else {
-              if (isActive) setLocation("Unknown location");
+              // Fallback to coordinates if reverse geocoding fails
+              const coordsString = `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`;
+              setDisplayLocation(truncateLocation(coordsString));
             }
           }
-        } catch (error) {
-          console.error("Error getting location:", error);
-          if (isActive) setLocation("Failed to fetch location");
+        } else {
+          // Fallback to device location if no location is selected in context
+          let { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== "granted") {
+            setDisplayLocation(truncateLocation("Location access denied"));
+            return;
+          }
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.High,
+          });
+          const address = await Location.reverseGeocodeAsync(loc.coords);
+          if (address.length > 0) {
+            const addressInfo = address[0];
+            
+            // Create a more reliable location string by prioritizing key components
+            const locationParts = [];
+            
+            // Priority 1: Street or name (most specific)
+            if (addressInfo.street) {
+              locationParts.push(addressInfo.street);
+            } else if (addressInfo.name) {
+              locationParts.push(addressInfo.name);
+            }
+            
+            // Priority 2: District or subregion (neighborhood level)
+            if (addressInfo.district) {
+              locationParts.push(addressInfo.district);
+            } else if (addressInfo.subregion) {
+              locationParts.push(addressInfo.subregion);
+            }
+            
+            // Priority 3: City (always try to include)
+            if (addressInfo.city) {
+              locationParts.push(addressInfo.city);
+            }
+            
+            // Fallback: Use region if city is missing
+            if (!addressInfo.city && addressInfo.region) {
+              locationParts.push(addressInfo.region);
+            }
+            
+            const locationString = locationParts.length > 0 
+              ? locationParts.join(", ")
+              : `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
+              
+            const truncatedLocation = truncateLocation(locationString);
+            setDisplayLocation(truncatedLocation);
+          } else {
+            // Fallback to coordinates if reverse geocoding fails
+            const coordsString = `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
+            setDisplayLocation(truncateLocation(coordsString));
+          }
         }
-      })();
-      return () => {
-        isActive = false;
-      };
-    }, [])
-  );
+      } catch (error) {
+        console.error("Error getting location:", error);
+        setDisplayLocation(truncateLocation("Failed to get location"));
+      }
+    };
+
+    updateDisplayLocation();
+  }, [currentLocation, savedLocations]);
 
   const NotificationBell = ({ unreadCount }: { unreadCount: number }) => {
     const router = useRouter();
@@ -179,12 +280,12 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
                   { color: colors.text.tertiary },
                 ]}
               >
-                {location}
+                {displayLocation}
               </Text>
             </TouchableOpacity>
           ) : (
             <Text style={[styles.locationText, { color: colors.text.tertiary }]}>
-              {location}
+              {displayLocation}
             </Text>
           )}
         </View>

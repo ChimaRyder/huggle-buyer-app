@@ -8,13 +8,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import FoodItemCard from '@/components/food/FoodItemCard';
+import { BackendProduct, BackendStore } from '@/types/BackendModels';
 
 interface SearchResultsProps {
-  restaurants: any[];
-  foodItems: any[];
+  restaurants: BackendStore[];
+  foodItems: BackendProduct[];
   onRestaurantPress: (id: string) => void;
   onToggleFavorite: (id: string) => void;
-  onFoodItemPress: (item: any) => void;
+  onFoodItemPress: (item: BackendProduct) => void;
 }
 
 const SearchResults: React.FC<SearchResultsProps> = ({ 

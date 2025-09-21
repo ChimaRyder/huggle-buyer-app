@@ -1,23 +1,32 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { FoodItem } from '../../data/food/models';
+import { BackendProduct } from '@/types/BackendModels';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
 import SafeImage from '@/components/common/SafeImage';
 
 interface FoodItemCardProps {
-  item: FoodItem;
+  item: BackendProduct;
   onPress: () => void;
 }
 
 const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
+  // Calculate display price and discount info from DTO
+  const hasDiscount = item.hasDiscount || (item.price < item.originalPrice);
+  const displayPrice = item.price; // Current price from DTO
+  
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.imageContainer}>
-        <SafeImage source={{ uri: item.image }} style={styles.image} />
-        {item.isPopular && (
+        <SafeImage 
+          source={{ uri: item.image && item.image.length > 0 ? item.image[0] : '' }} 
+          style={styles.image} 
+        />
+        {hasDiscount && (
           <View style={styles.popularBadge}>
-            <Text style={styles.popularText}>Popular</Text>
+            <Text style={styles.popularText}>
+              {item.discountPercentage ? `${Math.round(item.discountPercentage)}% OFF` : `${Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF`}
+            </Text>
           </View>
         )}
       </View>
@@ -25,10 +34,10 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-          {item.rating && (
+          {item.rating && item.rating > 0 && (
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={12} color={colors.warning} />
-              <Text style={styles.ratingText}>{item.rating}</Text>
+              <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
             </View>
           )}
         </View>
@@ -38,16 +47,16 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
         </Text>
         
         <View style={styles.footer}>
-          <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-          <View style={styles.dietaryContainer}>
-            {item.isVegetarian && (
-              <View style={[styles.dietaryBadge, styles.vegetarianBadge]}>
-                <Text style={styles.dietaryText}>V</Text>
-              </View>
+          <View style={styles.priceContainer}>
+            <Text style={styles.price}>${displayPrice.toFixed(2)}</Text>
+            {hasDiscount && (
+              <Text style={styles.originalPrice}>${item.originalPrice.toFixed(2)}</Text>
             )}
-            {item.isVegan && (
-              <View style={[styles.dietaryBadge, styles.veganBadge]}>
-                <Text style={styles.dietaryText}>VG</Text>
+          </View>
+          <View style={styles.dietaryContainer}>
+            {item.tags && item.tags.length > 0 && (
+              <View style={[styles.dietaryBadge, styles.categoryBadge]}>
+                <Text style={styles.dietaryText}>{item.tags[0]?.substring(0, 2).toUpperCase()}</Text>
               </View>
             )}
           </View>
@@ -124,10 +133,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   price: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.text.primary,
+  },
+  originalPrice: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: colors.text.secondary,
+    textDecorationLine: 'line-through',
   },
   dietaryContainer: {
     flexDirection: 'row',
@@ -140,11 +160,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 4,
   },
-  vegetarianBadge: {
-    backgroundColor: colors.success,
-  },
-  veganBadge: {
-    backgroundColor: colors.successDark,
+  categoryBadge: {
+    backgroundColor: colors.primary,
   },
   dietaryText: {
     color: colors.text.inverse,

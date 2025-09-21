@@ -8,23 +8,32 @@ import type { ApiResponse } from './common';
 // Product related interfaces
 export interface BackendProduct {
   id: string;
-  name: string;
-  description: string;
-  productType: string;
-  coverImage: string;
-  additionalImages: string[];
-  originalPrice: number;
-  discountedPrice: number;
-  expirationDate: string;
   storeId: string;
+  name: string;
+  description?: string;
+  image: string[]; // Array of image URLs
+  tags: string[]; // Product tags/categories
+  productType?: string;
+  price: number;
+  originalPrice: number;
+  stock: number;
+  expiresOn: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  stock: number;
-  rating: number;
-  ratingCount: number;
-  category: string[];
-  analytics?: Record<string, unknown>[];
+  
+  // Dynamic pricing info for buyers (derived fields)
+  discountPercentage: number;
+  hasDiscount: boolean;
+  
+  // Store information for buyer context
+  storeName?: string;
+  storeImageUrl?: string;
+  storeDescription?: string;
+  
+  // Legacy fields for compatibility (optional)
+  rating?: number;
+  ratingCount?: number;
 }
 
 export interface CreateProductRequest {

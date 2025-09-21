@@ -2,11 +2,11 @@ import React from "react";
 import {
   View,
   StyleSheet,
-  Image,
   Text,
   TouchableOpacity,
   FlatList,
 } from "react-native";
+import SafeImage from "@/components/common/SafeImage";
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import type { BackendProduct } from "@/types/BackendModels";
@@ -18,9 +18,9 @@ interface ProductGridProps {
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPress }) => {
   const renderProduct = ({ item }: { item: BackendProduct }) => {
-    // Calculate discounted price display
-    const hasDiscount = item.discountedPrice && item.discountedPrice < item.originalPrice;
-    const displayPrice = hasDiscount ? item.discountedPrice : item.originalPrice;
+    // Calculate discounted price display from BuyerProductDto
+    const hasDiscount = item.hasDiscount || (item.price < item.originalPrice);
+    const displayPrice = item.price; // Current price from DTO
     
     return (
       <TouchableOpacity
@@ -28,11 +28,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPre
         onPress={() => onProductPress(item.id)}
       >
         <View style={styles.imageContainer}>
-          <Image source={{ uri: item.coverImage }} style={styles.productImage} />
+          <SafeImage 
+            source={{ uri: item.image && item.image.length > 0 ? item.image[0] : '' }} 
+            style={styles.productImage} 
+          />
           {hasDiscount && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>
-                {Math.round(((item.originalPrice - item.discountedPrice) / item.originalPrice) * 100)}% OFF
+                {item.discountPercentage ? `${Math.round(item.discountPercentage)}% OFF` : `${Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF`}
               </Text>
             </View>
           )}
@@ -51,18 +54,20 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPre
                 <Text style={styles.originalPrice}>${item.originalPrice.toFixed(2)}</Text>
               )}
             </View>
-            {item.rating > 0 && (
+            {item.rating && item.rating > 0 && (
               <View style={styles.ratingContainer}>
                 <Ionicons name="star" size={12} color={colors.warning} />
                 <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-                <Text style={styles.ratingCount}>({item.ratingCount})</Text>
+                {item.ratingCount && (
+                  <Text style={styles.ratingCount}>({item.ratingCount})</Text>
+                )}
               </View>
             )}
           </View>
-          {item.category && item.category.length > 0 && (
+          {item.tags && item.tags.length > 0 && (
             <View style={styles.categoryContainer}>
               <Text style={styles.categoryText} numberOfLines={1}>
-                {item.category.join(', ')}
+                {item.tags.join(', ')}
               </Text>
             </View>
           )}

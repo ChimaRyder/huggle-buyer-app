@@ -17,7 +17,7 @@ interface LocationContextType {
   isLoading: boolean;
   isSaving: boolean;
   isDeleting: boolean;
-  setLocation: (location: Location) => Promise<void>;
+  setLocation: (location: Location | SavedLocation) => Promise<void>;
   saveLocation: (location: Location, label: string) => Promise<void>;
   deleteSavedLocation: (locationId: string) => Promise<void>;
   fetchAllLocations: () => Promise<void>;
@@ -32,7 +32,7 @@ interface LocationProviderProps {
 }
 
 export function LocationProvider({ children }: LocationProviderProps) {
-  const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<Location | SavedLocation | null>(null);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -66,7 +66,7 @@ export function LocationProvider({ children }: LocationProviderProps) {
     }
   };
 
-  const setLocation = async (location: Location): Promise<void> => {
+  const setLocation = async (location: Location | SavedLocation): Promise<void> => {
     try {
       console.log('💾 LocationContext: setLocation - Saving location to AsyncStorage:', location);
       await AsyncStorage.setItem(CURRENT_LOCATION_KEY, JSON.stringify(location));
@@ -118,7 +118,15 @@ export function LocationProvider({ children }: LocationProviderProps) {
           const currentArray = Array.isArray(prev) ? prev : [];
           return [...currentArray, savedLocationData];
         });
-        await setLocation(location);
+        // Set current location to the saved location (with label)
+        await setLocation(savedLocationData);
+        
+        // Try to refresh the saved locations list, but don't fail if it doesn't work
+        try {
+          await fetchAllLocations();
+        } catch (error) {
+          console.warn('⚠️ LocationContext: Could not refresh locations after save, but save was successful:', error);
+        }
       } else {
         throw new Error(response.error || 'Failed to save location');
       }

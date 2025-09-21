@@ -13,14 +13,15 @@ import { useRouter } from "expo-router";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import RestaurantCard from "@/components/restaurant/RestaurantCard";
 import FoodItemCard from "@/components/food/FoodItemCard";
+import { BackendProduct, BackendStore } from "@/types/BackendModels";
 import { colors } from "@/constants/theme";
 
 const SearchResultsScreen = () => {
   const route = useRoute();
   const router = useRouter();
   const { query } = route.params as { query: string; };
-  const [stores, setStores] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [stores, setStores] = useState<BackendStore[]>([]);
+  const [products, setProducts] = useState<BackendProduct[]>([]);
   const [searchQuery, setSearchQuery] = useState(query);
 
   // TODO: Implement API search functionality
