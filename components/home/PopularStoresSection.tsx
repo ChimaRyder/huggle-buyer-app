@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-// TODO: Replace with API call to fetch popular restaurants
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { colors } from '@/constants/theme';
+import { useStoreContext } from '@/context/StoreContext';
+import { useLocationContext } from '@/context/LocationContext';
 
 interface PopularStoresSectionProps {
   onRestaurantPress: (id: string) => void;
@@ -21,8 +23,27 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
   onToggleFavorite,
   onSeeAllPress
 }) => {
-  // TODO: Replace with API call to fetch popular restaurants
-  const restaurants: any[] = [];
+  const { popularStores, isFetchingPopular, popularError, fetchPopularStores } = useStoreContext();
+  const { currentLocation } = useLocationContext();
+
+  // Create stable location coordinates
+  const locationCoords = useMemo(() => {
+    if (!currentLocation) return null;
+    return {
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude
+    };
+  }, [currentLocation?.latitude, currentLocation?.longitude]);
+
+  // Fetch popular stores when component mounts or location changes
+  useEffect(() => {
+    if (locationCoords) {
+      fetchPopularStores(locationCoords.latitude, locationCoords.longitude, 5);
+    }
+  }, [locationCoords, fetchPopularStores]);
+
+  // Show only first 3 stores for home screen
+  const displayStores = popularStores.slice(0, 3);
 
   return (
     <View style={styles.section}>
@@ -34,16 +55,49 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
         </TouchableOpacity>
       </View>
       <View style={styles.restaurantsContainer}>
-        {restaurants.length === 0 ? (
+        {isFetchingPopular ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading popular stores...</Text>
+          </View>
+        ) : popularError ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Failed to load popular stores</Text>
+            <Text style={styles.errorText}>{popularError}</Text>
+          </View>
+        ) : !locationCoords ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="location-outline" size={32} color={colors.text.secondary} />
+            <Text style={styles.emptyText}>Location required</Text>
+            <Text style={styles.emptySubtext}>Please set your location to see popular stores nearby</Text>
+          </View>
+        ) : displayStores.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No popular stores available</Text>
+            <Text style={styles.emptySubtext}>Check back later for popular stores in your area</Text>
           </View>
         ) : (
-          restaurants.map((restaurant) => (
+          displayStores.map((store) => (
             <RestaurantCard
-              key={restaurant.id}
-              restaurant={restaurant}
-              onPress={() => onRestaurantPress(restaurant.id)}
+              key={store.id}
+              restaurant={{
+                id: store.id,
+                name: store.name,
+                description: store.description,
+                image: store.profileImageUrl,
+                rating: 4.5, // Default rating since not provided by API
+                deliveryTime: '15-30 min', // Default delivery time
+                distance: store.distance ? `${store.distance.toFixed(1)}km` : '0.0km',
+                categories: store.tags || [],
+                isFavorite: false, // Default favorite status
+                promotion: store.isVerified ? 'Verified' : undefined,
+                address: store.address,
+                city: store.city,
+                province: store.province,
+                isOpen: store.isOpen,
+                isVerified: store.isVerified
+              }}
+              onPress={() => onRestaurantPress(store.id)}
               onToggleFavorite={onToggleFavorite}
             />
           ))
@@ -88,6 +142,30 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: colors.text.tertiary,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+  },
+  loadingText: {
+    marginLeft: 12,
+    fontSize: 14,
+    color: colors.text.secondary,
+  },
+  errorText: {
+    fontSize: 12,
+    color: colors.error,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });
 

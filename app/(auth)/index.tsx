@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Alert, View, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useUser, useAuth } from "@clerk/clerk-expo";
-import axios from "axios";
-import { useClerk } from "@clerk/clerk-expo";
 import { Text, Spinner, useTheme, Layout } from "@ui-kitten/components"; // Changed from react-native-svg for proper Text component
 import Animated, {
   useSharedValue,

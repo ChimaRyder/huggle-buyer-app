@@ -10,6 +10,8 @@ import { ErrorBoundary } from './common';
 import { AppStateProvider } from '@/context/AppStateContext';
 import { ApiProvider } from '@/context/ApiContext';
 import { LocationProvider } from '@/context/LocationContext';
+import { ProductProvider } from '@/context/ProductContext';
+import { StoreProvider } from '@/context/StoreContext';
 import { handleError, ErrorType, ErrorSeverity } from '@/utils/errorHandler';
 
 interface AppProviderProps {
@@ -49,11 +51,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     >
       <ApiProvider>
         <LocationProvider>
-          <AppStateProvider>
-            {children}
-            {/* Global Toast Messages */}
-            <Toast />
-          </AppStateProvider>
+          <ProductProvider>
+            <StoreProvider>
+              <AppStateProvider>
+                {children}
+                {/* Global Toast Messages */}
+                <Toast />
+              </AppStateProvider>
+            </StoreProvider>
+          </ProductProvider>
         </LocationProvider>
       </ApiProvider>
     </ErrorBoundary>

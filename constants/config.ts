@@ -7,8 +7,8 @@ interface AppConfig {
 
 
 const getApiBaseUrl = (): string => {
-  // return "https://rpbwh9rd-5132.asse.devtunnels.ms";
-  return "https://rpbwh9rd-5132.asse.devtunnels.ms"
+  return "https://rpbwh9rd-5132.asse.devtunnels.ms";
+  // return "http://localhost:5132"
 };
 
 export const config: AppConfig = {
@@ -22,12 +22,19 @@ export const config: AppConfig = {
 export const API_ENDPOINTS = {
   products: {
     display: "/api/products/display",
+    trending: "/api/products/trending",
+    trendingByLocation: (latitude: number, longitude: number, radiusKm: number = 10, pageSize: number = 20) => 
+      `/api/products/trending?latitude=${latitude}&longitude=${longitude}&radiusKm=${radiusKm}&pageSize=${pageSize}`,
     byId: (id: string) => `/api/products/${id}`,
     byStore: (storeId: string) => `/api/products/store/${storeId}`,
   },
   stores: {
     list: "/api/stores",
     byId: (id: string) => `/api/stores/${id}`,
+    popular: (latitude: number, longitude: number, radius: number = 5, pageSize: number = 10) => 
+      `/api/stores/popular?latitude=${latitude}&longitude=${longitude}&radius=${radius}&pageSize=${pageSize}`,
+    search: (latitude: number, longitude: number, radius: number = 5, pageSize: number = 20) => 
+      `/api/stores/search?latitude=${latitude}&longitude=${longitude}&radius=${radius}&pageSize=${pageSize}`,
   },
   orders: {
     list: "/api/orders",

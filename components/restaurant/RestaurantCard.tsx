@@ -1,8 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Restaurant } from '../../data/food/models';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
+import SafeImage from '@/components/common/SafeImage';
+
+// Restaurant interface for the card component
+interface Restaurant {
+  id: string;
+  name: string;
+  description?: string;
+  image: string | string[]; // Support both string and array formats
+  rating: number;
+  deliveryTime: string;
+  distance: string;
+  categories?: string[];
+  isFavorite: boolean;
+  promotion?: string;
+  address?: string;
+  city?: string;
+  province?: string;
+  isOpen?: boolean;
+  isVerified?: boolean;
+}
 
 interface RestaurantCardProps {
   restaurant: Restaurant;
@@ -18,7 +37,7 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.imageContainer}>
-        <Image source={{ uri: restaurant.image }} style={styles.image} />
+        <SafeImage source={{ uri: restaurant.image }} style={styles.image} />
         {restaurant.promotion && (
           <View style={styles.promotionBadge}>
             <Text style={styles.promotionText}>{restaurant.promotion}</Text>
@@ -53,11 +72,17 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
         </View>
         
         <View style={styles.categoriesContainer}>
-          {restaurant.categories.map((category, index) => (
-            <View key={index} style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{category}</Text>
+          {restaurant.categories && restaurant.categories.length > 0 ? (
+            restaurant.categories.map((category, index) => (
+              <View key={index} style={styles.categoryBadge}>
+                <Text style={styles.categoryText}>{category}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>Store</Text>
             </View>
-          ))}
+          )}
         </View>
       </View>
     </TouchableOpacity>

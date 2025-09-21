@@ -13,6 +13,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCart } from '@/context/CartContext';
+import { useProductContext } from '@/context/ProductContext';
+import { useStoreContext } from '@/context/StoreContext';
+import { useLocationContext } from '@/context/LocationContext';
 
 import { GreeterSection } from '@/components/layout';
 import { colors } from '@/constants/theme';
@@ -27,12 +30,33 @@ const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const { itemCount } = useCart();
+  
+  // Context hooks
+  const { fetchTrendingProducts } = useProductContext();
+  const { fetchPopularStores } = useStoreContext();
+  const { currentLocation } = useLocationContext();
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setRefreshing(false);
+    
+    try {
+      // Refresh all data if location is available
+      if (currentLocation) {
+        const refreshPromises = [
+          fetchTrendingProducts(currentLocation.latitude, currentLocation.longitude, 10),
+          fetchPopularStores(currentLocation.latitude, currentLocation.longitude, 5)
+        ];
+        
+        await Promise.all(refreshPromises);
+        console.log('✅ HomeScreen: Successfully refreshed all data');
+      } else {
+        console.log('📍 HomeScreen: No location available for refresh');
+      }
+    } catch (error) {
+      console.error('❌ HomeScreen: Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleRestaurantPress = (id: string) => {

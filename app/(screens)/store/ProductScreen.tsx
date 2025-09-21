@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,13 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
 import { ReviewCard } from "@/components/review";
+import { useProductContext } from "@/context/ProductContext";
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -23,28 +25,56 @@ export default function ProductScreen() {
   const [quantity, setQuantity] = useState(1);
   const scrollViewRef = useRef(null);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
-
-  // TODO: Fetch product details from API
-  const product = null;
+  
+  const {
+    currentProduct,
+    isFetchingProduct,
+    productError,
+    fetchProductById,
+    clearCurrentProduct
+  } = useProductContext();
+  
+  useEffect(() => {
+    if (id && typeof id === 'string') {
+      console.log('🔍 ProductScreen: Fetching product with ID:', id);
+      fetchProductById(id);
+    }
+    
+    // Cleanup when component unmounts or ID changes
+    return () => {
+      clearCurrentProduct();
+    };
+  }, [id, fetchProductById, clearCurrentProduct]);
 
   // TODO: Fetch store details from API
   const store = null;
 
-  // TODO: Fetch reviews from API
+  // TODO: Fetch reviews from API  
   const mockReviews: any[] = [];
 
-  // TODO: Remove this when API integration is complete
-  return (
-    <View style={styles.container}>
-      <Text style={styles.errorText}>Product loading...</Text>
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.backButtonText}>Go Back</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  // Loading and error states
+  if (isFetchingProduct) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading product...</Text>
+      </View>
+    );
+  }
+
+  if (productError || !currentProduct) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{productError || 'Product not found'}</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // Calculate average rating
   const averageRating = mockReviews.length > 0 
@@ -60,7 +90,7 @@ export default function ProductScreen() {
 
   const handleAddToCart = () => {
     // In a real app, this would add to cart
-    alert(`Added ${quantity} ${product.name} to cart!`);
+    alert(`Added ${quantity} ${currentProduct.name} to cart!`);
   };
 
   const navigateToStore = () => {
@@ -68,7 +98,7 @@ export default function ProductScreen() {
   };
 
   const handleViewAllReviews = () => {
-    router.push(`/(screens)/store/ReviewsScreen?id=${store.id}&productId=${product.id}`);
+    router.push(`/(screens)/store/ReviewsScreen?id=${store?.id}&productId=${currentProduct.id}`);
   };
 
   const handleReviewScroll = (event) => {
@@ -87,7 +117,7 @@ export default function ProductScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.imageContainer}>
-          <Image source={{ uri: product.image }} style={styles.image} />
+          <Image source={{ uri: currentProduct.coverImage }} style={styles.image} />
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => router.back()}
@@ -99,7 +129,7 @@ export default function ProductScreen() {
         <View style={styles.content}>
           {/* Product name and quantity row */}
           <View style={styles.nameRow}>
-            <Text style={styles.title}>{product.name}</Text>
+            <Text style={styles.title}>{currentProduct.name}</Text>
             <View style={styles.quantityControls}>
               <TouchableOpacity 
                 style={styles.quantityButton}
@@ -117,37 +147,31 @@ export default function ProductScreen() {
             </View>
           </View>
 
-          {/* Minimal store info */}
-          <TouchableOpacity style={styles.minimalStoreInfo} onPress={navigateToStore}>
-            <Text style={styles.storeNameMinimal}>{store.name}</Text>
-            <Text style={styles.storeDistanceMinimal}> • {store.distance}</Text>
-          </TouchableOpacity>
+          {/* Store info - temporarily disabled until store integration */}
+          {store && (
+            <TouchableOpacity style={styles.minimalStoreInfo} onPress={navigateToStore}>
+              <Text style={styles.storeNameMinimal}>{store.name}</Text>
+              <Text style={styles.storeDistanceMinimal}> • {store.distance}</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Divider */}
           <View style={styles.divider} />
 
           {/* Description without header */}
           <View style={styles.section}>
-            <Text style={styles.description}>{product.description}</Text>
+            <Text style={styles.description}>{currentProduct.description}</Text>
             
-            {/* Badges at the bottom of description section */}
-            <View style={styles.badgesContainer}>
-              {product.isPopular && (
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularText}>Popular</Text>
-                </View>
-              )}
-              {product.isVegetarian && (
-                <View style={[styles.dietaryBadge, styles.vegetarianBadge]}>
-                  <Text style={styles.dietaryText}>V</Text>
-                </View>
-              )}
-              {product.isVegan && (
-                <View style={[styles.dietaryBadge, styles.veganBadge]}>
-                  <Text style={styles.dietaryText}>VG</Text>
-                </View>
-              )}
-            </View>
+            {/* Categories display */}
+            {currentProduct.category && currentProduct.category.length > 0 && (
+              <View style={styles.categoriesContainer}>
+                {currentProduct.category.map((cat, index) => (
+                  <View key={index} style={styles.categoryBadge}>
+                    <Text style={styles.categoryText}>{cat}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Divider */}
@@ -211,7 +235,11 @@ export default function ProductScreen() {
       {/* Bottom bar with price and Add to Cart button - expanded to screen edges with breathing room */}
       <View style={styles.bottomBarContainer}>
         <View style={styles.bottomBar}>
-          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+          <Text style={styles.price}>
+            ${(currentProduct.discountedPrice && currentProduct.discountedPrice < currentProduct.originalPrice 
+              ? currentProduct.discountedPrice 
+              : currentProduct.originalPrice).toFixed(2)}
+          </Text>
           <TouchableOpacity style={styles.addButton} onPress={handleAddToCart}>
             <Text style={styles.addButtonText}>Add to Cart</Text>
           </TouchableOpacity>
@@ -225,6 +253,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.tertiary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background.tertiary,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.text.secondary,
   },
   scrollContainer: {
     flex: 1,
@@ -295,42 +334,24 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 10, // Reduced bottom margin
   },
-  badgesContainer: {
+  categoriesContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10, // Reduced top margin
+    flexWrap: "wrap",
+    marginTop: 10,
   },
-  popularBadge: {
-    backgroundColor: colors.warning,
-    borderRadius: 12,
+  categoryBadge: {
+    backgroundColor: colors.primary + '15',
+    borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginRight: 10,
-    justifyContent: "center",
+    paddingVertical: 4,
+    marginRight: 8,
+    marginBottom: 6,
   },
-  popularText: {
-    color: colors.text.inverse,
+  categoryText: {
+    color: colors.primary,
     fontSize: 12,
-    fontWeight: "600",
-  },
-  dietaryBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  vegetarianBadge: {
-    backgroundColor: colors.success,
-  },
-  veganBadge: {
-    backgroundColor: colors.successDark,
-  },
-  dietaryText: {
-    color: colors.text.inverse,
-    fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "500",
+    textTransform: "capitalize",
   },
   quantityControls: {
     flexDirection: "row",

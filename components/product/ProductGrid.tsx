@@ -7,73 +7,69 @@ import {
   TouchableOpacity,
   FlatList,
 } from "react-native";
-// TODO: Create proper product model interface
 import { colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-
-// TODO: Replace with proper product interface
-interface ProductItem {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  price: number;
-  rating?: number;
-  isPopular?: boolean;
-  isVegetarian?: boolean;
-  isVegan?: boolean;
-}
+import type { BackendProduct } from "@/types/BackendModels";
 
 interface ProductGridProps {
-  products: ProductItem[];
+  products: BackendProduct[];
   onProductPress: (productId: string) => void;
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPress }) => {
-  const renderProduct = ({ item }: { item: ProductItem }) => (
-    <TouchableOpacity
-      style={styles.productCard}
-      onPress={() => onProductPress(item.id)}
-    >
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-        {item.isPopular && (
-          <View style={styles.popularBadge}>
-            <Text style={styles.popularText}>Popular</Text>
+  const renderProduct = ({ item }: { item: BackendProduct }) => {
+    // Calculate discounted price display
+    const hasDiscount = item.discountedPrice && item.discountedPrice < item.originalPrice;
+    const displayPrice = hasDiscount ? item.discountedPrice : item.originalPrice;
+    
+    return (
+      <TouchableOpacity
+        style={styles.productCard}
+        onPress={() => onProductPress(item.id)}
+      >
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: item.coverImage }} style={styles.productImage} />
+          {hasDiscount && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>
+                {Math.round(((item.originalPrice - item.discountedPrice) / item.originalPrice) * 100)}% OFF
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.productDescription} numberOfLines={2}>
+            {item.description}
+          </Text>
+          <View style={styles.footer}>
+            <View style={styles.priceContainer}>
+              <Text style={styles.price}>${displayPrice.toFixed(2)}</Text>
+              {hasDiscount && (
+                <Text style={styles.originalPrice}>${item.originalPrice.toFixed(2)}</Text>
+              )}
+            </View>
+            {item.rating > 0 && (
+              <View style={styles.ratingContainer}>
+                <Ionicons name="star" size={12} color={colors.warning} />
+                <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
+                <Text style={styles.ratingCount}>({item.ratingCount})</Text>
+              </View>
+            )}
           </View>
-        )}
-      </View>
-      <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.productDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-        <View style={styles.footer}>
-          <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-          {item.rating && (
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={12} color={colors.warning} />
-              <Text style={styles.ratingText}>{item.rating}</Text>
+          {item.category && item.category.length > 0 && (
+            <View style={styles.categoryContainer}>
+              <Text style={styles.categoryText} numberOfLines={1}>
+                {item.category.join(', ')}
+              </Text>
             </View>
           )}
         </View>
-        <View style={styles.dietaryContainer}>
-          {item.isVegetarian && (
-            <View style={[styles.dietaryBadge, styles.vegetarianBadge]}>
-              <Text style={styles.dietaryText}>V</Text>
-            </View>
-          )}
-          {item.isVegan && (
-            <View style={[styles.dietaryBadge, styles.veganBadge]}>
-              <Text style={styles.dietaryText}>VG</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <FlatList
@@ -113,16 +109,16 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  popularBadge: {
+  discountBadge: {
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: colors.warning,
+    backgroundColor: colors.error,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  popularText: {
+  discountText: {
     color: colors.text.inverse,
     fontSize: 10,
     fontWeight: "600",
@@ -148,10 +144,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   price: {
     fontSize: 16,
     fontWeight: "700",
     color: colors.text.primary,
+  },
+  originalPrice: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: colors.text.secondary,
+    textDecorationLine: "line-through",
   },
   ratingContainer: {
     flexDirection: "row",
@@ -163,27 +170,20 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontWeight: "500",
   },
-  dietaryContainer: {
-    flexDirection: "row",
+  ratingCount: {
+    marginLeft: 2,
+    fontSize: 10,
+    color: colors.text.secondary,
+    fontWeight: "400",
   },
-  dietaryBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 4,
+  categoryContainer: {
+    marginTop: 4,
   },
-  vegetarianBadge: {
-    backgroundColor: colors.success,
-  },
-  veganBadge: {
-    backgroundColor: colors.successDark,
-  },
-  dietaryText: {
-    color: colors.text.inverse,
-    fontSize: 8,
-    fontWeight: "600",
+  categoryText: {
+    fontSize: 10,
+    color: colors.primary,
+    fontWeight: "500",
+    textTransform: "uppercase",
   },
 });
 

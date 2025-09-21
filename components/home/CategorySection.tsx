@@ -6,18 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-// TODO: Replace with API call to fetch food categories
 import { colors } from '@/constants/theme';
+import { PRODUCT_CATEGORIES } from '@/constants/categories';
 
 interface CategorySectionProps {
   onCategoryPress: (categoryId: string) => void;
 }
 
 const CategorySection: React.FC<CategorySectionProps> = ({ onCategoryPress }) => {
-  // TODO: Replace with API call to fetch food categories
-  const foodCategories: any[] = [];
+  const categories = PRODUCT_CATEGORIES;
 
-  if (foodCategories.length === 0) {
+  if (categories.length === 0) {
     return (
       <View style={styles.section}>
         <View style={styles.emptyContainer}>
@@ -35,7 +34,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({ onCategoryPress }) =>
         style={styles.categoriesContainer}
         contentContainerStyle={styles.categoriesContent}
       >
-        {foodCategories.map((category) => (
+        {categories.map((category) => (
           <TouchableOpacity
             key={category.id}
             style={[styles.categoryCard, { backgroundColor: category.color }]}

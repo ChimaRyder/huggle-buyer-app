@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { FoodItem } from '../../data/food/models';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
+import SafeImage from '@/components/common/SafeImage';
 
 interface FoodItemCardProps {
   item: FoodItem;
@@ -13,7 +14,7 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image }} style={styles.image} />
+        <SafeImage source={{ uri: item.image }} style={styles.image} />
         {item.isPopular && (
           <View style={styles.popularBadge}>
             <Text style={styles.popularText}>Popular</Text>

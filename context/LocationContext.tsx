@@ -46,6 +46,7 @@ export function LocationProvider({ children }: LocationProviderProps) {
     loadCurrentLocationFromStorage();
   }, []);
 
+
   const loadCurrentLocationFromStorage = async () => {
     try {
       console.log('🔍 LocationContext: Loading location from AsyncStorage...');
