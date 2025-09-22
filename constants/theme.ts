@@ -111,6 +111,14 @@ export const palette = {
 export const colors = {
   ...palette,
   
+  // Primary color object structure
+  primary: {
+    main: palette.primary,
+    light: palette.primaryLight,
+    dark: palette.primaryDark,
+    contrastText: palette.primaryContrast,
+  },
+  
   // Alias for danger (commonly referenced as error)
   error: palette.danger,
   successDark: palette.successDark,

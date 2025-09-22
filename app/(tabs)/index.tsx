@@ -108,8 +108,8 @@ const HomeScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
+              colors={[colors.primary.main]}
+              tintColor={colors.primary.main}
             />
           }
         >

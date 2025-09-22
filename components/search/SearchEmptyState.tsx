@@ -13,7 +13,7 @@ const SearchEmptyState: React.FC = () => {
       <Ionicons name="search-outline" size={64} color={colors.text.tertiary} />
       <Text style={styles.emptyTitle}>Search for restaurants or food</Text>
       <Text style={styles.emptyDescription}>
-        Find your favorite restaurants and food items
+        Find your favorite restaurants and food items by name, description, or tags
       </Text>
     </View>
   );

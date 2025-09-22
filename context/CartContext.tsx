@@ -6,7 +6,9 @@ type CartAction =
   | { type: 'REMOVE_ITEM'; id: string }
   | { type: 'UPDATE_QUANTITY'; id: string; quantity: number }
   | { type: 'CLEAR_CART' }
-  | { type: 'SET_SPECIAL_INSTRUCTIONS'; id: string; instructions: string };
+  | { type: 'SET_SPECIAL_INSTRUCTIONS'; id: string; instructions: string }
+  | { type: 'TOGGLE_ITEM_SELECTION'; id: string }
+  | { type: 'SELECT_ALL_ITEMS'; selected: boolean };
 
 interface CartContextType {
   items: CartItem[];
@@ -17,6 +19,13 @@ interface CartContextType {
   setSpecialInstructions: (id: string, instructions: string) => void;
   clearCart: () => void;
   itemCount: number;
+  selectedItems: CartItem[];
+  selectedTotal: number;
+  toggleItemSelection: (id: string) => void;
+  selectAllItems: (selected: boolean) => void;
+  hasExpiredItems: boolean;
+  activeItems: CartItem[];
+  expiredItems: CartItem[];
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -41,7 +50,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       }
       
       return {
-        items: [...state.items, action.item],
+        items: [...state.items, { ...action.item, selected: true }],
       };
     }
     
@@ -73,6 +82,20 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         items: [],
       };
     
+    case 'TOGGLE_ITEM_SELECTION':
+      return {
+        items: state.items.map(item =>
+          item.id === action.id
+            ? { ...item, selected: !item.selected }
+            : item
+        ),
+      };
+    
+    case 'SELECT_ALL_ITEMS':
+      return {
+        items: state.items.map(item => ({ ...item, selected: action.selected })),
+      };
+    
     default:
       return state;
   }
@@ -80,6 +103,18 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
+  
+  // Separate active and expired items
+  const now = new Date();
+  const activeItems = state.items.filter(item => {
+    if (!item.expiresAt) return item.isActive !== false;
+    return item.isActive !== false && new Date(item.expiresAt) > now;
+  });
+  
+  const expiredItems = state.items.filter(item => {
+    if (!item.expiresAt) return item.isActive === false;
+    return item.isActive === false || new Date(item.expiresAt) <= now;
+  });
   
   const total = state.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -90,6 +125,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (count, item) => count + item.quantity,
     0
   );
+  
+  // Selected items calculations
+  const selectedItems = state.items.filter(item => item.selected);
+  const selectedTotal = selectedItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  
+  const hasExpiredItems = expiredItems.length > 0;
   
   const addItem = (item: CartItem) => {
     dispatch({ type: 'ADD_ITEM', item });
@@ -111,6 +155,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CLEAR_CART' });
   };
   
+  const toggleItemSelection = (id: string) => {
+    dispatch({ type: 'TOGGLE_ITEM_SELECTION', id });
+  };
+  
+  const selectAllItems = (selected: boolean) => {
+    dispatch({ type: 'SELECT_ALL_ITEMS', selected });
+  };
+  
   return (
     <CartContext.Provider
       value={{
@@ -122,6 +174,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setSpecialInstructions,
         clearCart,
         itemCount,
+        selectedItems,
+        selectedTotal,
+        toggleItemSelection,
+        selectAllItems,
+        hasExpiredItems,
+        activeItems,
+        expiredItems,
       }}
     >
       {children}

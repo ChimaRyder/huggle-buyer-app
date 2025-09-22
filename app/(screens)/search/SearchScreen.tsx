@@ -10,27 +10,59 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-// TODO: Replace with API call to fetch search suggestions
 import { colors } from '@/constants/theme';
 import {
   SearchHeader,
   SearchInput,
   SearchEmptyState
 } from '@/components/search';
+import { useSearch } from '@/utils/search';
+import { useLocationContext } from '@/context/LocationContext';
 
-// TODO: Replace with API call to fetch search suggestions
-const generateSuggestions = () => {
-  return [];
-};
+// Popular search suggestions - in a real app, these could come from the backend
+const POPULAR_SEARCHES = [
+  { id: '1', text: 'Pizza', type: 'food', category: 'Fast Food' },
+  { id: '2', text: 'Coffee', type: 'food', category: 'Beverages' },
+  { id: '3', text: 'Sushi', type: 'food', category: 'Japanese' },
+  { id: '4', text: 'Burger', type: 'food', category: 'Fast Food' },
+  { id: '5', text: 'Thai Restaurant', type: 'restaurant', category: 'Asian' },
+  { id: '6', text: 'Bakery', type: 'restaurant', category: 'Bakery' },
+  { id: '7', text: 'Indian Food', type: 'food', category: 'Indian' },
+  { id: '8', text: 'Bubble Tea', type: 'food', category: 'Beverages' },
+  { id: '9', text: 'Grocery Store', type: 'restaurant', category: 'Grocery' },
+  { id: '10', text: 'Mexican Food', type: 'food', category: 'Mexican' },
+];
+
+// Popular tags for tag-based search
+const POPULAR_TAGS = [
+  { id: 't1', text: 'gadgets', icon: 'hardware-chip-outline' },
+  { id: 't2', text: 'electronics', icon: 'laptop-outline' },
+  { id: 't3', text: 'organic', icon: 'leaf-outline' },
+  { id: 't4', text: 'fresh', icon: 'water-outline' },
+  { id: 't5', text: 'discount', icon: 'pricetag-outline' },
+  { id: 't6', text: 'healthy', icon: 'fitness-outline' },
+  { id: 't7', text: 'spicy', icon: 'flame-outline' },
+  { id: 't8', text: 'vegan', icon: 'leaf-outline' },
+];
+
+const FOOD_CATEGORIES = [
+  { id: 'c1', name: 'Fast Food', icon: 'fast-food-outline' },
+  { id: 'c2', name: 'Asian', icon: 'restaurant-outline' },
+  { id: 'c3', name: 'Italian', icon: 'pizza-outline' },
+  { id: 'c4', name: 'Mexican', icon: 'nutrition-outline' },
+  { id: 'c5', name: 'Desserts', icon: 'ice-cream-outline' },
+  { id: 'c6', name: 'Beverages', icon: 'cafe-outline' },
+];
 
 const SearchScreen = () => {
   const router = useRouter();
   const { initialQuery } = useLocalSearchParams();
   const [searchQuery, setSearchQuery] = useState(initialQuery?.toString() || '');
-  const [suggestions, setSuggestions] = useState(generateSuggestions());
+  const { getPopularStores } = useSearch();
+  const { currentLocation } = useLocationContext();
   
-  // Filter suggestions based on search query
-  const filteredSuggestions = suggestions.filter(suggestion => 
+  // Filter popular searches based on search query
+  const filteredSuggestions = POPULAR_SEARCHES.filter(suggestion => 
     suggestion.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
@@ -114,21 +146,59 @@ const SearchScreen = () => {
       ) : (
         <View style={styles.suggestionsContainer}>
           <Text style={styles.suggestionsTitle}>Popular Searches</Text>
-          {suggestions.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="search-outline" size={64} color={colors.text.tertiary} />
-              <Text style={styles.emptyTitle}>No suggestions available</Text>
-              <Text style={styles.emptySubtitle}>Start typing to search for products or stores</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={suggestions}
-              renderItem={renderSuggestionItem}
-              keyExtractor={(item) => item.id}
-              style={styles.suggestionsList}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
+          <FlatList
+            data={POPULAR_SEARCHES}
+            renderItem={renderSuggestionItem}
+            keyExtractor={(item) => item.id}
+            style={styles.suggestionsList}
+            showsVerticalScrollIndicator={false}
+          />
+          
+          {/* Popular Tags Section */}
+          <Text style={styles.categoriesTitle}>Popular Tags</Text>
+          <View style={styles.tagsContainer}>
+            {POPULAR_TAGS.map((tag) => (
+              <TouchableOpacity 
+                key={tag.id}
+                style={styles.tagItem}
+                onPress={() => router.push({
+                  pathname: '/(screens)/search/SearchResultsScreen',
+                  params: { query: tag.text }
+                })}
+              >
+                <Ionicons 
+                  name={tag.icon as any}
+                  size={16} 
+                  color={colors.primary.main}
+                  style={styles.tagIcon}
+                />
+                <Text style={styles.tagText}>{tag.text}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          {/* Categories Section */}
+          <Text style={styles.categoriesTitle}>Browse Categories</Text>
+          <View style={styles.categoriesContainer}>
+            {FOOD_CATEGORIES.map((category) => (
+              <TouchableOpacity 
+                key={category.id}
+                style={styles.categoryItem}
+                onPress={() => router.push({
+                  pathname: '/(screens)/search/SearchResultsScreen',
+                  params: { query: category.name }
+                })}
+              >
+                <Ionicons 
+                  name={category.icon as any}
+                  size={24} 
+                  color={colors.primary.main}
+                  style={styles.categoryIcon}
+                />
+                <Text style={styles.categoryText}>{category.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       )}
     </SafeAreaView>
@@ -193,6 +263,61 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  categoriesTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.primary,
+    marginTop: 16,
+  },
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+  },
+  categoryItem: {
+    width: '33.333%',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+  },
+  categoryIcon: {
+    marginBottom: 8,
+  },
+  categoryText: {
+    fontSize: 14,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  tagItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border.secondary,
+  },
+  tagIcon: {
+    marginRight: 6,
+  },
+  tagText: {
+    fontSize: 12,
+    color: colors.text.primary,
+    fontWeight: '500',
   },
 });
 

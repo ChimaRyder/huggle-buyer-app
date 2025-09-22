@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error,
   },
   validBadge: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
   },
   expiryText: {
     fontSize: typography.fontSizes.xs,
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Medium',
   },
   pricingContainer: {
-    backgroundColor: colors.primary + '10',
+    backgroundColor: colors.primary.main + '10',
     borderRadius: radii.lg,
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   currentPrice: {
     fontSize: typography.fontSizes.xl,
     fontWeight: typography.fontWeights.bold,
-    color: colors.primary,
+    color: colors.primary.main,
     marginRight: spacing.md,
     fontFamily: 'Poppins-Bold',
   },
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   readMoreText: {
     fontSize: typography.fontSizes.sm,
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: typography.fontWeights.medium,
     marginTop: spacing.xs,
     fontFamily: 'Poppins-Medium',

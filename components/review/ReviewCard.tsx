@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: fontSizes.sm,
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: "bold",
   },
   productNameContainer: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   expandButtonText: {
     fontSize: fontSizes.sm,
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: "600",
   },
   imagesContainer: {

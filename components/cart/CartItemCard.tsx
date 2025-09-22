@@ -10,6 +10,7 @@ interface CartItemCardProps {
   onDecrease: () => void;
   onRemove: () => void;
   onUpdateInstructions: () => void;
+  onToggleSelection?: () => void;
 }
 
 const CartItemCard: React.FC<CartItemCardProps> = ({ 
@@ -17,12 +18,37 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
   onIncrease, 
   onDecrease, 
   onRemove,
-  onUpdateInstructions
+  onUpdateInstructions,
+  onToggleSelection
 }) => {
+  // Check if item is expired or inactive
+  const isExpired = item.expiresAt ? new Date(item.expiresAt) <= new Date() : false;
+  const isInactive = item.isActive === false;
+  const isUnavailable = isExpired || isInactive;
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isUnavailable && styles.unavailableContainer]}>
+      {onToggleSelection && (
+        <TouchableOpacity 
+          style={styles.checkbox} 
+          onPress={onToggleSelection}
+          disabled={isUnavailable}
+        >
+          <View style={[styles.checkboxInner, item.selected && styles.checkboxSelected]}>
+            {item.selected && (
+              <Ionicons name="checkmark" size={16} color="white" />
+            )}
+          </View>
+        </TouchableOpacity>
+      )}
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image }} style={styles.image} />
+        <Image source={{ uri: item.image }} style={[styles.image, isUnavailable && styles.unavailableImage]} />
+        {isUnavailable && (
+          <View style={styles.unavailableOverlay}>
+            <Text style={styles.unavailableText}>
+              {isExpired ? 'Expired' : 'Unavailable'}
+            </Text>
+          </View>
+        )}
       </View>
       
       <View style={styles.content}>
@@ -40,24 +66,25 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
           
           <View style={styles.quantityContainer}>
             <TouchableOpacity 
-              style={[styles.quantityButton, item.quantity <= 1 && styles.disabledButton]} 
+              style={[styles.quantityButton, (item.quantity <= 1 || isUnavailable) && styles.disabledButton]} 
               onPress={onDecrease}
-              disabled={item.quantity <= 1}
+              disabled={item.quantity <= 1 || isUnavailable}
             >
               <Ionicons 
                 name="remove" 
                 size={16} 
-                color={item.quantity > 1 ? colors.primary : "#C7C7CC"} 
+                color={item.quantity > 1 && !isUnavailable ? colors.primary : "#C7C7CC"} 
               />
             </TouchableOpacity>
             
-            <Text style={styles.quantityText}>{item.quantity}</Text>
+            <Text style={[styles.quantityText, isUnavailable && styles.unavailableText]}>{item.quantity}</Text>
             
             <TouchableOpacity 
-              style={styles.quantityButton} 
+              style={[styles.quantityButton, isUnavailable && styles.disabledButton]} 
               onPress={onIncrease}
+              disabled={isUnavailable}
             >
-              <Ionicons name="add" size={16} color={colors.primary} />
+              <Ionicons name="add" size={16} color={isUnavailable ? "#C7C7CC" : colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -151,6 +178,45 @@ const styles = StyleSheet.create({
     color: '#000000',
     minWidth: 24,
     textAlign: 'center',
+  },
+  checkbox: {
+    marginRight: 12,
+  },
+  checkboxInner: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.border.primary,
+    backgroundColor: colors.background.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  unavailableContainer: {
+    opacity: 0.7,
+  },
+  unavailableImage: {
+    opacity: 0.5,
+  },
+  unavailableOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  unavailableText: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

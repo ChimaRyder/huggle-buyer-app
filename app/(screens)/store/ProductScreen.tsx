@@ -17,6 +17,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
 import { ReviewCard } from "@/components/review";
 import { useProductContext } from "@/context/ProductContext";
+import { useCart } from "@/context/CartContext";
+import { CartItem } from "@/data/food/models";
+import { genericProductToCartItem } from "@/utils/cartHelpers";
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -113,6 +116,8 @@ export default function ProductScreen() {
     clearCurrentProduct
   } = useProductContext();
   
+  const { addItem } = useCart();
+  
   useEffect(() => {
     if (id && typeof id === 'string') {
       console.log('🔍 ProductScreen: Fetching product with ID:', id);
@@ -151,13 +156,20 @@ export default function ProductScreen() {
     );
   }
 
-  // Debug logging for pricing
+  // Debug logging for pricing and tags
   console.log('💰 ProductScreen: Product pricing info:', {
     price: currentProduct.price,
     originalPrice: currentProduct.originalPrice,
     hasDiscount: currentProduct.hasDiscount,
     discountPercentage: currentProduct.discountPercentage,
     shouldShowOriginal: currentProduct.hasDiscount || currentProduct.price < currentProduct.originalPrice
+  });
+  
+  console.log('🏷️ ProductScreen: Product tags info:', {
+    tags: currentProduct.tags,
+    tagsLength: currentProduct.tags?.length,
+    tagsType: typeof currentProduct.tags,
+    hasTagsAndLength: currentProduct.tags && currentProduct.tags.length > 0
   });
 
   // Calculate average rating
@@ -218,11 +230,16 @@ export default function ProductScreen() {
 
   const confirmAction = () => {
     if (drawerAction === 'cart') {
-      // Add to cart logic
+      // Create cart item from current product using helper
+      const cartItem = genericProductToCartItem(currentProduct, quantity);
+      addItem(cartItem);
       alert(`Added ${quantity} ${currentProduct.name} to cart!`);
     } else if (drawerAction === 'order') {
-      // Order now logic
-      alert(`Ordering ${quantity} ${currentProduct.name} now!`);
+      // Order now logic - add to cart then navigate to checkout
+      const cartItem = genericProductToCartItem(currentProduct, quantity);
+      addItem(cartItem);
+      // Navigate directly to cart for checkout
+      router.push('/(screens)/cart/CartScreen');
     }
     closeDrawer();
   };
@@ -261,14 +278,14 @@ export default function ProductScreen() {
     <View style={styles.container}>
       <ScrollView 
         style={styles.scrollContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-          />
-        }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary.main]}
+              tintColor={colors.primary.main}
+            />
+          }
       >
         <View style={styles.imageContainer}>
           {/* Image carousel */}
@@ -694,7 +711,7 @@ const styles = StyleSheet.create({
   },
   visitStoreText: {
     fontSize: 14,
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: '500',
   },
   divider: {
@@ -717,7 +734,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   categoryBadge: {
-    backgroundColor: colors.primary + '15',
+    backgroundColor: colors.primary.main + '15',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -725,7 +742,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   categoryText: {
-    color: colors.primary,
+    color: colors.primary.main,
     fontSize: 12,
     fontWeight: "500",
     textTransform: "capitalize",
@@ -738,7 +755,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: colors.primary, // Green background
+    backgroundColor: colors.primary.main, // Green background
     alignItems: "center",
     justifyContent: "center",
   },
@@ -775,7 +792,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 16,
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: "500",
   },
   reviewsCarouselContainer: {
@@ -800,7 +817,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   activeIndicator: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
   },
   skeletonBox: {
     backgroundColor: colors.background.secondary,
@@ -815,7 +832,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: colors.primary,
+    color: colors.primary.main,
     textAlign: "center",
     marginTop: 20,
   },
@@ -852,7 +869,7 @@ const styles = StyleSheet.create({
   addToCartButton: {
     backgroundColor: colors.background.secondary,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: colors.primary.main,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -860,12 +877,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addToCartButtonText: {
-    color: colors.primary,
+    color: colors.primary.main,
     fontSize: 14,
     fontWeight: "600",
   },
   orderNowButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -996,7 +1013,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   confirmButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     borderRadius: 10,
     paddingVertical: 16,
     alignItems: 'center',

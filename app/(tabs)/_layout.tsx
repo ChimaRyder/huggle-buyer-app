@@ -1,9 +1,10 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { colors } from "@/constants/theme";
+import FloatingCartButton from "@/components/cart/FloatingCartButton";
 
 export default function TabLayout() {
   // Use produce-themed colors for the tab bar
@@ -11,7 +12,8 @@ export default function TabLayout() {
   const inactiveTintColor = colors.text.tertiary; // Light gray for inactive
 
   return (
-    <Tabs
+    <View style={{ flex: 1 }}>
+      <Tabs
       screenOptions={{
         tabBarActiveTintColor: activeTintColor,
         tabBarInactiveTintColor: inactiveTintColor,
@@ -88,6 +90,8 @@ export default function TabLayout() {
           ),
         }}
       />
-    </Tabs>
+      </Tabs>
+      <FloatingCartButton />
+    </View>
   );
 }

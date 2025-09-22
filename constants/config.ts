@@ -71,4 +71,9 @@ export const API_ENDPOINTS = {
     create: "/api/buyers/locations",
     delete: (id: string) => `/api/buyers/locations/${id}`,
   },
+  search: {
+    products: "/api/products/search",
+    stores: "/api/stores/search",
+    storesPopular: "/api/stores/popular",
+  },
 } as const;

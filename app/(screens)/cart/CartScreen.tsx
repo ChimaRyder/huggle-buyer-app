@@ -32,7 +32,14 @@ const CartScreen = () => {
     updateQuantity, 
     clearCart, 
     setSpecialInstructions,
-    addItem
+    addItem,
+    selectedItems,
+    selectedTotal,
+    toggleItemSelection,
+    selectAllItems,
+    hasExpiredItems,
+    activeItems,
+    expiredItems
   } = useCart();
   
   const [promoCode, setPromoCode] = useState('');
@@ -43,10 +50,26 @@ const CartScreen = () => {
   // useEffect removed - cart data should be managed by CartContext and persisted via API
 
   const handleCheckout = () => {
-    if (items.length === 0) {
-      Alert.alert('Empty Cart', 'Please add items to your cart before checkout');
+    if (selectedItems.length === 0) {
+      Alert.alert('No Items Selected', 'Please select items to checkout');
       return;
     }
+    
+    // Check if any selected items are expired/unavailable
+    const unavailableSelected = selectedItems.some(item => {
+      const isExpired = item.expiresAt ? new Date(item.expiresAt) <= new Date() : false;
+      const isInactive = item.isActive === false;
+      return isExpired || isInactive;
+    });
+    
+    if (unavailableSelected) {
+      Alert.alert(
+        'Unavailable Items Selected', 
+        'Some selected items are no longer available. Please deselect them to continue.'
+      );
+      return;
+    }
+    
     router.push('/(screens)/cart/OrderConfirmationScreen');
   };
 
@@ -115,8 +138,8 @@ const CartScreen = () => {
     );
   };
 
-  // Calculate cart totals
-  const subtotal = total;
+  // Calculate cart totals based on selected items
+  const subtotal = selectedTotal;
   const deliveryFee = subtotal > 0 ? 2.99 : 0;
   const tax = subtotal * 0.08;
   const totalWithFees = subtotal + deliveryFee + tax;
@@ -170,6 +193,39 @@ const CartScreen = () => {
       <CartHeader onBack={() => router.back()} title={`Your Cart (${items.length})`} />
       
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Selection Controls */}
+        <View style={styles.selectionControls}>
+          <TouchableOpacity 
+            style={styles.selectAllButton}
+            onPress={() => {
+              const allSelected = items.every(item => item.selected);
+              selectAllItems(!allSelected);
+            }}
+          >
+            <View style={[styles.selectAllCheckbox, items.every(item => item.selected) && styles.selectAllCheckboxSelected]}>
+              {items.every(item => item.selected) && (
+                <Ionicons name="checkmark" size={16} color="white" />
+              )}
+            </View>
+            <Text style={styles.selectAllText}>
+              {items.every(item => item.selected) ? 'Deselect All' : 'Select All'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.selectionInfo}>
+            {selectedItems.length} of {items.length} selected
+          </Text>
+        </View>
+        
+        {/* Expired Items Warning */}
+        {hasExpiredItems && (
+          <View style={styles.warningBanner}>
+            <Ionicons name="warning" size={20} color="#FF6B6B" />
+            <Text style={styles.warningText}>
+              {expiredItems.length} item{expiredItems.length > 1 ? 's' : ''} unavailable for checkout
+            </Text>
+          </View>
+        )}
+        
         <View style={styles.itemsContainer}>
           {items.map((item) => (
             <CartItemCard
@@ -179,6 +235,7 @@ const CartScreen = () => {
               onDecrease={() => handleDecrease(item.id)}
               onRemove={() => handleRemoveItem(item.id)}
               onUpdateInstructions={() => handleUpdateInstructions(item.id, item.specialInstructions || '')}
+              onToggleSelection={() => toggleItemSelection(item.id)}
             />
           ))}
         </View>
@@ -196,7 +253,7 @@ const CartScreen = () => {
           tax={tax}
           total={totalWithFees}
           onCheckout={handleCheckout}
-          hasItems={items.length > 0}
+          hasItems={selectedItems.length > 0}
         />
       </View>
     </SafeAreaView>
@@ -270,6 +327,59 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.tertiary,
     fontStyle: 'italic',
+  },
+  selectionControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
+  },
+  selectAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  selectAllCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.border.primary,
+    backgroundColor: colors.background.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  selectAllCheckboxSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  selectAllText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  selectionInfo: {
+    fontSize: 14,
+    color: colors.text.tertiary,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF5F5',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF6B6B',
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#FF6B6B',
+    marginLeft: 8,
+    flex: 1,
   },
 });
 

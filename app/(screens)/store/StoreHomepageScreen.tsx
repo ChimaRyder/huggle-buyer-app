@@ -15,53 +15,65 @@ import { colors, spacing } from "@/constants/theme";
 import ProductGrid from "@/components/product/ProductGrid";
 import FeaturedPostCard from "@/components/posts/FeaturedPostCard";
 import SafeImage from "@/components/common/SafeImage";
+import { StoreSearchInput } from "@/components/store";
 import { useStoreContext } from "@/context/StoreContext";
+import type { BackendProduct } from "@/types/BackendModels";
 // Get screen width for layout
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // Store Homepage Skeleton Loading Component
 const StoreHomepageSkeleton = () => {
+  const skeletonStyles = {
+    container: {
+      flex: 1,
+      backgroundColor: colors.background.tertiary,
+    },
+    skeletonBox: {
+      backgroundColor: colors.background.secondary,
+      borderRadius: 4,
+    },
+  };
+  
   return (
-    <View style={styles.container}>
+    <View style={skeletonStyles.container}>
       {/* Banner skeleton */}
-      <View style={[styles.bannerContainer, styles.skeletonBox]} />
+      <View style={[{ height: 200, position: 'relative' }, skeletonStyles.skeletonBox]} />
       
       {/* Store info skeleton */}
-      <View style={styles.storeInfo}>
-        <View style={styles.storeHeader}>
-          <View style={[styles.skeletonBox, { height: 28, flex: 1, marginRight: 20 }]} />
-          <View style={[styles.skeletonBox, { width: 30, height: 30, borderRadius: 15 }]} />
+      <View style={{ padding: 20, paddingTop: 60, backgroundColor: colors.background.primary, borderBottomWidth: 1, borderBottomColor: colors.border.primary }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <View style={[skeletonStyles.skeletonBox, { height: 28, flex: 1, marginRight: 20 }]} />
+          <View style={[skeletonStyles.skeletonBox, { width: 30, height: 30, borderRadius: 15 }]} />
         </View>
-        <View style={styles.storeDetails}>
-          <View style={[styles.skeletonBox, { height: 16, width: 120, marginRight: 10 }]} />
-          <View style={[styles.skeletonBox, { height: 16, width: 100 }]} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+          <View style={[skeletonStyles.skeletonBox, { height: 16, width: 120, marginRight: 10 }]} />
+          <View style={[skeletonStyles.skeletonBox, { height: 16, width: 100 }]} />
         </View>
-        <View style={styles.categoriesContainer}>
-          <View style={[styles.skeletonBox, { width: 80, height: 28, borderRadius: 14, marginRight: 10 }]} />
-          <View style={[styles.skeletonBox, { width: 100, height: 28, borderRadius: 14, marginRight: 10 }]} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          <View style={[skeletonStyles.skeletonBox, { width: 80, height: 28, borderRadius: 14, marginRight: 10 }]} />
+          <View style={[skeletonStyles.skeletonBox, { width: 100, height: 28, borderRadius: 14, marginRight: 10 }]} />
         </View>
       </View>
       
       {/* Tab navigation skeleton */}
-      <View style={styles.tabContainer}>
+      <View style={{ flexDirection: 'row', backgroundColor: colors.background.primary, borderBottomWidth: 1, borderBottomColor: colors.border.primary }}>
         {[1, 2, 3, 4].map((index) => (
-          <View key={index} style={styles.tab}>
-            <View style={[styles.skeletonBox, { height: 16, width: 60 }]} />
+          <View key={index} style={{ flex: 1, paddingVertical: 15, alignItems: 'center' }}>
+            <View style={[skeletonStyles.skeletonBox, { height: 16, width: 60 }]} />
           </View>
         ))}
       </View>
       
       {/* Content skeleton */}
-      <ScrollView style={styles.contentContainer}>
-        <View style={styles.tabContent}>
+      <ScrollView style={{ flex: 1, backgroundColor: colors.background.tertiary }}>
+        <View style={{ padding: 20 }}>
           {/* Product grid skeleton */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-            <View style={[styles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
-            <View style={[styles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
+            <View style={[skeletonStyles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
+            <View style={[skeletonStyles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-            <View style={[styles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
-            <View style={[styles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
+            <View style={[skeletonStyles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
+            <View style={[skeletonStyles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
           </View>
         </View>
       </ScrollView>
@@ -73,6 +85,11 @@ export default function StoreHomepageScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState("Featured");
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredProducts, setFilteredProducts] = useState<BackendProduct[]>([]);
   
   // Store context
   const {
@@ -98,6 +115,46 @@ export default function StoreHomepageScreen() {
   
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Filter products based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredProducts(storeProducts);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = storeProducts.filter((product) => {
+      // Search in product name
+      if (product.name.toLowerCase().includes(query)) {
+        return true;
+      }
+      
+      // Search in product description
+      if (product.description && product.description.toLowerCase().includes(query)) {
+        return true;
+      }
+      
+      // Search in product type
+      if (product.productType && product.productType.toLowerCase().includes(query)) {
+        return true;
+      }
+      
+      // Search in tags
+      if (product.tags && Array.isArray(product.tags)) {
+        return product.tags.some(tag => tag.toLowerCase().includes(query));
+      }
+      
+      return false;
+    });
+    
+    setFilteredProducts(filtered);
+  }, [searchQuery, storeProducts]);
+  
+  // Handle search input change
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
   
   // Fetch store data when component mounts
   useEffect(() => {
@@ -181,6 +238,17 @@ export default function StoreHomepageScreen() {
     }
   };
 
+  const handleChatWithSeller = () => {
+    // TODO: Navigate to chat screen or messaging interface
+    console.log('🔍 StoreHomepageScreen: Opening chat with seller for store:', id);
+    // For now, we'll show an alert. Later this can be replaced with actual navigation
+    // router.push(`/(screens)/chat/ChatScreen?storeId=${id}&sellerId=${currentStore.sellerId}`);
+  };
+
+  const toggleDescription = () => {
+    setIsDescriptionExpanded(!isDescriptionExpanded);
+  };
+
   const handleProductPress = (productId: string) => {
     router.push(`/(screens)/store/ProductScreen?id=${productId}`);
   };
@@ -196,48 +264,62 @@ export default function StoreHomepageScreen() {
     </TouchableOpacity>
   );
 
-  // Render featured tab content
-  const renderFeaturedTab = () => (
-    <View style={styles.featuredTabContent}>
-      {/* Posts Section */}
-      {storePosts.length > 0 ? (
-        <View style={styles.postsSection}>
-          {storePosts.map((post) => (
-            <FeaturedPostCard 
-              key={post.id}
-              post={post}
-            />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.emptyContentContainer}>
-          <Text style={styles.emptyContentText}>No featured posts available</Text>
-          <Text style={styles.emptyContentSubtext}>Posts will appear here when available</Text>
-        </View>
-      )}
 
-      {/* Products Section */}
-      {featuredProducts.length > 0 ? (
-        <View style={styles.productsSection}>
-          <ProductGrid 
-            products={featuredProducts}
-            onProductPress={handleProductPress}
+  // Render featured tab content
+  const renderFeaturedTab = () => {
+    const productsToShow = searchQuery.trim() ? filteredProducts : storeProducts;
+    
+    return (
+      <View style={styles.featuredTabContent}>
+        {/* Search Input - only show if there are products */}
+        {storeProducts.length > 0 && (
+          <StoreSearchInput
+            onSearchChange={handleSearchChange}
+            placeholder={`Search ${storeProducts.length} products...`}
           />
-        </View>
-      ) : (
-        <View style={styles.emptyContentContainer}>
-          <Text style={styles.emptyContentText}>No featured products available</Text>
-          <Text style={styles.emptyContentSubtext}>Featured products will appear here when available</Text>
-        </View>
-      )}
-    </View>
-  );
+        )}
+        
+        {/* Search Results Info */}
+        {searchQuery.trim() && (
+          <View style={styles.searchResultsInfo}>
+            <Text style={styles.searchResultsText}>
+              {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+              {filteredProducts.length > 0 && ` for "${searchQuery}"`}
+            </Text>
+          </View>
+        )}
+        
+        {/* Products Section */}
+        {productsToShow.length > 0 ? (
+          <View style={styles.productsSection}>
+            <ProductGrid 
+              products={productsToShow}
+              onProductPress={handleProductPress}
+            />
+          </View>
+        ) : storeProducts.length === 0 ? (
+          <View style={styles.emptyContentContainer}>
+            <Text style={styles.emptyContentText}>No featured products available</Text>
+            <Text style={styles.emptyContentSubtext}>Featured products will appear here when available</Text>
+          </View>
+        ) : searchQuery.trim() && filteredProducts.length === 0 ? (
+          <View style={styles.emptyContentContainer}>
+            <Ionicons name="search-outline" size={48} color={colors.text.tertiary} />
+            <Text style={styles.emptyContentText}>No products found</Text>
+            <Text style={styles.emptyContentSubtext}>
+              No products match "{searchQuery}". Try different keywords.
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
 
   // Render products tab content
   const renderProductsTab = () => {
     if (isFetchingProducts) {
       return (
-        <View style={styles.tabContent}>
+        <View style={styles.tabContentWithSearch}>
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Loading products...</Text>
           </View>
@@ -247,7 +329,7 @@ export default function StoreHomepageScreen() {
     
     if (productsError) {
       return (
-        <View style={styles.tabContent}>
+        <View style={styles.tabContentWithSearch}>
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>Failed to load products</Text>
             <Text style={styles.errorSubtext}>{productsError}</Text>
@@ -262,19 +344,55 @@ export default function StoreHomepageScreen() {
       );
     }
     
+    const productsToShow = searchQuery.trim() ? filteredProducts : storeProducts;
+    
     return (
-      <View style={styles.tabContent}>
-        {storeProducts.length > 0 ? (
-          <ProductGrid 
-            products={storeProducts}
-            onProductPress={handleProductPress}
+      <View style={styles.tabContentWithSearch}>
+        {/* Search Input - only show if there are products */}
+        {storeProducts.length > 0 && (
+          <StoreSearchInput
+            onSearchChange={handleSearchChange}
+            placeholder={`Search ${storeProducts.length} products...`}
           />
-        ) : (
+        )}
+        
+        {/* Search Results Info */}
+        {searchQuery.trim() && (
+          <View style={styles.searchResultsInfo}>
+            <Text style={styles.searchResultsText}>
+              {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+              {filteredProducts.length > 0 && ` for "${searchQuery}"`}
+            </Text>
+            {filteredProducts.length === 0 && (
+              <Text style={styles.searchNoResultsHint}>
+                Try different keywords or check your spelling
+              </Text>
+            )}
+          </View>
+        )}
+        
+        {/* Products Grid or Empty State */}
+        {productsToShow.length > 0 ? (
+          <View style={styles.productsGridContainer}>
+            <ProductGrid 
+              products={productsToShow}
+              onProductPress={handleProductPress}
+            />
+          </View>
+        ) : storeProducts.length === 0 ? (
           <View style={styles.emptyContentContainer}>
             <Text style={styles.emptyContentText}>No products available</Text>
             <Text style={styles.emptyContentSubtext}>This store hasn't added any products yet</Text>
           </View>
-        )}
+        ) : searchQuery.trim() && filteredProducts.length === 0 ? (
+          <View style={styles.emptyContentContainer}>
+            <Ionicons name="search-outline" size={48} color={colors.text.tertiary} />
+            <Text style={styles.emptyContentText}>No products found</Text>
+            <Text style={styles.emptyContentSubtext}>
+              No products match "{searchQuery}". Try different keywords.
+            </Text>
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -333,143 +451,167 @@ export default function StoreHomepageScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Store Banner */}
-      <View style={styles.bannerContainer}>
-        {currentStore.coverImageUrl ? (
-          <SafeImage 
-            source={{ uri: currentStore.coverImageUrl }} 
-            style={styles.bannerImage} 
-          />
-        ) : (
-          <View style={styles.placeholderBanner}>
-            <Text style={styles.placeholderText}>Store Image</Text>
-          </View>
-        )}
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Store Info with Favorite Button */}
-      <View style={styles.storeInfo}>
-        <View style={styles.storeHeader}>
-          <Text style={styles.storeName}>{currentStore.name}</Text>
-          <TouchableOpacity 
-            style={styles.favoriteButton}
-            onPress={toggleFavorite}
-            disabled={isFetchingFollowStatus}
-          >
-            <Ionicons 
-              name={isFollowingStore ? "heart" : "heart-outline"} 
-              size={24} 
-              color={isFollowingStore ? colors.danger : colors.text.primary} 
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.storeDetails}>
-          <Text style={styles.locationText}>
-            {currentStore.city}, {currentStore.province}
-            {currentStore.distance && ` • ${currentStore.distance.toFixed(1)}km`}
-          </Text>
-          <Text style={styles.dotSeparator}> • </Text>
-          <View style={styles.storeStatusContainer}>
-            <View style={[styles.statusDot, { backgroundColor: currentStore.isOpen ? colors.success : colors.error }]} />
-            <Text style={[styles.statusText, { color: currentStore.isOpen ? colors.success : colors.error }]}>
-              {currentStore.isOpen ? 'Open' : 'Closed'}
-            </Text>
-          </View>
-          {currentStore.isVerified && (
-            <>
-              <Text style={styles.dotSeparator}> • </Text>
-              <View style={styles.verifiedContainer}>
-                <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
-            </>
-          )}
-        </View>
-        {/* Store Type and Phone Number */}
-        {(currentStore.storeType || currentStore.phoneNumber) && (
-          <View style={styles.storeMetaInfo}>
-            {currentStore.storeType && (
-              <View style={styles.storeTypeContainer}>
-                <Ionicons name="storefront-outline" size={14} color={colors.text.secondary} />
-                <Text style={styles.storeTypeText}>{currentStore.storeType}</Text>
-              </View>
-            )}
-            {currentStore.phoneNumber && (
-              <View style={styles.phoneContainer}>
-                <Ionicons name="call-outline" size={14} color={colors.text.secondary} />
-                <Text style={styles.phoneText}>{currentStore.phoneNumber}</Text>
-              </View>
-            )}
-          </View>
-        )}
-        {currentStore.description && (
-          <Text style={styles.storeDescription} numberOfLines={2}>
-            {currentStore.description}
-          </Text>
-        )}
-        {currentStore.tags && currentStore.tags.length > 0 && (
-          <View style={styles.categoriesContainer}>
-            {currentStore.tags.slice(0, 3).map((tag, index) => (
-              <View key={index} style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>
-                <Text style={styles.categoryText}>{tag}</Text>
-              </View>
-            ))}
-            {currentStore.tags.length > 3 && (
-              <View style={[styles.categoryBadge, { backgroundColor: colors.background.secondary }]}>
-                <Text style={[styles.categoryText, { color: colors.text.primary }]}>
-                  +{currentStore.tags.length - 3} more
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tab,
-              activeTab === tab.key && styles.activeTab,
-            ]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === tab.key && styles.activeTabText,
-              ]}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Tab Content */}
+      {/* Fixed Back Button */}
+      <TouchableOpacity 
+        style={styles.fixedBackButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={24} color="#fff" />
+      </TouchableOpacity>
+      
+      {/* Main Scrollable Content */}
       <ScrollView 
-        style={styles.contentContainer}
+        style={styles.mainScrollView}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={onRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
+            colors={[colors.primary.main]}
+            tintColor={colors.primary.main}
           />
         }
       >
-        {activeTab === "Featured" && renderFeaturedTab()}
-        {activeTab === "Products" && renderProductsTab()}
-        {activeTab === "Posts" && renderPostsTab()}
-        {activeTab === "Categories" && renderCategoriesTab()}
+        {/* Store Banner */}
+        <View style={styles.bannerContainer}>
+          {currentStore.coverImageUrl ? (
+            <SafeImage 
+              source={{ uri: currentStore.coverImageUrl }} 
+              style={styles.bannerImage} 
+            />
+          ) : (
+            <View style={styles.placeholderBanner}>
+              <Text style={styles.placeholderText}>Store Image</Text>
+            </View>
+          )}
+          
+          {/* Overlapping Profile Image */}
+          <View style={styles.overlappingProfileContainer}>
+            {currentStore.profileImageUrl ? (
+              <SafeImage 
+                source={{ uri: currentStore.profileImageUrl }} 
+                style={styles.overlappingProfileImage} 
+              />
+            ) : (
+              <View style={styles.overlappingPlaceholderProfile}>
+                <Ionicons name="storefront-outline" size={32} color={colors.text.secondary} />
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Store Info */}
+        <View style={styles.storeInfo}>
+          <View style={styles.storeHeader}>
+            <Text style={styles.storeName}>{currentStore.name}</Text>
+            <View style={styles.actionButtonsContainer}>
+              <TouchableOpacity style={styles.chatIconButton} onPress={handleChatWithSeller}>
+                <Ionicons name="chatbubble-outline" size={20} color={colors.text.inverse} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.favoriteButton}
+                onPress={toggleFavorite}
+                disabled={isFetchingFollowStatus}
+              >
+                <Ionicons 
+                  name={isFollowingStore ? "heart" : "heart-outline"} 
+                  size={24} 
+                  color={isFollowingStore ? colors.danger : colors.text.primary} 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.storeDetails}>
+            <Text style={styles.locationText}>
+              {currentStore.city}, {currentStore.province}
+              {currentStore.distance && ` • ${currentStore.distance.toFixed(1)}km`}
+            </Text>
+            <Text style={styles.dotSeparator}> • </Text>
+            <View style={styles.storeStatusContainer}>
+              <View style={[styles.statusDot, { backgroundColor: currentStore.isOpen ? colors.success : colors.error }]} />
+              <Text style={[styles.statusText, { color: currentStore.isOpen ? colors.success : colors.error }]}>
+                {currentStore.isOpen ? 'Open' : 'Closed'}
+              </Text>
+            </View>
+            {currentStore.isVerified && (
+              <>
+                <Text style={styles.dotSeparator}> • </Text>
+                <View style={styles.verifiedContainer}>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                  <Text style={styles.verifiedText}>Verified</Text>
+                </View>
+              </>
+            )}
+          </View>
+          {/* Expandable Description */}
+          {currentStore.description && (
+            <View style={styles.descriptionContainer}>
+              <Text 
+                style={styles.storeDescription} 
+                numberOfLines={isDescriptionExpanded ? undefined : 2}
+              >
+                {currentStore.description}
+              </Text>
+              {currentStore.description.length > 100 && (
+                <TouchableOpacity onPress={toggleDescription} style={styles.readMoreButton}>
+                  <Text style={styles.readMoreText}>
+                    {isDescriptionExpanded ? 'Read less' : 'Read more'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          {currentStore.tags && currentStore.tags.length > 0 && (
+            <View style={styles.categoriesContainer}>
+              {currentStore.tags.slice(0, 3).map((tag, index) => (
+                <View key={index} style={[styles.categoryBadge, { backgroundColor: colors.primary.main }]}>
+                  <Text style={styles.categoryText}>{tag}</Text>
+                </View>
+              ))}
+              {currentStore.tags.length > 3 && (
+                <View style={[styles.categoryBadge, { backgroundColor: colors.background.secondary }]}>
+                  <Text style={[styles.categoryText, { color: colors.text.primary }]}>
+                    +{currentStore.tags.length - 3} more
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Tab Navigation */}
+        <View style={styles.tabContainer}>
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[
+                styles.tab,
+                activeTab === tab.key && styles.activeTab,
+              ]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.key && styles.activeTabText,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Tab Content */}
+        <View style={styles.tabContentWrapper}>
+          {activeTab === "Featured" && renderFeaturedTab()}
+          {activeTab === "Products" && renderProductsTab()}
+          {activeTab === "Posts" && renderPostsTab()}
+          {activeTab === "Categories" && renderCategoriesTab()}
+        </View>
+        
+        {/* Bottom spacing for better scrolling */}
+        <View style={styles.bottomSpacing} />
       </ScrollView>
     </View>
   );
@@ -488,22 +630,15 @@ const styles = StyleSheet.create({
   },
   bannerContainer: {
     height: 200,
-    position: "relative",
+    position: "relative", // Keep for overlapping profile image
   },
   bannerImage: {
     width: "100%",
     height: "100%",
   },
-  backButton: {
-    position: "absolute",
-    top: 50,
-    left: 20,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    borderRadius: 20,
-    padding: 10,
-  },
   storeInfo: {
     padding: 20,
+    paddingTop: 60, // Extra padding for overlapping profile image
     backgroundColor: colors.background.primary,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.primary,
@@ -588,7 +723,7 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 3,
-    borderBottomColor: colors.primary,
+    borderBottomColor: colors.primary.main,
   },
   tabText: {
     fontSize: 16,
@@ -596,7 +731,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   activeTabText: {
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: "600",
   },
   contentContainer: {
@@ -605,6 +740,30 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     padding: 20,
+  },
+  tabContentWithSearch: {
+    flex: 1,
+  },
+  searchResultsInfo: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
+    backgroundColor: colors.background.secondary,
+  },
+  searchResultsText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  searchNoResultsHint: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+    marginTop: 4,
+  },
+  productsGridContainer: {
+    padding: 20,
+    flex: 1,
   },
   categoryContainer: {
     paddingBottom: 20,
@@ -641,7 +800,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: colors.primary,
+    color: colors.primary.main,
     textAlign: "center",
     marginTop: 20,
   },
@@ -740,7 +899,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -785,5 +944,75 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     textAlign: 'center',
     marginBottom: 16,
+  },
+  // Overlapping profile image styles
+  overlappingProfileContainer: {
+    position: 'absolute',
+    bottom: -40,
+    left: 20,
+    zIndex: 10,
+  },
+  overlappingProfileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: colors.background.primary,
+    backgroundColor: colors.background.secondary,
+  },
+  overlappingPlaceholderProfile: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: colors.background.primary,
+    backgroundColor: colors.background.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Action buttons styles
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chatIconButton: {
+    backgroundColor: colors.success, // Green color
+    borderRadius: 20,
+    padding: 8,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Expandable description styles
+  descriptionContainer: {
+    marginBottom: 16,
+  },
+  readMoreButton: {
+    marginTop: 4,
+  },
+  readMoreText: {
+    fontSize: 14,
+    color: colors.primary.main,
+    fontWeight: '600',
+  },
+  // Scrollable layout styles
+  fixedBackButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 10,
+    zIndex: 20, // Higher than profile image
+  },
+  mainScrollView: {
+    flex: 1,
+  },
+  tabContentWrapper: {
+    flex: 1,
+    backgroundColor: colors.background.tertiary,
+  },
+  bottomSpacing: {
+    height: 60, // Extra bottom space for better scrolling
   },
 });
