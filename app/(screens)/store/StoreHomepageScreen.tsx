@@ -72,7 +72,6 @@ const StoreHomepageSkeleton = () => {
 export default function StoreHomepageScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState("Featured");
   
   // Store context
@@ -86,7 +85,15 @@ export default function StoreHomepageScreen() {
     isFetchingProducts,
     productsError,
     fetchStoreProducts,
-    clearStoreProducts
+    clearStoreProducts,
+    isFollowingStore,
+    followerCount,
+    isFetchingFollowStatus,
+    followError,
+    followStore,
+    unfollowStore,
+    fetchFollowStatus,
+    clearFollowStatus
   } = useStoreContext();
   
   // Refresh state
@@ -98,14 +105,16 @@ export default function StoreHomepageScreen() {
       console.log('🔍 StoreHomepageScreen: Fetching store with ID:', id);
       fetchStoreById(id);
       fetchStoreProducts(id);
+      fetchFollowStatus(id);
     }
     
     // Cleanup when component unmounts or ID changes
     return () => {
       clearCurrentStore();
       clearStoreProducts();
+      clearFollowStatus();
     };
-  }, [id, fetchStoreById, clearCurrentStore, fetchStoreProducts, clearStoreProducts]);
+  }, [id, fetchStoreById, clearCurrentStore, fetchStoreProducts, clearStoreProducts, fetchFollowStatus, clearFollowStatus]);
 
   // Pull to refresh handler
   const onRefresh = async () => {
@@ -115,7 +124,8 @@ export default function StoreHomepageScreen() {
     try {
       await Promise.all([
         fetchStoreById(id),
-        fetchStoreProducts(id)
+        fetchStoreProducts(id),
+        fetchFollowStatus(id)
       ]);
     } catch (error) {
       console.error('🔍 StoreHomepageScreen: Error during refresh:', error);
@@ -157,8 +167,18 @@ export default function StoreHomepageScreen() {
     );
   }
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
+  const toggleFavorite = async () => {
+    if (!id || typeof id !== 'string') return;
+    
+    try {
+      if (isFollowingStore) {
+        await unfollowStore(id);
+      } else {
+        await followStore(id);
+      }
+    } catch (error) {
+      console.error('🔍 StoreHomepageScreen: Error toggling follow status:', error);
+    }
   };
 
   const handleProductPress = (productId: string) => {
@@ -340,11 +360,12 @@ export default function StoreHomepageScreen() {
           <TouchableOpacity 
             style={styles.favoriteButton}
             onPress={toggleFavorite}
+            disabled={isFetchingFollowStatus}
           >
             <Ionicons 
-              name={isFavorite ? "heart" : "heart-outline"} 
+              name={isFollowingStore ? "heart" : "heart-outline"} 
               size={24} 
-              color={isFavorite ? colors.danger : colors.text.primary} 
+              color={isFollowingStore ? colors.danger : colors.text.primary} 
             />
           </TouchableOpacity>
         </View>

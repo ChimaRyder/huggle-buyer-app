@@ -45,6 +45,23 @@ interface StoreContextType {
   productsError: string | null;
   fetchStoreProducts: (storeId: string) => Promise<void>;
   clearStoreProducts: () => void;
+  
+  // Store Following
+  isFollowingStore: boolean;
+  followerCount: number;
+  isFetchingFollowStatus: boolean;
+  followError: string | null;
+  followStore: (storeId: string) => Promise<void>;
+  unfollowStore: (storeId: string) => Promise<void>;
+  fetchFollowStatus: (storeId: string) => Promise<void>;
+  clearFollowStatus: () => void;
+  
+  // Followed Stores List
+  followedStores: any[];
+  isFetchingFollowedStores: boolean;
+  followedStoresError: string | null;
+  fetchFollowedStores: () => Promise<void>;
+  clearFollowedStores: () => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -68,6 +85,17 @@ export function StoreProvider({ children }: StoreProviderProps) {
   const [storeProducts, setStoreProducts] = useState<BackendProduct[]>([]);
   const [isFetchingProducts, setIsFetchingProducts] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
+  
+  // Store Following state
+  const [isFollowingStore, setIsFollowingStore] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [isFetchingFollowStatus, setIsFetchingFollowStatus] = useState(false);
+  const [followError, setFollowError] = useState<string | null>(null);
+  
+  // Followed Stores List state
+  const [followedStores, setFollowedStores] = useState<any[]>([]);
+  const [isFetchingFollowedStores, setIsFetchingFollowedStores] = useState(false);
+  const [followedStoresError, setFollowedStoresError] = useState<string | null>(null);
   
   const { client } = useApi();
 
@@ -300,6 +328,127 @@ export function StoreProvider({ children }: StoreProviderProps) {
     setProductsError(null);
   }, []);
 
+  const followStore = useCallback(async (storeId: string): Promise<void> => {
+    setFollowError(null);
+    
+    try {
+      console.log('🔍 StoreContext: Following store:', storeId);
+      const response = await client.post<any>(API_ENDPOINTS.following.followStore(storeId), {});
+      console.log('🔍 StoreContext: Follow store response:', response);
+
+      if (response.success) {
+        setIsFollowingStore(true);
+        setFollowerCount(prev => prev + 1);
+        console.log('✅ StoreContext: Successfully followed store');
+      } else {
+        console.warn('❌ StoreContext: Failed to follow store:', response.error);
+        setFollowError(response.error || 'Failed to follow store');
+      }
+    } catch (error) {
+      console.error('❌ StoreContext: Exception in followStore:', error);
+      setFollowError(error instanceof Error ? error.message : 'Unknown error occurred');
+    }
+  }, [client]);
+
+  const unfollowStore = useCallback(async (storeId: string): Promise<void> => {
+    setFollowError(null);
+    
+    try {
+      console.log('🔍 StoreContext: Unfollowing store:', storeId);
+      const response = await client.delete<any>(API_ENDPOINTS.following.unfollowStore(storeId));
+      console.log('🔍 StoreContext: Unfollow store response:', response);
+
+      if (response.success) {
+        setIsFollowingStore(false);
+        setFollowerCount(prev => Math.max(0, prev - 1));
+        console.log('✅ StoreContext: Successfully unfollowed store');
+      } else {
+        console.warn('❌ StoreContext: Failed to unfollow store:', response.error);
+        setFollowError(response.error || 'Failed to unfollow store');
+      }
+    } catch (error) {
+      console.error('❌ StoreContext: Exception in unfollowStore:', error);
+      setFollowError(error instanceof Error ? error.message : 'Unknown error occurred');
+    }
+  }, [client]);
+
+  const fetchFollowStatus = useCallback(async (storeId: string): Promise<void> => {
+    setIsFetchingFollowStatus(true);
+    setFollowError(null);
+    
+    try {
+      console.log('🔍 StoreContext: Fetching follow status for store:', storeId);
+      const response = await client.get<any>(API_ENDPOINTS.following.getStoreFollowerInfo(storeId));
+      console.log('🔍 StoreContext: Follow status response:', response);
+
+      if (response.success && response.data) {
+        const data = response.data.data || response.data;
+        setIsFollowingStore(data.isFollowing || false);
+        setFollowerCount(data.followerCount || 0);
+        console.log('✅ StoreContext: Follow status updated:', { isFollowing: data.isFollowing, count: data.followerCount });
+      } else {
+        console.warn('❌ StoreContext: Failed to fetch follow status:', response.error);
+        setFollowError(response.error || 'Failed to fetch follow status');
+      }
+    } catch (error) {
+      console.error('❌ StoreContext: Exception in fetchFollowStatus:', error);
+      setFollowError(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsFetchingFollowStatus(false);
+    }
+  }, [client]);
+
+  const clearFollowStatus = useCallback((): void => {
+    setIsFollowingStore(false);
+    setFollowerCount(0);
+    setFollowError(null);
+  }, []);
+
+  const fetchFollowedStores = useCallback(async (): Promise<void> => {
+    setIsFetchingFollowedStores(true);
+    setFollowedStoresError(null);
+    
+    try {
+      console.log('🔍 StoreContext: Fetching followed stores');
+      const response = await client.get<any>(API_ENDPOINTS.following.getFollowedStores);
+      console.log('🔍 StoreContext: Followed stores response:', response);
+
+      if (response.success && response.data) {
+        console.log('✅ StoreContext: Fetch followed stores response:', response.data);
+        
+        // Handle different response structures
+        let storesArray: any[] = [];
+        if (response.data.data && Array.isArray(response.data.data)) {
+          console.log('🔍 StoreContext: Found nested followed stores array');
+          storesArray = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          console.log('🔍 StoreContext: Found direct followed stores array');
+          storesArray = response.data;
+        }
+        
+        console.log('🔍 StoreContext: Processed followed stores array:', storesArray.length, 'items');
+        setFollowedStores(storesArray);
+        console.log('✅ StoreContext: Set followedStores to:', storesArray.length, 'items');
+      } else {
+        console.warn('❌ StoreContext: Failed to fetch followed stores - success:', response.success, 'error:', response.error);
+        setFollowedStoresError(response.error || 'Failed to fetch followed stores');
+        setFollowedStores([]);
+      }
+    } catch (error) {
+      console.error('❌ StoreContext: Exception in fetchFollowedStores:', error);
+      setFollowedStoresError(error instanceof Error ? error.message : 'Unknown error occurred');
+      setFollowedStores([]);
+    } finally {
+      setIsFetchingFollowedStores(false);
+      console.log('🔍 StoreContext: fetchFollowedStores finished');
+    }
+  }, [client]);
+
+  const clearFollowedStores = useCallback((): void => {
+    setFollowedStores([]);
+    setFollowedStoresError(null);
+  }, []);
+
   const contextValue: StoreContextType = {
     // Popular Stores
     popularStores,
@@ -320,6 +469,23 @@ export function StoreProvider({ children }: StoreProviderProps) {
     productsError,
     fetchStoreProducts,
     clearStoreProducts,
+    
+    // Store Following
+    isFollowingStore,
+    followerCount,
+    isFetchingFollowStatus,
+    followError,
+    followStore,
+    unfollowStore,
+    fetchFollowStatus,
+    clearFollowStatus,
+    
+    // Followed Stores List
+    followedStores,
+    isFetchingFollowedStores,
+    followedStoresError,
+    fetchFollowedStores,
+    clearFollowedStores,
   };
 
   return (

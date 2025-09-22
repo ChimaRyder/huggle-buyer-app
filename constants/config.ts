@@ -36,6 +36,12 @@ export const API_ENDPOINTS = {
     search: (latitude: number, longitude: number, radius: number = 5, pageSize: number = 20) => 
       `/api/stores/search?latitude=${latitude}&longitude=${longitude}&radius=${radius}&pageSize=${pageSize}`,
   },
+  following: {
+    followStore: (storeId: string) => `/api/buyers/followstore/${storeId}`,
+    unfollowStore: (storeId: string) => `/api/buyers/unfollow/${storeId}`,
+    getFollowedStores: "/api/buyers/followed-stores",
+    getStoreFollowerInfo: (storeId: string) => `/api/buyers/stores/${storeId}/followers/count`,
+  },
   orders: {
     list: "/api/orders",
     create: "/api/orders",
