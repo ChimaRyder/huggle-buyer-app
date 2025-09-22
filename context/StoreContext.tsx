@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { useApi } from './ApiContext';
 import { API_ENDPOINTS } from '@/constants/config';
+import { BackendProduct } from '@/types/BackendModels';
 
 interface Store {
   id: string;
@@ -37,6 +38,13 @@ interface StoreContextType {
   storeError: string | null;
   fetchStoreById: (id: string) => Promise<void>;
   clearCurrentStore: () => void;
+  
+  // Store Products
+  storeProducts: BackendProduct[];
+  isFetchingProducts: boolean;
+  productsError: string | null;
+  fetchStoreProducts: (storeId: string) => Promise<void>;
+  clearStoreProducts: () => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -55,6 +63,11 @@ export function StoreProvider({ children }: StoreProviderProps) {
   const [currentStore, setCurrentStore] = useState<Store | null>(null);
   const [isFetchingStore, setIsFetchingStore] = useState(false);
   const [storeError, setStoreError] = useState<string | null>(null);
+  
+  // Store Products state
+  const [storeProducts, setStoreProducts] = useState<BackendProduct[]>([]);
+  const [isFetchingProducts, setIsFetchingProducts] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
   
   const { client } = useApi();
 
@@ -167,47 +180,47 @@ export function StoreProvider({ children }: StoreProviderProps) {
           console.log('🔍 StoreContext: Found nested data structure, extracting store');
           const store = response.data.data;
           storeData = {
-            id: store.Id,
-            sellerId: store.SellerId,
-            name: store.Name,
-            storeType: store.StoreType,
-            description: store.Description,
-            tags: store.Tags || [],
-            profileImageUrl: store.ProfileImageUrl,
-            coverImageUrl: store.CoverImageUrl,
-            address: store.Address,
-            city: store.City,
-            province: store.Province,
-            isOpen: store.IsOpen,
-            isVerified: store.IsVerified,
-            location: store.Location ? {
-              latitude: store.Location.Latitude,
-              longitude: store.Location.Longitude
+            id: store.id,
+            sellerId: store.sellerId,
+            name: store.name,
+            storeType: store.storeType,
+            description: store.description,
+            tags: store.tags || [],
+            profileImageUrl: store.profileImageUrl,
+            coverImageUrl: store.coverImageUrl,
+            address: store.address,
+            city: store.city,
+            province: store.province,
+            isOpen: store.isOpen,
+            isVerified: store.isVerified,
+            location: store.location ? {
+              latitude: store.location.latitude,
+              longitude: store.location.longitude
             } : null,
-            createdAt: store.CreatedAt
+            createdAt: store.createdAt
           };
         } else {
           // Handle direct response
           const store = response.data;
           storeData = {
-            id: store.Id,
-            sellerId: store.SellerId,
-            name: store.Name,
-            storeType: store.StoreType,
-            description: store.Description,
-            tags: store.Tags || [],
-            profileImageUrl: store.ProfileImageUrl,
-            coverImageUrl: store.CoverImageUrl,
-            address: store.Address,
-            city: store.City,
-            province: store.Province,
-            isOpen: store.IsOpen,
-            isVerified: store.IsVerified,
-            location: store.Location ? {
-              latitude: store.Location.Latitude,
-              longitude: store.Location.Longitude
+            id: store.id,
+            sellerId: store.sellerId,
+            name: store.name,
+            storeType: store.storeType,
+            description: store.description,
+            tags: store.tags || [],
+            profileImageUrl: store.profileImageUrl,
+            coverImageUrl: store.coverImageUrl,
+            address: store.address,
+            city: store.city,
+            province: store.province,
+            isOpen: store.isOpen,
+            isVerified: store.isVerified,
+            location: store.location ? {
+              latitude: store.location.latitude,
+              longitude: store.location.longitude
             } : null,
-            createdAt: store.CreatedAt
+            createdAt: store.createdAt
           };
         }
         
@@ -233,6 +246,60 @@ export function StoreProvider({ children }: StoreProviderProps) {
     setStoreError(null);
   }, []);
 
+  const fetchStoreProducts = useCallback(async (storeId: string): Promise<void> => {
+    setIsFetchingProducts(true);
+    setProductsError(null);
+    
+    try {
+      console.log('🔍 StoreContext: Starting fetchStoreProducts for storeId:', storeId);
+      const response = await client.get<any>(API_ENDPOINTS.products.byStore(storeId));
+      console.log('🔍 StoreContext: Raw API response for store products:', response);
+
+      if (response.success && response.data) {
+        console.log('✅ StoreContext: Fetch store products response:', response.data);
+        
+        // Handle different response structures
+        let productsArray: BackendProduct[] = [];
+        if (response.data.data && response.data.data.items && Array.isArray(response.data.data.items)) {
+          console.log('🔍 StoreContext: Found paginated products in items array');
+          productsArray = response.data.data.items;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          console.log('🔍 StoreContext: Found nested products array');
+          productsArray = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          console.log('🔍 StoreContext: Found direct products array');
+          productsArray = response.data;
+        } else if (response.data.products && Array.isArray(response.data.products)) {
+          console.log('🔍 StoreContext: Found products in products property');
+          productsArray = response.data.products;
+        } else if (response.data.items && Array.isArray(response.data.items)) {
+          console.log('🔍 StoreContext: Found products in items property');
+          productsArray = response.data.items;
+        }
+        
+        console.log('🔍 StoreContext: Processed products array:', productsArray.length, 'items');
+        setStoreProducts(productsArray);
+        console.log('✅ StoreContext: Set storeProducts to:', productsArray.length, 'items');
+      } else {
+        console.warn('❌ StoreContext: Failed to fetch store products - success:', response.success, 'error:', response.error);
+        setProductsError(response.error || 'Failed to fetch store products');
+        setStoreProducts([]);
+      }
+    } catch (error) {
+      console.error('❌ StoreContext: Exception in fetchStoreProducts:', error);
+      setProductsError(error instanceof Error ? error.message : 'Unknown error occurred');
+      setStoreProducts([]);
+    } finally {
+      setIsFetchingProducts(false);
+      console.log('🔍 StoreContext: fetchStoreProducts finished');
+    }
+  }, [client]);
+
+  const clearStoreProducts = useCallback((): void => {
+    setStoreProducts([]);
+    setProductsError(null);
+  }, []);
+
   const contextValue: StoreContextType = {
     // Popular Stores
     popularStores,
@@ -246,6 +313,13 @@ export function StoreProvider({ children }: StoreProviderProps) {
     storeError,
     fetchStoreById,
     clearCurrentStore,
+    
+    // Store Products
+    storeProducts,
+    isFetchingProducts,
+    productsError,
+    fetchStoreProducts,
+    clearStoreProducts,
   };
 
   return (

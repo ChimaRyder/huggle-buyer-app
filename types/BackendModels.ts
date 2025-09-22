@@ -5,6 +5,28 @@
 
 import type { ApiResponse } from './common';
 
+// Supporting interfaces
+export interface BusinessHours {
+  isOpen: boolean;
+  openTime?: string;
+  closeTime?: string;
+}
+
+export interface Location {
+  id: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
+  buyerId?: string;
+  storeId?: string;
+  label?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Product related interfaces
 export interface BackendProduct {
   id: string;
@@ -60,22 +82,25 @@ export interface BackendStore {
   id: string;
   sellerId: string;
   name: string;
-  storeDescription: string;
-  storeImageUrl: string;
-  storeCoverUrl: string;
-  storeCategory: string;
+  storeType?: string;
+  description?: string;
   tags: string[];
-  address: string;
-  city: string;
-  province: string;
-  zipCode: string;
-  latitude: number;
-  longitude: number;
-  rating?: number;
-  reviews?: number;
-  isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  locationId?: string;
+  phoneNumber?: string;
+  profileImageUrl?: string;
+  coverImageUrl?: string;
+  address?: string;
+  city?: string;
+  province?: string;
+  businessHours: BusinessHours[];
+  isOpen: boolean;
+  isVerified: boolean;
+  location?: Location;
+  createdAt: string;
+  updatedAt: string;
+  
+  // Additional fields that might be included for buyer context
+  distance?: number; // Distance from user location (for search results)
 }
 
 export interface CreateStoreRequest {

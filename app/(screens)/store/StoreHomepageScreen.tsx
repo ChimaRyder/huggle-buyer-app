@@ -1,32 +1,128 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   TouchableOpacity,
   FlatList,
+  Dimensions,
+  RefreshControl,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing } from "@/constants/theme";
 import ProductGrid from "@/components/product/ProductGrid";
 import FeaturedPostCard from "@/components/posts/FeaturedPostCard";
-// TODO: Remove mock data imports and implement API integration
+import SafeImage from "@/components/common/SafeImage";
+import { useStoreContext } from "@/context/StoreContext";
+// Get screen width for layout
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+// Store Homepage Skeleton Loading Component
+const StoreHomepageSkeleton = () => {
+  return (
+    <View style={styles.container}>
+      {/* Banner skeleton */}
+      <View style={[styles.bannerContainer, styles.skeletonBox]} />
+      
+      {/* Store info skeleton */}
+      <View style={styles.storeInfo}>
+        <View style={styles.storeHeader}>
+          <View style={[styles.skeletonBox, { height: 28, flex: 1, marginRight: 20 }]} />
+          <View style={[styles.skeletonBox, { width: 30, height: 30, borderRadius: 15 }]} />
+        </View>
+        <View style={styles.storeDetails}>
+          <View style={[styles.skeletonBox, { height: 16, width: 120, marginRight: 10 }]} />
+          <View style={[styles.skeletonBox, { height: 16, width: 100 }]} />
+        </View>
+        <View style={styles.categoriesContainer}>
+          <View style={[styles.skeletonBox, { width: 80, height: 28, borderRadius: 14, marginRight: 10 }]} />
+          <View style={[styles.skeletonBox, { width: 100, height: 28, borderRadius: 14, marginRight: 10 }]} />
+        </View>
+      </View>
+      
+      {/* Tab navigation skeleton */}
+      <View style={styles.tabContainer}>
+        {[1, 2, 3, 4].map((index) => (
+          <View key={index} style={styles.tab}>
+            <View style={[styles.skeletonBox, { height: 16, width: 60 }]} />
+          </View>
+        ))}
+      </View>
+      
+      {/* Content skeleton */}
+      <ScrollView style={styles.contentContainer}>
+        <View style={styles.tabContent}>
+          {/* Product grid skeleton */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+            <View style={[styles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
+            <View style={[styles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+            <View style={[styles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
+            <View style={[styles.skeletonBox, { width: '48%', height: 200, borderRadius: 12 }]} />
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
 
 export default function StoreHomepageScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState("Featured");
+  
+  // Store context
+  const {
+    currentStore,
+    isFetchingStore,
+    storeError,
+    fetchStoreById,
+    clearCurrentStore,
+    storeProducts,
+    isFetchingProducts,
+    productsError,
+    fetchStoreProducts,
+    clearStoreProducts
+  } = useStoreContext();
+  
+  // Refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Fetch store data when component mounts
+  useEffect(() => {
+    if (id && typeof id === 'string') {
+      console.log('🔍 StoreHomepageScreen: Fetching store with ID:', id);
+      fetchStoreById(id);
+      fetchStoreProducts(id);
+    }
+    
+    // Cleanup when component unmounts or ID changes
+    return () => {
+      clearCurrentStore();
+      clearStoreProducts();
+    };
+  }, [id, fetchStoreById, clearCurrentStore, fetchStoreProducts, clearStoreProducts]);
 
-  // TODO: Replace with API call to fetch store data by ID
-  const store = null; // Will be fetched from API
-
-  // TODO: Replace with API call to fetch store products
-  const storeProducts: any[] = []; // Will be fetched from API
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    if (!id || typeof id !== 'string') return;
+    
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        fetchStoreById(id),
+        fetchStoreProducts(id)
+      ]);
+    } catch (error) {
+      console.error('🔍 StoreHomepageScreen: Error during refresh:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // TODO: Replace with API call to fetch featured products for this store
   const featuredProducts: any[] = []; // Will be fetched from API
@@ -37,25 +133,29 @@ export default function StoreHomepageScreen() {
   // TODO: Replace with API call to fetch store categories
   const storeCategories: any[] = []; // Will be fetched from API
 
-  // If store not found, show loading state (TODO: implement proper loading and error handling)
-  if (!store) {
+  // Loading state
+  if (isFetchingStore) {
+    return <StoreHomepageSkeleton />;
+  }
+  
+  // Error state
+  if (storeError || !currentStore) {
     return (
       <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading store...</Text>
+        <View style={styles.errorContainer}>
+          <Ionicons name="warning-outline" size={64} color={colors.error} />
+          <Text style={styles.errorTitle}>Store not found</Text>
+          <Text style={styles.errorText}>{storeError || 'The store you\'re looking for could not be found.'}</Text>
           <TouchableOpacity 
-            style={styles.backButton}
+            style={styles.retryButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={styles.retryButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
-
-  // TODO: Check if the promotion is about free delivery (implement when store data is available)
-  const isFreeDeliveryPromo = false;
 
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite);
@@ -114,21 +214,50 @@ export default function StoreHomepageScreen() {
   );
 
   // Render products tab content
-  const renderProductsTab = () => (
-    <View style={styles.tabContent}>
-      {storeProducts.length > 0 ? (
-        <ProductGrid 
-          products={storeProducts}
-          onProductPress={handleProductPress}
-        />
-      ) : (
-        <View style={styles.emptyContentContainer}>
-          <Text style={styles.emptyContentText}>No products available</Text>
-          <Text style={styles.emptyContentSubtext}>Products will appear here when available</Text>
+  const renderProductsTab = () => {
+    if (isFetchingProducts) {
+      return (
+        <View style={styles.tabContent}>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading products...</Text>
+          </View>
         </View>
-      )}
-    </View>
-  );
+      );
+    }
+    
+    if (productsError) {
+      return (
+        <View style={styles.tabContent}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Failed to load products</Text>
+            <Text style={styles.errorSubtext}>{productsError}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => id && typeof id === 'string' && fetchStoreProducts(id)}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+    
+    return (
+      <View style={styles.tabContent}>
+        {storeProducts.length > 0 ? (
+          <ProductGrid 
+            products={storeProducts}
+            onProductPress={handleProductPress}
+          />
+        ) : (
+          <View style={styles.emptyContentContainer}>
+            <Text style={styles.emptyContentText}>No products available</Text>
+            <Text style={styles.emptyContentSubtext}>This store hasn't added any products yet</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   // Render posts tab content
   const renderPostsTab = () => (
@@ -186,9 +315,16 @@ export default function StoreHomepageScreen() {
     <View style={styles.container}>
       {/* Store Banner */}
       <View style={styles.bannerContainer}>
-        <View style={styles.placeholderBanner}>
-          <Text style={styles.placeholderText}>Store Image</Text>
-        </View>
+        {currentStore.coverImageUrl ? (
+          <SafeImage 
+            source={{ uri: currentStore.coverImageUrl }} 
+            style={styles.bannerImage} 
+          />
+        ) : (
+          <View style={styles.placeholderBanner}>
+            <Text style={styles.placeholderText}>Store Image</Text>
+          </View>
+        )}
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => router.back()}
@@ -200,7 +336,7 @@ export default function StoreHomepageScreen() {
       {/* Store Info with Favorite Button */}
       <View style={styles.storeInfo}>
         <View style={styles.storeHeader}>
-          <Text style={styles.storeName}>Store Name Loading...</Text>
+          <Text style={styles.storeName}>{currentStore.name}</Text>
           <TouchableOpacity 
             style={styles.favoriteButton}
             onPress={toggleFavorite}
@@ -213,22 +349,65 @@ export default function StoreHomepageScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.storeDetails}>
-          <Text style={styles.locationText}>Distance loading...</Text>
+          <Text style={styles.locationText}>
+            {currentStore.city}, {currentStore.province}
+            {currentStore.distance && ` • ${currentStore.distance.toFixed(1)}km`}
+          </Text>
           <Text style={styles.dotSeparator}> • </Text>
-          <TouchableOpacity 
-            style={styles.reviewsContainer}
-            onPress={() => router.push(`/(screens)/store/ReviewsScreen?id=${id}`)}
-          >
-            <Text style={styles.ratingText}>-</Text>
-            <Ionicons name="star" size={16} color={colors.warning} />
-            <Text style={styles.reviewsText}> Reviews loading...</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.categoriesContainer}>
-          <View style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>
-            <Text style={styles.categoryText}>Loading categories...</Text>
+          <View style={styles.storeStatusContainer}>
+            <View style={[styles.statusDot, { backgroundColor: currentStore.isOpen ? colors.success : colors.error }]} />
+            <Text style={[styles.statusText, { color: currentStore.isOpen ? colors.success : colors.error }]}>
+              {currentStore.isOpen ? 'Open' : 'Closed'}
+            </Text>
           </View>
+          {currentStore.isVerified && (
+            <>
+              <Text style={styles.dotSeparator}> • </Text>
+              <View style={styles.verifiedContainer}>
+                <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                <Text style={styles.verifiedText}>Verified</Text>
+              </View>
+            </>
+          )}
         </View>
+        {/* Store Type and Phone Number */}
+        {(currentStore.storeType || currentStore.phoneNumber) && (
+          <View style={styles.storeMetaInfo}>
+            {currentStore.storeType && (
+              <View style={styles.storeTypeContainer}>
+                <Ionicons name="storefront-outline" size={14} color={colors.text.secondary} />
+                <Text style={styles.storeTypeText}>{currentStore.storeType}</Text>
+              </View>
+            )}
+            {currentStore.phoneNumber && (
+              <View style={styles.phoneContainer}>
+                <Ionicons name="call-outline" size={14} color={colors.text.secondary} />
+                <Text style={styles.phoneText}>{currentStore.phoneNumber}</Text>
+              </View>
+            )}
+          </View>
+        )}
+        {currentStore.description && (
+          <Text style={styles.storeDescription} numberOfLines={2}>
+            {currentStore.description}
+          </Text>
+        )}
+        {currentStore.tags && currentStore.tags.length > 0 && (
+          <View style={styles.categoriesContainer}>
+            {currentStore.tags.slice(0, 3).map((tag, index) => (
+              <View key={index} style={[styles.categoryBadge, { backgroundColor: colors.primary }]}>
+                <Text style={styles.categoryText}>{tag}</Text>
+              </View>
+            ))}
+            {currentStore.tags.length > 3 && (
+              <View style={[styles.categoryBadge, { backgroundColor: colors.background.secondary }]}>
+                <Text style={[styles.categoryText, { color: colors.text.primary }]}>
+                  +{currentStore.tags.length - 3} more
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       {/* Tab Navigation */}
@@ -255,7 +434,17 @@ export default function StoreHomepageScreen() {
       </View>
 
       {/* Tab Content */}
-      <ScrollView style={styles.contentContainer}>
+      <ScrollView 
+        style={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
         {activeTab === "Featured" && renderFeaturedTab()}
         {activeTab === "Products" && renderProductsTab()}
         {activeTab === "Posts" && renderPostsTab()}
@@ -504,5 +693,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text.secondary,
     textAlign: 'center',
+  },
+  // New styles
+  skeletonBox: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: 4,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: colors.text.inverse,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  storeDescription: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  storeStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  verifiedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  verifiedText: {
+    fontSize: 14,
+    color: colors.success,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: 16,
   },
 });
