@@ -15,13 +15,13 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { OrderCard } from "@/components/order";
 import { ConfirmationModal } from "@/components/common";
-// TODO: Replace with API service import
 import { colors, spacing, typography } from "@/constants/theme";
 import {
   BackendOrder,
   OrderStatus,
 } from "@/types/BackendModels";
-// TODO: Move to constants or fetch from API
+import { OrderService, OrderApiResponse } from "@/services/orderService";
+import { useApi } from "@/context/ApiContext";
 
 interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
   productName?: string;
@@ -41,6 +41,8 @@ interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
 
 const Orders = () => {
   const router = useRouter();
+  const { client } = useApi();
+  const orderService = new OrderService(client);
 
   const handleBackPress = () => {
     router.back();
@@ -74,76 +76,81 @@ const Orders = () => {
     try {
       setError(null);
       
-      // Use mock data instead of API calls
-      // TODO: Fetch orders from API
-      const ordersData: BackendOrder[] = [];
+      // Fetch orders from API
+      const response = await orderService.getOrders();
+      
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to load orders');
+      }
 
-      // Enrich orders with additional data
-      const enrichedOrders = ordersData.map((order) => {
+      // Convert API response to frontend format and enrich with additional data
+      const enrichedOrders = response.data.map((apiOrder) => {
         try {
-          // Support multiple products per order
-          const productIds = Array.isArray(order.productId)
-            ? order.productId
-            : [order.productId];
-          const quantities = Array.isArray(order.quantity)
-            ? order.quantity
-            : [order.quantity];
-          const productNames = Array.isArray(order.productNames)
-            ? order.productNames
-            : [order.productNames || "Unknown Product"];
-
-          // Compose items array for multi-item support
-          const items = productIds.map((_, idx) => ({
-            image: require("@/assets/images/sample-store.jpg"),
-            name: productNames[idx] || "Unknown Product",
-            price: order.unitPrices && order.unitPrices[idx] 
-              ? `₱${Number(order.unitPrices[idx]).toFixed(2)}` 
-              : "",
-            quantity: quantities[idx] || 1,
+          // Convert API order to frontend format
+          const frontendOrder = orderService.convertApiOrderToFrontend(apiOrder);
+          
+          // Support multiple products per order from API items
+          const items = apiOrder.items.map((item) => ({
+            image: item.productImage || require("@/assets/images/sample-store.jpg"),
+            name: item.productName || "Unknown Product",
+            price: `₱${Number(item.unitPrice).toFixed(2)}`,
+            quantity: item.quantity,
           }));
 
           // Compose total price
-          const totalPrice = `₱${order.totalPrice.toFixed(2)}`;
+          const totalPrice = `₱${apiOrder.totalAmount.toFixed(2)}`;
 
           // Compose product name for single/multi
           let productName = "Unknown Product";
-          if (productNames.length === 1) {
-            productName = productNames[0] || "Unknown Product";
-          } else if (productNames.length > 1) {
-            const firstName = productNames[0] || "Unknown Product";
-            productName = `${firstName} + ${productNames.length - 1} more`;
+          if (apiOrder.items.length === 1) {
+            productName = apiOrder.items[0].productName || "Unknown Product";
+          } else if (apiOrder.items.length > 1) {
+            const firstName = apiOrder.items[0].productName || "Unknown Product";
+            productName = `${firstName} + ${apiOrder.items.length - 1} more`;
           }
 
           // Compose description for single/multi
           let description = "";
-          if (productNames.length === 1) {
-            description = `Quantity: ${quantities[0]}`;
+          if (apiOrder.items.length === 1) {
+            description = `Quantity: ${apiOrder.items[0].quantity}`;
           } else {
-            description = `${productNames.length} items`;
+            description = `${apiOrder.items.length} items`;
           }
 
           return {
-            ...order,
+            ...frontendOrder,
             productName,
             productImage: items[0]?.image,
-            storeName: order.storeName || "Unknown Store",
-            storeLocation: order.deliveryAddress || "Unknown Location",
-            formattedDate: formatOrderDate(order.createdAt),
+            storeName: apiOrder.storeName || "Unknown Store",
+            storeLocation: apiOrder.deliveryAddress || "Unknown Location",
+            formattedDate: formatOrderDate(apiOrder.createdAt),
             description,
             items,
             totalPrice,
           };
         } catch (error) {
-          console.error(`Error enriching order ${order.id}:`, error);
+          console.error(`Error enriching order ${apiOrder.id}:`, error);
           return {
-            ...order,
+            id: apiOrder.id,
+            buyerId: apiOrder.buyerId,
+            storeId: apiOrder.storeId,
+            storeName: apiOrder.storeName || "Unknown Store",
+            productId: [],
+            productNames: [],
+            quantity: [],
+            unitPrices: [],
+            totalPrice: apiOrder.totalAmount,
+            createdAt: apiOrder.createdAt,
+            updatedAt: apiOrder.updatedAt || apiOrder.createdAt,
+            status: orderService.convertApiOrderToFrontend(apiOrder).status,
+            deliveryAddress: apiOrder.deliveryAddress,
+            notes: apiOrder.notes,
             productName: "Unknown Product",
-            storeName: "Unknown Store",
+            productImage: require("@/assets/images/sample-store.jpg"),
             storeLocation: "Unknown Location",
-            formattedDate: formatOrderDate(order.createdAt),
+            formattedDate: formatOrderDate(apiOrder.createdAt),
             description: "",
             items: [],
-            totalPrice: `₱${order.totalPrice.toFixed(2)}`,
           };
         }
       });
@@ -227,7 +234,16 @@ const Orders = () => {
     try {
       setCancelling(true);
       
-      // Update order status in mock data
+      // Cancel order via API
+      const response = await orderService.cancelOrder(orderToCancel.id, {
+        reason: 'Cancelled by buyer'
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to cancel order');
+      }
+
+      // Update order status in local state
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === orderToCancel.id
@@ -257,6 +273,7 @@ const Orders = () => {
   };
 
   const canCancelOrder = (orderStatus: OrderStatus): boolean => {
+    // For buyer, can cancel anytime except completed/cancelled
     return (
       orderStatus === OrderStatus.Pending ||
       orderStatus === OrderStatus.Confirmed ||

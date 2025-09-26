@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  TextInput,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -30,8 +31,7 @@ const CartScreen = () => {
     total, 
     removeItem, 
     updateQuantity, 
-    clearCart, 
-    setSpecialInstructions,
+    clearCart,
     addItem,
     selectedItems,
     selectedTotal,
@@ -39,51 +39,68 @@ const CartScreen = () => {
     selectAllItems,
     hasExpiredItems,
     activeItems,
-    expiredItems
+    expiredItems,
+    refreshCart,
+    isLoading
   } = useCart();
   
   const [promoCode, setPromoCode] = useState('');
-  const [isEditingInstructions, setIsEditingInstructions] = useState<string | null>(null);
-  const [instructionText, setInstructionText] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   // TODO: Remove mock data loading - cart data should come from CartContext with API integration
   // useEffect removed - cart data should be managed by CartContext and persisted via API
 
-  const handleCheckout = () => {
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshCart();
+    } catch (error) {
+      console.error('Error refreshing cart:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleCheckout = async () => {
     if (selectedItems.length === 0) {
       Alert.alert('No Items Selected', 'Please select items to checkout');
       return;
     }
     
-    // Check if any selected items are expired/unavailable
-    const unavailableSelected = selectedItems.some(item => {
-      const isExpired = item.expiresAt ? new Date(item.expiresAt) <= new Date() : false;
-      const isInactive = item.isActive === false;
-      return isExpired || isInactive;
-    });
-    
-    if (unavailableSelected) {
-      Alert.alert(
-        'Unavailable Items Selected', 
-        'Some selected items are no longer available. Please deselect them to continue.'
-      );
-      return;
+    // Simple client-side validation
+    if (hasExpiredItems) {
+      const hasSelectedExpiredItems = expiredItems.some(item => item.selected);
+      if (hasSelectedExpiredItems) {
+        Alert.alert(
+          'Cart Validation Failed',
+          'Some selected items in your cart are no longer available. Please deselect them and try again.'
+        );
+        return;
+      }
     }
-    
-    router.push('/(screens)/cart/OrderConfirmationScreen');
+
+    // Determine the store ID from selected items
+    // Assuming all selected items belong to the same store
+    const storeId = selectedItems[0]?.storeId || 'unknown-store';
+      
+    // Navigate to OrderReviewScreen instead of directly to confirmation
+    router.push({
+      pathname: '/(screens)/cart/OrderReviewScreen',
+      params: { storeId },
+    });
   };
 
-  const handleIncrease = (id: string) => {
+  const handleIncrease = async (id: string) => {
     const item = items.find(item => item.id === id);
     if (item) {
-      updateQuantity(id, item.quantity + 1);
+      await updateQuantity(id, item.quantity + 1);
     }
   };
 
-  const handleDecrease = (id: string) => {
+  const handleDecrease = async (id: string) => {
     const item = items.find(item => item.id === id);
     if (item && item.quantity > 1) {
-      updateQuantity(id, item.quantity - 1);
+      await updateQuantity(id, item.quantity - 1);
     } else if (item && item.quantity === 1) {
       handleRemoveItem(id);
     }
@@ -95,31 +112,11 @@ const CartScreen = () => {
       'Are you sure you want to remove this item from your cart?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: () => removeItem(id) },
+        { text: 'Remove', style: 'destructive', onPress: async () => await removeItem(id) },
       ]
     );
   };
 
-  const handleUpdateInstructions = (id: string, currentInstructions: string = '') => {
-    const item = items.find(item => item.id === id);
-    if (item) {
-      setIsEditingInstructions(id);
-      setInstructionText(currentInstructions);
-    }
-  };
-
-  const handleSaveInstructions = () => {
-    if (isEditingInstructions) {
-      setSpecialInstructions(isEditingInstructions, instructionText);
-      setIsEditingInstructions(null);
-      setInstructionText('');
-    }
-  };
-
-  const handleCancelInstructions = () => {
-    setIsEditingInstructions(null);
-    setInstructionText('');
-  };
 
   const handleApplyPromo = () => {
     // In a real app, this would validate and apply the promo code
@@ -138,44 +135,30 @@ const CartScreen = () => {
     );
   };
 
+  // Helper function to check if an item is unavailable
+  const isItemUnavailable = (item: any) => {
+    const isExpired = item.expiresAt ? new Date(item.expiresAt) <= new Date() : false;
+    const isInactive = item.isActive === false;
+    return isExpired || isInactive;
+  };
+
+  // Helper function to get available items only
+  const getAvailableItems = () => {
+    return items.filter(item => !isItemUnavailable(item));
+  };
+
+  // Helper function to check if all available items are selected
+  const areAllAvailableItemsSelected = () => {
+    const availableItems = getAvailableItems();
+    return availableItems.length > 0 && availableItems.every(item => item.selected);
+  };
+
   // Calculate cart totals based on selected items
   const subtotal = selectedTotal;
   const deliveryFee = subtotal > 0 ? 2.99 : 0;
   const tax = subtotal * 0.08;
   const totalWithFees = subtotal + deliveryFee + tax;
 
-  // Render instruction editor modal
-  if (isEditingInstructions) {
-    const item = items.find(item => item.id === isEditingInstructions);
-    return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleCancelInstructions} style={styles.headerButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Special Instructions</Text>
-          <TouchableOpacity onPress={handleSaveInstructions} style={styles.headerButton}>
-            <Text style={styles.saveText}>Save</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.instructionsContainer}>
-          <Text style={styles.instructionsLabel}>Special Instructions</Text>
-          <Text style={styles.itemName}>{item?.name}</Text>
-          <TextInput
-            style={styles.instructionsInput}
-            placeholder="Any special requests, allergies, or delivery instructions?"
-            value={instructionText}
-            onChangeText={setInstructionText}
-            multiline
-          />
-          <Text style={styles.instructionsHint}>
-            These instructions will be sent directly to the restaurant
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   // Render empty cart
   if (items.length === 0) {
@@ -192,28 +175,69 @@ const CartScreen = () => {
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <CartHeader onBack={() => router.back()} title={`Your Cart (${items.length})`} />
       
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Loading overlay */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+        </View>
+      )}
+      
+      <ScrollView 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary.main]}
+            tintColor={colors.primary.main}
+          />
+        }
+      >
         {/* Selection Controls */}
         <View style={styles.selectionControls}>
           <TouchableOpacity 
             style={styles.selectAllButton}
             onPress={() => {
-              const allSelected = items.every(item => item.selected);
-              selectAllItems(!allSelected);
+              const allAvailableSelected = areAllAvailableItemsSelected();
+              
+              // Toggle selection for all items (including expired ones for deselection)
+              items.forEach(item => {
+                const isUnavailable = isItemUnavailable(item);
+                
+                if (!allAvailableSelected) {
+                  // Selecting all - only select available items that aren't selected
+                  if (!isUnavailable && !item.selected) {
+                    toggleItemSelection(item.id);
+                  }
+                } else {
+                  // Deselecting all - deselect all items that are currently selected
+                  if (item.selected) {
+                    toggleItemSelection(item.id);
+                  }
+                }
+              });
             }}
           >
-            <View style={[styles.selectAllCheckbox, items.every(item => item.selected) && styles.selectAllCheckboxSelected]}>
-              {items.every(item => item.selected) && (
+            <View style={[styles.selectAllCheckbox, areAllAvailableItemsSelected() && styles.selectAllCheckboxSelected]}>
+              {areAllAvailableItemsSelected() && (
                 <Ionicons name="checkmark" size={16} color="white" />
               )}
             </View>
             <Text style={styles.selectAllText}>
-              {items.every(item => item.selected) ? 'Deselect All' : 'Select All'}
+              {areAllAvailableItemsSelected() ? 'Deselect All' : 'Select All'}
             </Text>
           </TouchableOpacity>
-          <Text style={styles.selectionInfo}>
-            {selectedItems.length} of {items.length} selected
-          </Text>
+          <View style={styles.selectionInfoContainer}>
+            <Text style={styles.selectionInfo}>
+              {selectedItems.length} of {items.length} selected
+            </Text>
+            {selectedItems.length > 0 && (
+              <Text style={styles.selectedTotalText}>
+                ${selectedTotal.toFixed(2)}
+              </Text>
+            )}
+          </View>
         </View>
         
         {/* Expired Items Warning */}
@@ -234,7 +258,6 @@ const CartScreen = () => {
               onIncrease={() => handleIncrease(item.id)}
               onDecrease={() => handleDecrease(item.id)}
               onRemove={() => handleRemoveItem(item.id)}
-              onUpdateInstructions={() => handleUpdateInstructions(item.id, item.specialInstructions || '')}
               onToggleSelection={() => toggleItemSelection(item.id)}
             />
           ))}
@@ -298,36 +321,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border.primary,
   },
-  instructionsContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  instructionsLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: 16,
-  },
-  itemName: {
-    fontSize: 14,
-    color: colors.text.tertiary,
-    marginBottom: 16,
-  },
-  instructionsInput: {
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    textAlignVertical: 'top',
-    height: 100,
-    marginBottom: 16,
-  },
-  instructionsHint: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-    fontStyle: 'italic',
-  },
   selectionControls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -362,9 +355,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text.primary,
   },
+  selectionInfoContainer: {
+    alignItems: 'flex-end',
+  },
   selectionInfo: {
     fontSize: 14,
     color: colors.text.tertiary,
+  },
+  selectedTotalText: {
+    fontSize: 12,
+    color: colors.primary.main,
+    fontWeight: '600',
+    marginTop: 2,
   },
   warningBanner: {
     flexDirection: 'row',
@@ -375,11 +377,22 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#FF6B6B',
   },
-  warningText: {
+  unavailableText: {
     fontSize: 14,
     color: '#FF6B6B',
     marginLeft: 8,
     flex: 1,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
   },
 });
 

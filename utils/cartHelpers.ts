@@ -5,8 +5,7 @@ import { CartItem, Product } from '@/data/food/models';
  */
 export function productToCartItem(
   product: Product,
-  quantity: number = 1,
-  specialInstructions?: string
+  quantity: number = 1
 ): CartItem {
   return {
     id: `${product.id}_${Date.now()}`, // Unique ID for each cart addition
@@ -15,7 +14,6 @@ export function productToCartItem(
     price: product.price,
     image: product.image,
     quantity: quantity,
-    specialInstructions: specialInstructions,
     storeId: product.storeId,
     storeName: product.storeName || 'Unknown Store',
     category: product.category,
@@ -30,22 +28,29 @@ export function productToCartItem(
  */
 export function genericProductToCartItem(
   product: any,
-  quantity: number = 1,
-  specialInstructions?: string
+  quantity: number = 1
 ): CartItem {
   // Handle image array or single image
   const image = Array.isArray(product.image) 
     ? product.image[0] || '' 
     : product.image || '';
 
-  return {
-    id: `${product.id}_${Date.now()}`,
+  console.log('🔄 cartHelpers: Converting product to cart item', {
+    originalProductId: product.id,
+    productName: product.name,
+    price: product.price,
+    quantity,
+    storeId: product.storeId,
+    storeName: product.storeName
+  });
+
+  const cartItem = {
+    id: product.id, // Use the actual product ID, not a generated one
     name: product.name,
     description: product.description || '',
     price: product.price,
     image: image,
     quantity: quantity,
-    specialInstructions: specialInstructions,
     storeId: product.storeId || '',
     storeName: product.storeName || 'Unknown Store',
     category: product.category || product.tags?.[0] || 'Other',
@@ -53,6 +58,9 @@ export function genericProductToCartItem(
     expiresAt: product.expiresAt,
     selected: true
   };
+  
+  console.log('✅ cartHelpers: Created cart item', cartItem);
+  return cartItem;
 }
 
 /**

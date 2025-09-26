@@ -59,10 +59,10 @@ const CartSummary: React.FC<CartSummaryProps> = ({
 
 const styles = StyleSheet.create({
   summaryContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background.primary,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F2F2F7',
+    borderTopColor: colors.border.primary,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -71,11 +71,11 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.text.tertiary,
   },
   summaryValue: {
     fontSize: 16,
-    color: '#000000',
+    color: colors.text.primary,
   },
   totalRow: {
     marginBottom: 16,
@@ -83,26 +83,26 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.primary,
   },
   totalValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.primary,
   },
   checkoutButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.primary.main,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
   },
   disabledButton: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: colors.text.tertiary,
   },
   checkoutButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text.inverse,
   },
 });
 

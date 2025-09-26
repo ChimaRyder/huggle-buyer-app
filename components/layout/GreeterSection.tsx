@@ -35,13 +35,18 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useUser();
   const { getToken } = useAuth();
-  const { currentLocation, savedLocations } = useLocationContext();
+  const { currentLocation, savedLocations, getLocationAddress, initializeLocationInBackground } = useLocationContext();
 
   // Helper function to truncate location text to 25 characters
   const truncateLocation = (text: string, maxLength: number = 25): string => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength - 3) + '...';
   };
+
+  // Initialize location in background on mount
+  useEffect(() => {
+    initializeLocationInBackground();
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -63,112 +68,16 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
     };
   }, [user, getToken]);
 
-  // Helper function to find if current location matches a saved location
-  const findMatchingSavedLocation = (current: typeof currentLocation) => {
-    if (!current || !savedLocations.length) return null;
-    
-    // Find saved location with matching coordinates (within small tolerance)
-    return savedLocations.find(saved => {
-      const latDiff = Math.abs(saved.latitude - current.latitude);
-      const lngDiff = Math.abs(saved.longitude - current.longitude);
-      // Consider locations within ~100m as the same (roughly 0.001 degrees)
-      return latDiff < 0.001 && lngDiff < 0.001;
-    });
-  };
-
-  // Helper function to check if coordinates look like they might be from a saved location
-  // (as a fallback when fetchAllLocations fails)
-  const isLikelyUserSavedLocation = (current: typeof currentLocation) => {
-    if (!current) return false;
-    // This is a heuristic - if coordinates have been set programmatically (like from a map selection)
-    // they often have many decimal places, unlike device GPS which tends to be less precise
-    const latDecimals = (current.latitude.toString().split('.')[1] || '').length;
-    const lngDecimals = (current.longitude.toString().split('.')[1] || '').length;
-    return latDecimals > 10 || lngDecimals > 10;
-  };
 
   // Update display location when currentLocation from context changes
   useEffect(() => {
     const updateDisplayLocation = async () => {
       try {
         if (currentLocation) {
-          // Check if current location is a saved location (has label property)
-          if ('label' in currentLocation && currentLocation.label) {
-            // Use the saved location's label
-            const truncatedLabel = truncateLocation(currentLocation.label);
-            setDisplayLocation(truncatedLabel);
-            return;
-          }
-          
-          // Fallback: check if this location matches a saved location by coordinates
-          const matchingSavedLocation = findMatchingSavedLocation(currentLocation);
-          if (matchingSavedLocation) {
-            // Use the saved location's label
-            const truncatedLabel = truncateLocation(matchingSavedLocation.label);
-            setDisplayLocation(truncatedLabel);
-            return;
-          }
-          
-          // Additional fallback: if this looks like a user-selected location but we can't fetch saved locations
-          // show a generic "Selected Location" label instead of trying to geocode
-          if (isLikelyUserSavedLocation(currentLocation) && savedLocations.length === 0) {
-            setDisplayLocation(truncateLocation("Selected Location"));
-            return;
-          }
-          
-          // Use the selected location from LocationContext if available
-          if (currentLocation.address) {
-            // Use the address from the context if it exists
-            const truncatedLocation = truncateLocation(currentLocation.address);
-            setDisplayLocation(truncatedLocation);
-          } else {
-            // Reverse geocode the coordinates from context
-            const address = await Location.reverseGeocodeAsync({
-              latitude: currentLocation.latitude,
-              longitude: currentLocation.longitude,
-            });
-            if (address.length > 0) {
-              const addressInfo = address[0];
-              
-              // Create a more reliable location string by prioritizing key components
-              const locationParts = [];
-              
-              // Priority 1: Street or name (most specific)
-              if (addressInfo.street) {
-                locationParts.push(addressInfo.street);
-              } else if (addressInfo.name) {
-                locationParts.push(addressInfo.name);
-              }
-              
-              // Priority 2: District or subregion (neighborhood level)
-              if (addressInfo.district) {
-                locationParts.push(addressInfo.district);
-              } else if (addressInfo.subregion) {
-                locationParts.push(addressInfo.subregion);
-              }
-              
-              // Priority 3: City (always try to include)
-              if (addressInfo.city) {
-                locationParts.push(addressInfo.city);
-              }
-              
-              // Fallback: Use region if city is missing
-              if (!addressInfo.city && addressInfo.region) {
-                locationParts.push(addressInfo.region);
-              }
-              
-              const locationString = locationParts.length > 0 
-                ? locationParts.join(", ")
-                : `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`;
-                
-              const truncatedLocation = truncateLocation(locationString);
-              setDisplayLocation(truncatedLocation);
-            } else {
-              // Fallback to coordinates if reverse geocoding fails
-              const coordsString = `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`;
-              setDisplayLocation(truncateLocation(coordsString));
-            }
-          }
+          // Use the improved getLocationAddress method from context
+          const address = await getLocationAddress(currentLocation);
+          const truncatedLocation = truncateLocation(address);
+          setDisplayLocation(truncatedLocation);
         } else {
           // Fallback to device location if no location is selected in context
           let { status } = await Location.requestForegroundPermissionsAsync();
@@ -176,60 +85,31 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
             setDisplayLocation(truncateLocation("Location access denied"));
             return;
           }
+          
+          setDisplayLocation(truncateLocation("Getting location..."));
           const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.High,
+            accuracy: Location.Accuracy.Balanced,
+            maximumAge: 300000, // 5 minutes
+            timeout: 10000,
           });
-          const address = await Location.reverseGeocodeAsync(loc.coords);
-          if (address.length > 0) {
-            const addressInfo = address[0];
-            
-            // Create a more reliable location string by prioritizing key components
-            const locationParts = [];
-            
-            // Priority 1: Street or name (most specific)
-            if (addressInfo.street) {
-              locationParts.push(addressInfo.street);
-            } else if (addressInfo.name) {
-              locationParts.push(addressInfo.name);
-            }
-            
-            // Priority 2: District or subregion (neighborhood level)
-            if (addressInfo.district) {
-              locationParts.push(addressInfo.district);
-            } else if (addressInfo.subregion) {
-              locationParts.push(addressInfo.subregion);
-            }
-            
-            // Priority 3: City (always try to include)
-            if (addressInfo.city) {
-              locationParts.push(addressInfo.city);
-            }
-            
-            // Fallback: Use region if city is missing
-            if (!addressInfo.city && addressInfo.region) {
-              locationParts.push(addressInfo.region);
-            }
-            
-            const locationString = locationParts.length > 0 
-              ? locationParts.join(", ")
-              : `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
-              
-            const truncatedLocation = truncateLocation(locationString);
-            setDisplayLocation(truncatedLocation);
-          } else {
-            // Fallback to coordinates if reverse geocoding fails
-            const coordsString = `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
-            setDisplayLocation(truncateLocation(coordsString));
-          }
+          
+          const deviceLocation = {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          };
+          
+          const address = await getLocationAddress(deviceLocation);
+          const truncatedLocation = truncateLocation(address);
+          setDisplayLocation(truncatedLocation);
         }
       } catch (error) {
         console.error("Error getting location:", error);
-        setDisplayLocation(truncateLocation("Failed to get location"));
+        setDisplayLocation(truncateLocation("Unable to get location"));
       }
     };
 
     updateDisplayLocation();
-  }, [currentLocation, savedLocations]);
+  }, [currentLocation, getLocationAddress]);
 
   const NotificationBell = ({ unreadCount }: { unreadCount: number }) => {
     const router = useRouter();

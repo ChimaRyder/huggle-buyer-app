@@ -22,14 +22,22 @@ import { colors } from '@/constants/theme';
 import {
   CategorySection,
   TrendingItemsSection,
-  PopularStoresSection,
-  FloatingCartButton
+  PopularStoresSection
 } from '@/components/home';
 
 const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
-  const { itemCount } = useCart();
+  const { itemCount, items, isLoading, error } = useCart();
+  
+  // Debug logging for cart state
+  console.log('🏠 HomeScreen: Cart debug info:', {
+    itemCount,
+    totalItems: items.length,
+    isLoading,
+    error,
+    cartItems: items.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+  });
   
   // Context hooks
   const { fetchTrendingProducts } = useProductContext();
@@ -132,10 +140,6 @@ const HomeScreen = () => {
           />
         </ScrollView>
         
-        <FloatingCartButton 
-          onPress={handleCartPress} 
-          itemCount={itemCount} 
-        />
       </SafeAreaView>
     </View>
   );

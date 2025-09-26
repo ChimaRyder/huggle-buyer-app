@@ -15,7 +15,7 @@ interface EmptyCartProps {
 const EmptyCart: React.FC<EmptyCartProps> = ({ onBack }) => {
   return (
     <View style={styles.emptyContainer}>
-      <Ionicons name="cart-outline" size={64} color="#C7C7CC" />
+      <Ionicons name="cart-outline" size={64} color={colors.text.tertiary} />
       <Text style={styles.emptyTitle}>Your cart is empty</Text>
       <Text style={styles.emptyDescription}>
         Add some delicious items to your cart
@@ -41,18 +41,18 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDescription: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: colors.text.tertiary,
     textAlign: 'center',
     marginBottom: 32,
   },
   continueButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.primary.main,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text.inverse,
   },
 });
 

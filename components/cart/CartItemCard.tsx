@@ -9,7 +9,6 @@ interface CartItemCardProps {
   onIncrease: () => void;
   onDecrease: () => void;
   onRemove: () => void;
-  onUpdateInstructions: () => void;
   onToggleSelection?: () => void;
 }
 
@@ -18,7 +17,6 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
   onIncrease, 
   onDecrease, 
   onRemove,
-  onUpdateInstructions,
   onToggleSelection
 }) => {
   // Check if item is expired or inactive
@@ -30,10 +28,20 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
       {onToggleSelection && (
         <TouchableOpacity 
           style={styles.checkbox} 
-          onPress={onToggleSelection}
-          disabled={isUnavailable}
+          onPress={() => {
+            // For unavailable items, only allow deselection
+            if (isUnavailable && !item.selected) {
+              return; // Don't allow selection of unavailable items
+            }
+            onToggleSelection();
+          }}
+          disabled={false}
         >
-          <View style={[styles.checkboxInner, item.selected && styles.checkboxSelected]}>
+          <View style={[
+            styles.checkboxInner, 
+            item.selected && styles.checkboxSelected,
+            isUnavailable && !item.selected && styles.checkboxDisabled
+          ]}>
             {item.selected && (
               <Ionicons name="checkmark" size={16} color="white" />
             )}
@@ -73,7 +81,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
               <Ionicons 
                 name="remove" 
                 size={16} 
-                color={item.quantity > 1 && !isUnavailable ? colors.primary : "#C7C7CC"} 
+                color={item.quantity > 1 && !isUnavailable ? colors.primary.main : "#C7C7CC"}
               />
             </TouchableOpacity>
             
@@ -84,7 +92,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
               onPress={onIncrease}
               disabled={isUnavailable}
             >
-              <Ionicons name="add" size={16} color={isUnavailable ? "#C7C7CC" : colors.primary} />
+              <Ionicons name="add" size={16} color={isUnavailable ? "#C7C7CC" : colors.primary.main} />
             </TouchableOpacity>
           </View>
         </View>
@@ -155,7 +163,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.primary.main,
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -193,8 +201,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.primary.main,
+    borderColor: colors.primary.main,
+  },
+  checkboxDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#f5f5f5',
+    borderColor: '#d1d1d6',
   },
   unavailableContainer: {
     opacity: 0.7,

@@ -112,8 +112,8 @@ const FavoritesScreen = () => {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={onRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
+            colors={[colors.primary.main]}
+            tintColor={colors.primary.main}
           />
         }
       >

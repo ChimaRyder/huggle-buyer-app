@@ -7,9 +7,9 @@ import { colors } from '@/constants/theme';
 
 const FloatingCartButton: React.FC = () => {
   const router = useRouter();
-  const { itemCount } = useCart();
+  const { itemCount, isLoading, error, items } = useCart();
 
-  // Don't show the button if cart is empty
+  // Hide button when cart is empty
   if (itemCount === 0) return null;
 
   const handlePress = () => {
@@ -23,14 +23,12 @@ const FloatingCartButton: React.FC = () => {
       activeOpacity={0.8}
     >
       <View style={styles.iconContainer}>
-        <Ionicons name="basket" size={24} color="white" />
-        {itemCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {itemCount > 99 ? '99+' : itemCount.toString()}
-            </Text>
-          </View>
-        )}
+        <Ionicons name="basket" size={26} color={colors.text.inverse} />
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {itemCount > 99 ? '99+' : itemCount.toString()}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -39,12 +37,12 @@ const FloatingCartButton: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 100, // Position above the tab bar
-    right: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
+    bottom: 90, // Position above the tab bar
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primary.main,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -52,8 +50,10 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 10,
     zIndex: 1000,
+    borderWidth: 2,
+    borderColor: colors.background.primary,
   },
   iconContainer: {
     flex: 1,
@@ -63,19 +63,21 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: '#FF3B30',
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    top: -4,
+    right: -4,
+    backgroundColor: colors.danger,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.background.primary,
   },
   badgeText: {
-    color: 'white',
-    fontSize: 12,
+    color: colors.text.inverse,
+    fontSize: 10,
     fontWeight: '700',
     textAlign: 'center',
   },

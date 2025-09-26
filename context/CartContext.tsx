@@ -1,41 +1,70 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { CartItem } from '../data/food/models';
+import * as cartApi from '../utils/cart';
+import { useAuth } from '@clerk/clerk-expo';
 
 type CartAction =
+  | { type: 'SET_LOADING'; loading: boolean }
+  | { type: 'SET_ERROR'; error: string | null }
+  | { type: 'SET_CART'; items: CartItem[] }
   | { type: 'ADD_ITEM'; item: CartItem }
   | { type: 'REMOVE_ITEM'; id: string }
   | { type: 'UPDATE_QUANTITY'; id: string; quantity: number }
   | { type: 'CLEAR_CART' }
-  | { type: 'SET_SPECIAL_INSTRUCTIONS'; id: string; instructions: string }
   | { type: 'TOGGLE_ITEM_SELECTION'; id: string }
   | { type: 'SELECT_ALL_ITEMS'; selected: boolean };
 
 interface CartContextType {
   items: CartItem[];
   total: number;
-  addItem: (item: CartItem) => void;
-  removeItem: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  setSpecialInstructions: (id: string, instructions: string) => void;
-  clearCart: () => void;
+  addItem: (item: CartItem) => Promise<void>;
+  removeItem: (id: string) => Promise<void>;
+  updateQuantity: (id: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   itemCount: number;
   selectedItems: CartItem[];
   selectedTotal: number;
-  toggleItemSelection: (id: string) => void;
-  selectAllItems: (selected: boolean) => void;
+  toggleItemSelection: (id: string) => void; // Client-side only
+  selectAllItems: (selected: boolean) => void; // Client-side only
   hasExpiredItems: boolean;
   activeItems: CartItem[];
   expiredItems: CartItem[];
+  isLoading: boolean;
+  error: string | null;
+  refreshCart: () => Promise<void>;
+  forceRefresh: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 interface CartState {
   items: CartItem[];
+  isLoading: boolean;
+  error: string | null;
 }
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.loading,
+      };
+      
+    case 'SET_ERROR':
+      return {
+        ...state,
+        error: action.error,
+        isLoading: false,
+      };
+      
+    case 'SET_CART':
+      return {
+        ...state,
+        items: action.items,
+        isLoading: false,
+        error: null,
+      };
     case 'ADD_ITEM': {
       const existingItem = state.items.find(item => item.id === action.item.id);
       
@@ -68,14 +97,6 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         ).filter(item => item.quantity > 0),
       };
     
-    case 'SET_SPECIAL_INSTRUCTIONS':
-      return {
-        items: state.items.map(item =>
-          item.id === action.id
-            ? { ...item, specialInstructions: action.instructions }
-            : item
-        ),
-      };
     
     case 'CLEAR_CART':
       return {
@@ -102,7 +123,12 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, { items: [] });
+  const [state, dispatch] = useReducer(cartReducer, { 
+    items: [], 
+    isLoading: false, 
+    error: null 
+  });
+  const { getToken } = useAuth();
   
   // Separate active and expired items
   const now = new Date();
@@ -121,10 +147,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     0
   );
   
-  const itemCount = state.items.reduce(
-    (count, item) => count + item.quantity,
-    0
-  );
+  const itemCount = state.items.length;
   
   // Selected items calculations
   const selectedItems = state.items.filter(item => item.selected);
@@ -135,24 +158,165 @@ export function CartProvider({ children }: { children: ReactNode }) {
   
   const hasExpiredItems = expiredItems.length > 0;
   
-  const addItem = (item: CartItem) => {
-    dispatch({ type: 'ADD_ITEM', item });
+  // Backend API integration methods
+  const refreshCart = async () => {
+    try {
+      console.log('🔄 CartContext: Starting refreshCart');
+      dispatch({ type: 'SET_LOADING', loading: true });
+      const token = await getToken();
+      
+      console.log('🔑 CartContext: Got token for refresh', {
+        hasToken: !!token,
+        tokenLength: token?.length || 0
+      });
+      
+      console.log('📡 CartContext: Calling API getCart');
+      const response = await cartApi.getCart(token);
+      
+      console.log('📝 CartContext: getCart API response', {
+        success: response?.success,
+        hasData: !!response?.data,
+        dataKeys: response?.data ? Object.keys(response.data) : [],
+        itemsCount: response?.data?.items?.length || 0,
+        fullResponse: response
+      });
+      
+      if (response.success && response.data) {
+        console.log('📦 CartContext: Raw cart items received:', response.data.items);
+        
+        const cartItems = response.data.items.map((item: any) => {
+          console.log('📦 CartContext: Processing cart item', {
+            backendId: item.id,
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            isActive: item.isActive,
+            expiresAt: item.expiresAt,
+            isSelected: item.isSelected
+          });
+          
+          const mappedItem = {
+            id: item.id, // This should now be the correct product ID from backend
+            name: item.productName,
+            description: item.productDescription,
+            price: item.unitPrice,
+            image: item.productImage,
+            quantity: item.quantity,
+            storeId: item.storeId,
+            storeName: item.storeName,
+            category: item.category,
+            isActive: item.isActive,
+            expiresAt: item.expiresAt,
+            selected: item.isSelected
+          };
+          
+          console.log('✅ CartContext: Mapped cart item', {
+            frontendId: mappedItem.id,
+            name: mappedItem.name
+          });
+          
+          return mappedItem;
+        });
+        
+        console.log('✅ CartContext: Setting cart items', {
+          itemCount: cartItems.length,
+          itemSummary: cartItems.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+        });
+        
+        dispatch({ type: 'SET_CART', items: cartItems });
+      } else {
+        console.log('⚠️ CartContext: No cart data in response or response not successful');
+        dispatch({ type: 'SET_CART', items: [] });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to refresh cart';
+      console.error('❌ CartContext: refreshCart failed', {
+        error: errorMessage,
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
+      dispatch({ type: 'SET_ERROR', error: errorMessage });
+    }
   };
   
-  const removeItem = (id: string) => {
-    dispatch({ type: 'REMOVE_ITEM', id });
+  const addItem = async (item: CartItem) => {
+    try {
+      console.log('🛒 CartContext: Starting addItem process', {
+        itemId: item.id,
+        itemName: item.name,
+        quantity: item.quantity,
+        storeId: item.storeId,
+        storeName: item.storeName
+      });
+      
+      dispatch({ type: 'SET_LOADING', loading: true });
+      const token = await getToken();
+      
+      console.log('🔑 CartContext: Got auth token', {
+        hasToken: !!token,
+        tokenLength: token?.length || 0
+      });
+      
+      console.log('📡 CartContext: Calling API addToCart with:', {
+        productId: item.id,
+        quantity: item.quantity,
+        tokenPreview: token ? token.substring(0, 10) + '...' : 'NO_TOKEN'
+      });
+      
+      const addResult = await cartApi.addToCart(item.id, item.quantity, token);
+      
+      console.log('✅ CartContext: API addToCart success', {
+        result: addResult
+      });
+      
+      console.log('🔄 CartContext: Refreshing cart after add...');
+      await refreshCart();
+      
+      console.log('✅ CartContext: Cart refreshed successfully after add');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add item';
+      console.error('❌ CartContext: addItem failed', {
+        error: errorMessage,
+        errorStack: error instanceof Error ? error.stack : undefined,
+        itemId: item.id,
+        itemName: item.name
+      });
+      dispatch({ type: 'SET_ERROR', error: errorMessage });
+    }
   };
   
-  const updateQuantity = (id: string, quantity: number) => {
-    dispatch({ type: 'UPDATE_QUANTITY', id, quantity });
+  const removeItem = async (id: string) => {
+    try {
+      dispatch({ type: 'SET_LOADING', loading: true });
+      const token = await getToken();
+      await cartApi.removeFromCart(id, token);
+      await refreshCart();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', error: error instanceof Error ? error.message : 'Failed to remove item' });
+    }
   };
   
-  const setSpecialInstructions = (id: string, instructions: string) => {
-    dispatch({ type: 'SET_SPECIAL_INSTRUCTIONS', id, instructions });
+  const updateQuantity = async (id: string, quantity: number) => {
+    try {
+      dispatch({ type: 'SET_LOADING', loading: true });
+      const token = await getToken();
+      await cartApi.updateCartItem(id, quantity, token);
+      await refreshCart();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', error: error instanceof Error ? error.message : 'Failed to update quantity' });
+    }
   };
   
-  const clearCart = () => {
-    dispatch({ type: 'CLEAR_CART' });
+  
+  const clearCart = async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', loading: true });
+      const token = await getToken();
+      await cartApi.clearCart(token);
+      dispatch({ type: 'SET_CART', items: [] });
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', error: error instanceof Error ? error.message : 'Failed to clear cart' });
+    }
   };
   
   const toggleItemSelection = (id: string) => {
@@ -163,6 +327,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SELECT_ALL_ITEMS', selected });
   };
   
+  
+  
+  // Load cart on mount and refresh periodically  
+  useEffect(() => {
+    refreshCart();
+  }, []);
+  
+  // Helper to force refresh (for testing)
+  const forceRefresh = async () => {
+    console.log('🔄 CartContext: Force refreshing cart data...');
+    await refreshCart();
+  };
+  
   return (
     <CartContext.Provider
       value={{
@@ -171,7 +348,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addItem,
         removeItem,
         updateQuantity,
-        setSpecialInstructions,
         clearCart,
         itemCount,
         selectedItems,
@@ -181,6 +357,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         hasExpiredItems,
         activeItems,
         expiredItems,
+        isLoading: state.isLoading,
+        error: state.error,
+        refreshCart,
+        forceRefresh,
       }}
     >
       {children}

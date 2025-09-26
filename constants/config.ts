@@ -7,9 +7,13 @@ interface AppConfig {
 
 
 const getApiBaseUrl = (): string => {
-  return "https://rpbwh9rd-5132.asse.devtunnels.ms";
+  // return "https://rpbwh9rd-5132.asse.devtunnels.ms";
+  // return "http://10.89.3.46:5132";
+  // return "http://10.98.7.44:5132";
+  return "http://192.168.1.12:5132";
   // return "http://localhost:5132"
 };
+
 
 export const config: AppConfig = {
   apiBaseUrl: getApiBaseUrl(),
@@ -46,6 +50,9 @@ export const API_ENDPOINTS = {
     list: "/api/orders",
     create: "/api/orders",
     byId: (id: string) => `/api/orders/${id}`,
+    updateStatus: (id: string) => `/api/orders/${id}/status`,
+    cancel: (id: string) => `/api/orders/${id}/cancel`,
+    canCancel: (id: string) => `/api/orders/${id}/can-cancel`,
   },
   cart: {
     get: "/api/cart",

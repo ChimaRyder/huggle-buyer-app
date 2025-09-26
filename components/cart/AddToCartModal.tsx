@@ -2,6 +2,7 @@ import React from "react";
 import { Modal, View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@ui-kitten/components";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@/constants/theme";
 
 interface AddToCartModalProps {
   visible: boolean;
@@ -36,7 +37,7 @@ const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
           {/* Success icon */}
           <View style={styles.iconContainer}>
-            <Ionicons name="checkmark-circle-outline" size={48} color="#548C2F" />
+            <Ionicons name="checkmark-circle-outline" size={48} color={colors.primary.main} />
           </View>
 
           {/* Title */}
@@ -71,12 +72,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: "white",
+    backgroundColor: colors.background.primary,
     borderRadius: 16,
     padding: 24,
     width: "90%",
     maxWidth: 400,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   closeButton: {
     position: "absolute",
@@ -91,13 +97,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
+    color: colors.text.primary,
     textAlign: "center",
     marginBottom: 12,
   },
   message: {
     fontSize: 16,
-    color: "#666",
+    color: colors.text.secondary,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 24,
@@ -117,27 +123,29 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.background.secondary,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
     marginRight: 6,
+    borderWidth: 1,
+    borderColor: colors.primary.main,
   },
   continueButtonText: {
-    color: "#333",
+    color: colors.primary.main,
     fontWeight: "600",
     fontSize: 16,
   },
   viewCartButton: {
     flex: 1,
-    backgroundColor: "#548C2F",
+    backgroundColor: colors.primary.main,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
     marginLeft: 6,
   },
   viewCartButtonText: {
-    color: "#fff",
+    color: colors.text.inverse,
     fontWeight: "600",
     fontSize: 16,
   },

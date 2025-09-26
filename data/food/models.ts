@@ -5,7 +5,6 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
-  specialInstructions?: string;
   storeId: string;
   storeName: string;
   category?: string;
@@ -46,7 +45,6 @@ export interface OrderItem {
   name: string;
   price: number;
   quantity: number;
-  specialInstructions?: string;
   image: string;
 }
 

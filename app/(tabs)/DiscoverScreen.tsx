@@ -177,8 +177,8 @@ const DiscoverScreen = () => {
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={handleRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
+              colors={[colors.primary.main]}
+              tintColor={colors.primary.main}
             />
           }
         >
@@ -204,8 +204,8 @@ const DiscoverScreen = () => {
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={handleRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
+            colors={[colors.primary.main]}
+            tintColor={colors.primary.main}
           />
         }
         key={GRID_COLUMNS} // Force re-render when columns change

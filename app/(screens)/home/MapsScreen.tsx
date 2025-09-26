@@ -12,7 +12,7 @@ import {
   Animated,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, MapPressEvent } from "react-native-maps";
+import MapView, { Marker, MapPressEvent, Circle } from "react-native-maps";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
@@ -26,7 +26,7 @@ const MapsScreen = ({ route }: any) => {
   console.log('🚀 MapsScreen: Component initializing...');
   const [marker, setMarker] = useState<{latitude: number; longitude: number} | null>(null);
   const [locationLoaded, setLocationLoaded] = useState(false);
-  const [initialRegion, setInitialRegion] = useState<{latitude: number; longitude: number} | null>(null);
+  const [initialRegion, setInitialRegion] = useState<{latitude: number; longitude: number; latitudeDelta?: number; longitudeDelta?: number} | null>(null);
   const [locationText, setLocationText] = useState("Fetching location...");
   
   console.log('🔍 MapsScreen: Initial state - locationLoaded:', false, 'locationText:', "Fetching location...");
@@ -38,6 +38,7 @@ const MapsScreen = ({ route }: any) => {
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [canRequestPermission, setCanRequestPermission] = useState(true);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [currentDeviceLocation, setCurrentDeviceLocation] = useState<{latitude: number; longitude: number} | null>(null);
   const drawerAnimation = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView>(null);
   const router = useRouter();
@@ -86,9 +87,9 @@ const MapsScreen = ({ route }: any) => {
     }
   };
 
-  const getCurrentLocation = useCallback(async () => {
+  const getCurrentLocation = useCallback(async (highAccuracy: boolean = false) => {
     try {
-      console.log('📍 MapsScreen: getCurrentLocation - Starting location fetch...');
+      console.log('📍 MapsScreen: getCurrentLocation - Starting location fetch...', highAccuracy ? 'high accuracy' : 'balanced accuracy');
       setIsLoadingLocation(true);
       
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -98,9 +99,9 @@ const MapsScreen = ({ route }: any) => {
         throw new Error('Location permission not granted');
       }
 
-      console.log('📍 MapsScreen: getCurrentLocation - Getting position with high accuracy...');
+      console.log('📍 MapsScreen: getCurrentLocation - Getting position...');
       const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: highAccuracy ? Location.Accuracy.High : Location.Accuracy.Balanced,
       });
 
       console.log('📍 MapsScreen: getCurrentLocation - Raw position:', position);
@@ -112,6 +113,7 @@ const MapsScreen = ({ route }: any) => {
 
       console.log('📍 MapsScreen: getCurrentLocation - Processed location:', location);
       setHasLocationPermission(true);
+      setCurrentDeviceLocation(location);
       return location;
     } catch (error) {
       console.error('❌ MapsScreen: getCurrentLocation - Error details:', error);
@@ -155,10 +157,38 @@ const MapsScreen = ({ route }: any) => {
     }
   };
 
-  // Initialize permissions on mount
+  // Initialize permissions and location on mount
   useEffect(() => {
     console.log('🔄 MapsScreen: useEffect - Checking location permission...');
     checkLocationPermission();
+    
+    // If we don't have a route location, try to initialize location immediately
+    if (!route?.params?.location) {
+      const initializeImmediately = async () => {
+        try {
+          const { status } = await Location.getForegroundPermissionsAsync();
+          if (status === 'granted') {
+            console.log('📍 MapsScreen: Permission already granted, getting location immediately');
+            const location = await getCurrentLocation(false);
+            if (location && !locationLoaded) {
+              setMarker(location);
+              setInitialRegion({
+                ...location,
+                latitudeDelta: 0.005,
+                longitudeDelta: 0.005
+              });
+              await updateLocationText(location);
+              setLocationLoaded(true);
+              console.log('✅ MapsScreen: Immediate location load successful');
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ MapsScreen: Immediate location load failed:', error);
+          // Fall back to normal initialization process
+        }
+      };
+      initializeImmediately();
+    }
   }, []);
 
   // Load stored location from context
@@ -206,54 +236,48 @@ const MapsScreen = ({ route }: any) => {
     }
   }, [route?.params?.location, updateLocationText]);
 
-  // Main location loading effect
+  // Main location loading effect - simplified and more reliable
   React.useEffect(() => {
     let isMounted = true;
     console.log('🔄 MapsScreen: Main location loading useEffect triggered');
-    console.log('🔍 MapsScreen: hasLocationPermission:', hasLocationPermission, 'isLoadingLocation:', isLoadingLocation, 'locationLoaded:', locationLoaded, 'isInitializing:', isInitializing);
+    console.log('🔍 MapsScreen: hasLocationPermission:', hasLocationPermission, 'locationLoaded:', locationLoaded, 'isInitializing:', isInitializing);
 
     const initializeLocation = async () => {
-      console.log('🔄 MapsScreen: initializeLocation called');
-      console.log('🔍 MapsScreen: Checking conditions - isInitializing:', isInitializing, 'route.params.location:', route?.params?.location, 'locationLoaded:', locationLoaded);
-      
-      // Skip if already initializing, we have route params location, or location is already loaded
-      if (isInitializing || route?.params?.location || locationLoaded) {
-        console.log('⏸️ MapsScreen: Skipping initializeLocation - condition met');
+      // Skip if we already have a location loaded or are initializing
+      if (locationLoaded || isInitializing || route?.params?.location) {
+        console.log('⏸️ MapsScreen: Skipping initializeLocation - already have location or initializing');
         return;
       }
 
-      console.log('🔄 MapsScreen: Starting location initialization...');
+      console.log('🔄 MapsScreen: Starting background location initialization...');
       setIsInitializing(true);
 
       try {
-        // Try to get fresh device location if permission is granted
+        // Only initialize if we have permission
         if (hasLocationPermission && !isLoadingLocation) {
-          console.log('📍 MapsScreen: Trying to get device location...');
-          try {
-            const deviceLocation = await getCurrentLocation();
-            console.log('📍 MapsScreen: Device location result:', deviceLocation);
+          console.log('📍 MapsScreen: Getting device location in background...');
+          const deviceLocation = await getCurrentLocation(false);
             
-            if (deviceLocation && isMounted) {
-              console.log('✅ MapsScreen: Setting device location as marker');
-              setMarker(deviceLocation);
-              setInitialRegion(deviceLocation);
-              await updateLocationText(deviceLocation);
-              setLocationLoaded(true);
-              console.log('✅ MapsScreen: Set locationLoaded to true from device location');
-              return;
-            }
-          } catch (error) {
-            console.log('❌ MapsScreen: Failed to get current location:', error);
+          if (deviceLocation && isMounted && !locationLoaded) {
+            console.log('✅ MapsScreen: Setting device location as marker (background)');
+            setMarker(deviceLocation);
+            setInitialRegion({
+              ...deviceLocation,
+              latitudeDelta: 0.005,
+              longitudeDelta: 0.005
+            });
+            await updateLocationText(deviceLocation);
+            setLocationLoaded(true);
+            console.log('✅ MapsScreen: Background location initialization successful');
           }
-        } else {
-          console.log('⏸️ MapsScreen: Skipping device location - hasLocationPermission:', hasLocationPermission, 'isLoadingLocation:', isLoadingLocation);
+        } else if (!hasLocationPermission) {
+          console.log('⚠️ MapsScreen: No location permission for background initialization');
+          setLocationText("Location permission required");
         }
-
-        // No fallback - require location permission and device location
-        if (!locationLoaded && isMounted) {
-          console.log('⚠️ MapsScreen: Could not get location - need permission');
-          setLocationText("Location permission required to continue");
-          // Don't set locationLoaded to true - keep showing loading until we get location
+      } catch (error) {
+        console.log('❌ MapsScreen: Background location initialization failed:', error);
+        if (isMounted && !locationLoaded) {
+          setLocationText("Unable to get location");
         }
       } finally {
         if (isMounted) {
@@ -262,15 +286,20 @@ const MapsScreen = ({ route }: any) => {
       }
     };
 
-    // Only run initialization if we don't have route params and haven't loaded yet
-    if (!route?.params?.location && !locationLoaded && !isInitializing) {
-      initializeLocation();
+    // Only run if we need to initialize
+    if (hasLocationPermission && !locationLoaded && !isInitializing && !route?.params?.location) {
+      // Small delay to prevent race conditions with immediate initialization
+      const timer = setTimeout(initializeLocation, 100);
+      return () => {
+        clearTimeout(timer);
+        isMounted = false;
+      };
     }
 
     return () => {
       isMounted = false;
     };
-  }, [route?.params?.location, hasLocationPermission, getCurrentLocation, updateLocationText]);
+  }, [route?.params?.location, hasLocationPermission, getCurrentLocation, updateLocationText, locationLoaded, isInitializing, isLoadingLocation]);
 
   const handleMapPress = (e: MapPressEvent) => {
     const newLocation = e.nativeEvent.coordinate;
@@ -377,6 +406,33 @@ const MapsScreen = ({ route }: any) => {
     }
   };
 
+  const handleResetToCurrentLocation = async () => {
+    try {
+      setIsLoadingLocation(true);
+      // Use balanced accuracy for faster response
+      const freshLocation = await getCurrentLocation(false); 
+      if (freshLocation && mapRef.current) {
+        // Animate to current location with closer zoom
+        mapRef.current.animateToRegion({
+          latitude: freshLocation.latitude,
+          longitude: freshLocation.longitude,
+          latitudeDelta: 0.005, // Closer zoom - was 0.01
+          longitudeDelta: 0.005, // Closer zoom - was 0.01
+        }, 1000);
+        
+        // Update the selected location marker to current location
+        setMarker(freshLocation);
+        await updateLocationText(freshLocation);
+        setIsNewLocation(false);
+      }
+    } catch (error) {
+      console.error('Error resetting to current location:', error);
+      Alert.alert('Error', 'Could not get your current location');
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
   const handleConfirm = async () => {
     try {
       // Confirm location only updates AsyncStorage
@@ -392,25 +448,68 @@ const MapsScreen = ({ route }: any) => {
   if (!locationLoaded || isLoadingLocation || !marker || !initialRegion) {
     return (
       <SafeAreaView style={styles.loadingContainer} edges={['top', 'bottom', 'left', 'right']}>
-        <Text style={styles.loadingText}>
-          {isLoadingLocation ? 'Getting your current location...' : locationText}
-        </Text>
-        {!hasLocationPermission && canRequestPermission && (
-          <TouchableOpacity 
-            style={styles.permissionButton} 
-            onPress={handleRequestLocationPermission}
-          >
-            <Ionicons 
-              name="location-outline" 
-              size={20} 
-              color={colors.primary} 
-              style={styles.permissionIcon}
-            />
-            <Text style={styles.permissionButtonText}>
-              Enable Location Services
-            </Text>
-          </TouchableOpacity>
-        )}
+        {/* Header with close button */}
+        <TouchableOpacity style={styles.loadingCloseButton} onPress={() => router.back()}>
+          <Ionicons name="close" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+        
+        {/* Main loading content */}
+        <View style={styles.loadingContent}>
+          {/* Map skeleton */}
+          <View style={styles.mapSkeleton}>
+            <View style={styles.skeletonShimmer} />
+          </View>
+          
+          {/* Loading text and icon */}
+          <View style={styles.loadingTextContainer}>
+            {isLoadingLocation ? (
+              <>
+                <View style={styles.loadingIconContainer}>
+                  <Ionicons 
+                    name="location" 
+                    size={28} 
+                    color={colors.primary} 
+                  />
+                  <View style={styles.loadingSpinner} />
+                </View>
+                <Text style={styles.loadingTitle}>Finding your location...</Text>
+                <Text style={styles.loadingSubtitle}>This may take a few seconds</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons 
+                  name="map-outline" 
+                  size={28} 
+                  color={colors.text.secondary} 
+                  style={styles.loadingIcon}
+                />
+                <Text style={styles.loadingTitle}>Setting up map...</Text>
+                <Text style={styles.loadingSubtitle}>{locationText}</Text>
+              </>
+            )}
+          </View>
+          
+          {/* Permission button */}
+          {!hasLocationPermission && canRequestPermission && (
+            <TouchableOpacity 
+              style={styles.permissionButtonLarge} 
+              onPress={handleRequestLocationPermission}
+            >
+              <Ionicons 
+                name="location-outline" 
+                size={24} 
+                color={colors.primary} 
+                style={styles.permissionIcon}
+              />
+              <Text style={styles.permissionButtonTextLarge}>
+                Enable Location Services
+              </Text>
+              <Text style={styles.permissionButtonSubtext}>
+                Allow location access to find nearby stores
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </SafeAreaView>
     );
   }
@@ -423,11 +522,33 @@ const MapsScreen = ({ route }: any) => {
         initialRegion={{
           latitude: initialRegion.latitude,
           longitude: initialRegion.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
+          latitudeDelta: initialRegion.latitudeDelta || 0.005,
+          longitudeDelta: initialRegion.longitudeDelta || 0.005,
         }}
         onPress={handleMapPress}
       >
+        {/* Current Device Location Indicator */}
+        {currentDeviceLocation && (
+          <>
+            <Circle
+              center={currentDeviceLocation}
+              radius={50}
+              fillColor={colors.info + '20'}
+              strokeColor={colors.info}
+              strokeWidth={2}
+            />
+            <Marker
+              coordinate={currentDeviceLocation}
+              anchor={{x: 0.5, y: 0.5}}
+            >
+              <View style={styles.currentLocationMarker}>
+                <View style={styles.currentLocationDot} />
+              </View>
+            </Marker>
+          </>
+        )}
+        
+        {/* Selected/Draggable Location Marker */}
         <Marker
           coordinate={marker}
           pinColor={colors.success}
@@ -443,6 +564,13 @@ const MapsScreen = ({ route }: any) => {
       <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
         <Ionicons name="close" size={24} color={colors.text.primary} />
       </TouchableOpacity>
+
+      {/* Recenter to Current Location Button */}
+      {hasLocationPermission && (
+        <TouchableOpacity style={styles.recenterButton} onPress={handleResetToCurrentLocation}>
+          <Ionicons name="locate" size={22} color={colors.text.primary} />
+        </TouchableOpacity>
+      )}
       
       {/* Expandable Bottom Drawer */}
       <Animated.View style={[
@@ -652,6 +780,41 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+  },
+  recenterButton: {
+    position: 'absolute',
+    top: 120,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.background.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  currentLocationMarker: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.background.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  currentLocationDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.info,
   },
   bottomCard: {
     position: "absolute",
@@ -901,13 +1064,100 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: colors.background.primary,
   },
-  loadingText: {
-    fontSize: 16,
+  loadingCloseButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.background.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 10,
+  },
+  loadingContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  mapSkeleton: {
+    width: '100%',
+    height: 200,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: 16,
+    marginBottom: 48,
+    overflow: 'hidden',
+  },
+  skeletonShimmer: {
+    flex: 1,
+    backgroundColor: colors.background.secondary,
+    opacity: 0.6,
+  },
+  loadingTextContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  loadingIconContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  loadingSpinner: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.primary + '30',
+    borderTopColor: colors.primary,
+  },
+  loadingIcon: {
+    marginBottom: 16,
+  },
+  loadingTitle: {
+    fontSize: 20,
+    fontWeight: '600',
     color: colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  loadingSubtitle: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  permissionButtonLarge: {
+    backgroundColor: colors.primary + '10',
+    borderColor: colors.primary + '30',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    width: '100%',
+  },
+  permissionButtonTextLarge: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 16,
+    marginTop: 8,
+  },
+  permissionButtonSubtext: {
+    color: colors.text.secondary,
+    fontSize: 14,
+    marginTop: 4,
+    textAlign: 'center',
   },
 });
 

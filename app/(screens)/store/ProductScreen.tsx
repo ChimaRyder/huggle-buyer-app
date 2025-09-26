@@ -17,9 +17,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
 import { ReviewCard } from "@/components/review";
 import { useProductContext } from "@/context/ProductContext";
-import { useCart } from "@/context/CartContext";
-import { CartItem } from "@/data/food/models";
-import { genericProductToCartItem } from "@/utils/cartHelpers";
+import { useCart } from '@/context/CartContext';
+import { CartItem } from '@/data/food/models';
+import { genericProductToCartItem } from '@/utils/cartHelpers';
+import AddToCartModal from '@/components/cart/AddToCartModal';
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -102,6 +103,7 @@ export default function ProductScreen() {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [drawerAction, setDrawerAction] = useState<'cart' | 'order' | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
@@ -228,20 +230,78 @@ export default function ProductScreen() {
     openDrawer('order');
   };
 
-  const confirmAction = () => {
-    if (drawerAction === 'cart') {
-      // Create cart item from current product using helper
-      const cartItem = genericProductToCartItem(currentProduct, quantity);
-      addItem(cartItem);
-      alert(`Added ${quantity} ${currentProduct.name} to cart!`);
-    } else if (drawerAction === 'order') {
-      // Order now logic - add to cart then navigate to checkout
-      const cartItem = genericProductToCartItem(currentProduct, quantity);
-      addItem(cartItem);
-      // Navigate directly to cart for checkout
-      router.push('/(screens)/cart/CartScreen');
+  const confirmAction = async () => {
+    try {
+      console.log('📦 ProductScreen: Starting confirmAction', {
+        drawerAction,
+        productId: currentProduct.id,
+        productName: currentProduct.name,
+        quantity,
+        storeId: currentProduct.storeId,
+        storeName: currentProduct.storeName
+      });
+      
+      if (drawerAction === 'cart') {
+        // Create cart item from current product using helper
+        const cartItem = genericProductToCartItem(currentProduct, quantity);
+        
+        console.log('🛒 ProductScreen: Created cart item for add to cart', {
+          cartItem,
+          originalProduct: {
+            id: currentProduct.id,
+            name: currentProduct.name,
+            price: currentProduct.price,
+            storeId: currentProduct.storeId
+          }
+        });
+        
+        console.log('📡 ProductScreen: Calling addItem...');
+        await addItem(cartItem);
+        
+        console.log('✅ ProductScreen: Successfully added to cart');
+        setShowAddToCartModal(true);
+      } else if (drawerAction === 'order') {
+        // Order now logic - add to cart then navigate to checkout
+        const cartItem = genericProductToCartItem(currentProduct, quantity);
+        
+        console.log('🚚 ProductScreen: Created cart item for order now', {
+          cartItem
+        });
+        
+        console.log('📡 ProductScreen: Calling addItem for order now...');
+        await addItem(cartItem);
+        
+        console.log('✅ ProductScreen: Successfully added to cart, navigating to order review');
+        // Close drawer first, then navigate
+        closeDrawer();
+        // Navigate directly to OrderReviewScreen for immediate checkout
+        router.push({
+          pathname: '/(screens)/cart/OrderReviewScreen',
+          params: { 
+            storeId: currentProduct.storeId,
+            productId: currentProduct.id,
+            productName: currentProduct.name,
+            productPrice: currentProduct.price.toString(),
+            productImage: currentProduct.image,
+            quantity: quantity.toString()
+          },
+        });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add item to cart';
+      console.error('❌ ProductScreen: confirmAction failed', {
+        error: errorMessage,
+        errorStack: error instanceof Error ? error.stack : undefined,
+        drawerAction,
+        productId: currentProduct?.id,
+        quantity
+      });
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      if (drawerAction === 'cart') {
+        closeDrawer();
+      }
     }
-    closeDrawer();
   };
 
   const navigateToStore = () => {
@@ -589,6 +649,21 @@ export default function ProductScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Add To Cart Modal */}
+      <AddToCartModal
+        visible={showAddToCartModal}
+        productName={currentProduct.name}
+        quantity={quantity}
+        onContinue={() => {
+          setShowAddToCartModal(false);
+        }}
+        onViewCart={() => {
+          setShowAddToCartModal(false);
+          router.push('/(screens)/cart/CartScreen');
+        }}
+        onClose={() => setShowAddToCartModal(false)}
+      />
     </View>
   );
 }
