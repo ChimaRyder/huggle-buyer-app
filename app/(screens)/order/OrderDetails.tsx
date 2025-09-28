@@ -1,6 +1,6 @@
 /**
  * Order Details Screen
- * Enhanced order details view with mock data integration
+ * Real order details view integrated with OrderContext and backend API
  */
 
 import React, { useState, useEffect } from "react";
@@ -17,8 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-// TODO: Replace with API service imports
-import type { BackendOrder, BackendProduct, BackendStore } from "@/types/BackendModels";
+import { useOrderContext, type Order } from "@/context/OrderContext";
 import { OrderStatus } from "@/types/BackendModels";
 import { OrderMap } from "@/components/order";
 import { colors, spacing, typography, shadows } from "@/constants/theme";
@@ -34,16 +33,18 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
   const orderId = params.orderId as string;
   const isReadOnly = params.isReadOnly === 'true';
 
-  const [order, setOrder] = useState<BackendOrder | null>(null);
-  const [products, setProducts] = useState<BackendProduct[]>([]);
-  const [store, setStore] = useState<BackendStore | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [cancelling, setCancelling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { 
+    currentOrder, 
+    isLoading, 
+    isCancelling, 
+    error, 
+    fetchOrderById, 
+    cancelOrder,
+    canCancelOrder: contextCanCancelOrder,
+    clearError,
+    clearCurrentOrder
+  } = useOrderContext();
 
-  const canCancelOrder = (orderStatus: OrderStatus): boolean => {
-    return orderStatus === 0 || orderStatus === 1; // Pending or Confirmed
-  };
 
   const getStatusInfo = (status: OrderStatus) => {
     const statusMap = {
@@ -67,40 +68,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
     });
   };
 
-  const loadOrderDetails = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Fetch order details
-      // TODO: Replace with API call
-      const orderData = null; // await ApiService.getOrderById(orderId);
-      if (!orderData) {
-        throw new Error('Order not found');
-      }
-      setOrder(orderData);
-
-      // Fetch all products
-      const productsData = await Promise.all(
-        [] // TODO: Fetch products from API
-      );
-      setProducts(productsData.filter(Boolean) as BackendProduct[]);
-
-      // Fetch store details
-      // TODO: Replace with API call
-      const storeData = null; // await ApiService.getStoreById(orderData.storeId);
-      setStore(storeData);
-
-    } catch (error: any) {
-      console.error("Error loading order details:", error);
-      setError(error.message || "Failed to load order details");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCancelOrder = async () => {
-    if (!order || !canCancelOrder(order.status)) return;
+    if (!currentOrder) return;
 
     Alert.alert(
       "Cancel Order",
@@ -115,22 +84,14 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              setCancelling(true);
-              // TODO: Replace with API call
-              // await ApiService.updateOrder({
-              //   id: order.id,
-              //   status: 4 // Cancelled
-              // });
-              setOrder({ ...order, status: 4 });
+              await cancelOrder(currentOrder.id, { reason: 'Cancelled by buyer' });
               Alert.alert(
                 "Order Cancelled",
                 "Your order has been successfully cancelled.",
                 [{ text: "OK", onPress: () => router.back() }]
               );
             } catch (error: any) {
-              Alert.alert("Error", "Failed to cancel order. Please try again.");
-            } finally {
-              setCancelling(false);
+              Alert.alert("Error", error.message || "Failed to cancel order. Please try again.");
             }
           }
         }
@@ -138,20 +99,23 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
     );
   };
 
-  const handleWriteReview = (productId: string) => {
-    router.push({
-      pathname: "/(screens)/order/ReviewProductScreen",
-      params: { productId, storeId: order?.storeId }
-    });
-  };
-
   useEffect(() => {
     if (orderId) {
-      loadOrderDetails();
+      fetchOrderById(orderId);
     }
+    
+    return () => {
+      clearError();
+    };
   }, [orderId]);
 
-  if (loading) {
+  useEffect(() => {
+    return () => {
+      clearCurrentOrder();
+    };
+  }, []);
+
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
@@ -169,7 +133,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
     );
   }
 
-  if (error || !order) {
+  if (error || !currentOrder) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
@@ -190,7 +154,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
     );
   }
 
-  const statusInfo = getStatusInfo(order.status);
+  const statusInfo = getStatusInfo(currentOrder.status);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -205,114 +169,116 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Order Status Card */}
         <View style={[styles.statusCard, { backgroundColor: statusInfo.bgColor }]}>
-          <View style={styles.statusHeader}>
-            <Text style={[styles.statusText, { color: statusInfo.color }]}>
-              {statusInfo.label}
-            </Text>
-            <Text style={styles.orderIdText}>#{order.id.slice(-8).toUpperCase()}</Text>
+          <View style={styles.statusRow}>
+            <View style={styles.statusBadgeContainer}>
+              <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+                <Text style={styles.statusBadgeText}>{statusInfo.label}</Text>
+              </View>
+              <Text style={styles.orderIdText}>Order #{currentOrder.id.slice(-8).toUpperCase()}</Text>
+            </View>
           </View>
-          <Text style={styles.orderDateText}>
-            <Text style={styles.orderDateLabel}>Placed: </Text>
-            {formatDate(order.createdAt)}
-          </Text>
-          {order.updatedAt !== order.createdAt && (
-            <Text style={styles.orderUpdateText}>
-              <Text style={styles.orderUpdateLabel}>Updated: </Text>
-              {formatDate(order.updatedAt)}
-            </Text>
-          )}
+          
+          <View style={styles.orderTimeline}>
+            <View style={styles.timelineItem}>
+              <Ionicons name="time-outline" size={16} color={colors.text.secondary} />
+              <Text style={styles.timelineText}>
+                Placed {formatDate(currentOrder.createdAt)}
+              </Text>
+            </View>
+            {currentOrder.updatedAt && currentOrder.updatedAt !== currentOrder.createdAt && (
+              <View style={styles.timelineItem}>
+                <Ionicons name="refresh-outline" size={16} color={colors.text.secondary} />
+                <Text style={styles.timelineText}>
+                  Updated {formatDate(currentOrder.updatedAt)}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* Products Section */}
+        {/* Store and Items Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Items Ordered</Text>
-          {products.map((product, index) => (
-            <View key={product.id} style={styles.productContainer}>
-              <View style={styles.productCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Order Details</Text>
+            <Text style={styles.itemCount}>{currentOrder.items.length} item{currentOrder.items.length !== 1 ? 's' : ''}</Text>
+          </View>
+          
+          {/* Store Header */}
+          <TouchableOpacity 
+            style={styles.storeHeaderCard}
+            onPress={() => {
+              router.push({
+                pathname: "/(screens)/store/StoreHomepageScreen",
+                params: { id: currentOrder.storeId }
+              });
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.storeIconContainer}>
+              <Ionicons name="storefront" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.storeHeaderInfo}>
+              <Text style={styles.storeHeaderName}>{currentOrder.storeName || 'Unknown Store'}</Text>
+              <View style={styles.visitStoreButton}>
+                <Text style={styles.visitStoreText}>Visit Store</Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Items List */}
+          <View style={styles.itemsList}>
+            {currentOrder.items.map((item, index) => (
+              <View key={item.id} style={[styles.itemCard, index === currentOrder.items.length - 1 && styles.lastItemCard]}>
                 <Image
-                  source={{ uri: product.coverImage }}
-                  style={styles.productImage}
+                  source={item.productImage ? { uri: item.productImage } : require("@/assets/images/sample-store.jpg")}
+                  style={styles.itemImage}
                   resizeMode="cover"
                 />
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName} numberOfLines={2}>
-                    {product.name}
+                <View style={styles.itemDetails}>
+                  <Text style={styles.itemName} numberOfLines={2}>
+                    {item.productName}
                   </Text>
-                  <Text style={styles.productDescription} numberOfLines={2}>
-                    {product.description}
-                  </Text>
-                  <Text style={styles.productQuantity}>
-                    x{order.quantity[index]}
-                  </Text>
-                  <View style={styles.productPriceContainer}>
-                    <Text style={styles.productPrice}>
-                      ${(order.unitPrices?.[index] || product.discountedPrice).toFixed(2)}
-                    </Text>
+                  <View style={styles.itemMetaRow}>
+                    <View style={styles.quantityBadge}>
+                      <Text style={styles.quantityText}>×{item.quantity}</Text>
+                    </View>
+                    <Text style={styles.itemPrice}>₱{item.unitPrice.toFixed(2)}</Text>
                   </View>
+                  <Text style={styles.itemTotal}>
+                    Total: ₱{(item.unitPrice * item.quantity).toFixed(2)}
+                  </Text>
                 </View>
               </View>
-              
-              {/* Write Review Button for completed orders */}
-              {order.status === 3 && (
-                <TouchableOpacity
-                  style={styles.reviewButton}
-                  onPress={() => handleWriteReview(product.id)}
-                >
-                  <Ionicons name="star-outline" size={16} color={colors.text.inverse} />
-                  <Text style={styles.reviewButtonText}>Write Review</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
 
-        {/* Store Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Store Information</Text>
-          <View style={styles.storeCard}>
-            <Image
-              source={{ uri: store?.storeImageUrl }}
-              style={styles.storeImage}
-              resizeMode="cover"
-            />
-            <View style={styles.storeInfo}>
-              <Text style={styles.storeName}>{store?.name}</Text>
-              <Text style={styles.storeAddress}>
-                {store?.address}, {store?.city}, {store?.province}
+        {/* Order Summary */}
+        <View style={styles.summarySection}>
+          <Text style={styles.sectionTitle}>Order Summary</Text>
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Items ({currentOrder.items.length})</Text>
+              <Text style={styles.summaryValue}>
+                ₱{currentOrder.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0).toFixed(2)}
               </Text>
-              <TouchableOpacity
-                style={styles.storeButton}
-                onPress={() => {
-                  // Map grocery store IDs to restaurant IDs for StoreHomepageScreen
-                  const storeIdMap = {
-                    'grocery-1': '1', // Farm Fresh Market
-                    'grocery-5': '2', // Organic Harvest Co.
-                    'grocery-6': '3', // Tropical Paradise
-                  };
-                  const restaurantId = storeIdMap[store?.id as keyof typeof storeIdMap] || store?.id;
-                  
-                  router.push({
-                    pathname: "/(screens)/store/StoreHomepageScreen",
-                    params: { id: restaurantId }
-                  });
-                }}
-              >
-                <Text style={styles.storeButtonText}>Visit Store</Text>
-              </TouchableOpacity>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryTotalLabel}>Total Amount</Text>
+              <Text style={styles.summaryTotalValue}>₱{currentOrder.totalAmount.toFixed(2)}</Text>
             </View>
           </View>
         </View>
 
-        {/* Map Section */}
-        {store?.latitude && store?.longitude && (
+        {/* Notes Section */}
+        {currentOrder.notes && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pickup Location</Text>
-            <View style={styles.mapContainer}>
-              <OrderMap
-                latitude={store.latitude}
-                longitude={store.longitude}
-                label={store.name}
-              />
+            <Text style={styles.sectionTitle}>Order Notes</Text>
+            <View style={styles.notesCard}>
+              <Ionicons name="document-text-outline" size={20} color={colors.text.secondary} />
+              <Text style={styles.notesText}>{currentOrder.notes}</Text>
             </View>
           </View>
         )}
@@ -322,24 +288,20 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalAmount}>${order.totalPrice.toFixed(2)}</Text>
-        </View>
-        
-        {!isReadOnly && canCancelOrder(order.status) && (
+      {(currentOrder.status !== OrderStatus.Completed && currentOrder.status !== OrderStatus.Cancelled) && (
+        <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.cancelButton, cancelling && styles.cancelButtonDisabled]}
+            style={[styles.fullCancelButton, isCancelling && styles.cancelButtonDisabled]}
             onPress={handleCancelOrder}
-            disabled={cancelling}
+            disabled={isCancelling}
           >
-            <Text style={styles.cancelButtonText}>
-              {cancelling ? "Cancelling..." : "Cancel Order"}
+            <Ionicons name="close-circle-outline" size={20} color={colors.text.inverse} />
+            <Text style={styles.fullCancelButtonText}>
+              {isCancelling ? "Cancelling Order..." : "Cancel Order"}
             </Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -367,189 +329,266 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   statusCard: {
-    borderRadius: 12,
+    borderRadius: 16,
     padding: spacing.lg,
     marginTop: spacing.lg,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.background.primary,
   },
-  statusHeader: {
+  statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  statusBadgeContainer: {
+    flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
     marginBottom: spacing.xs,
   },
-  statusText: {
-    ...typography.h3,
-    fontWeight: '600',
+  statusBadgeText: {
+    color: colors.text.inverse,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.bold,
   },
   orderIdText: {
-    ...typography.body2,
-    color: colors.text.tertiary,
-    fontFamily: 'monospace',
-  },
-  orderDateText: {
-    ...typography.body2,
-    color: colors.text.secondary,
-  },
-  orderDateLabel: {
+    fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
   },
-  orderUpdateText: {
-    ...typography.caption,
+  orderTimeline: {
+    gap: spacing.xs,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  timelineText: {
+    fontSize: typography.fontSizes.sm,
     color: colors.text.secondary,
-    marginTop: spacing.xs,
-  },
-  orderUpdateLabel: {
-    fontWeight: typography.fontWeights.bold,
   },
   section: {
     marginBottom: spacing.xl,
   },
   sectionTitle: {
-    ...typography.h4,
-    color: colors.text.tertiary,
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
     marginBottom: spacing.md,
   },
-  productContainer: {
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.md,
   },
-  productCard: {
+  itemCount: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.text.secondary,
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 12,
+  },
+  storeHeaderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  storeHeaderInfo: {
+    flex: 1,
+    marginLeft: spacing.sm,
+  },
+  storeHeaderName: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  visitStoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  visitStoreText: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.primary,
+    fontWeight: typography.fontWeights.medium,
+    marginRight: spacing.xs,
+  },
+  itemsList: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  itemCard: {
+    flexDirection: 'row',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
+  },
+  lastItemCard: {
+    borderBottomWidth: 0,
+  },
+  itemImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    backgroundColor: colors.background.secondary,
+  },
+  itemDetails: {
+    flex: 1,
+    marginLeft: spacing.md,
+    justifyContent: 'space-between',
+  },
+  itemName: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.medium,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  itemMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  quantityBadge: {
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  quantityText: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.medium,
+    color: colors.text.primary,
+  },
+  itemPrice: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.primary,
+  },
+  itemTotal: {
+    fontSize: typography.fontSizes.sm,
+    color: colors.text.secondary,
+  },
+  summarySection: {
+    marginBottom: spacing.xl,
+  },
+  summaryCard: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    padding: spacing.lg,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  summaryLabel: {
+    fontSize: typography.fontSizes.md,
+    color: colors.text.secondary,
+  },
+  summaryValue: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.medium,
+    color: colors.text.primary,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: colors.border.primary,
+    marginVertical: spacing.sm,
+  },
+  summaryTotalLabel: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+  },
+  summaryTotalValue: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.primary,
+  },
+  notesCard: {
     flexDirection: 'row',
     backgroundColor: colors.background.primary,
     borderRadius: 12,
     padding: spacing.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  productImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: colors.background.secondary,
-  },
-  productInfo: {
+  notesText: {
     flex: 1,
-    marginLeft: spacing.md,
-    justifyContent: 'space-between',
-    position: 'relative',
-  },
-  productName: {
-    ...typography.body1,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  productDescription: {
-    fontSize: typography.fontSizes.sm,
+    marginLeft: spacing.sm,
+    fontSize: typography.fontSizes.md,
     color: colors.text.secondary,
-    marginTop: spacing.xs,
+    lineHeight: 20,
   },
-  productQuantity: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    marginTop: spacing.xs,
-  },
-  productPriceContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-  },
-  productPrice: {
-    ...typography.body2,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  reviewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  storeIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.background.secondary,
     justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 8,
-    marginTop: spacing.sm,
-  },
-  reviewButtonText: {
-    ...typography.body2,
-    color: colors.text.inverse,
-    fontWeight: '600',
-    marginLeft: spacing.xs,
-  },
-  storeCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.background.primary,
-    borderRadius: 12,
-    padding: spacing.lg,
-  },
-  storeImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.background.secondary,
-  },
-  storeInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  storeName: {
-    ...typography.h4,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
-  },
-  storeAddress: {
-    ...typography.body2,
-    color: colors.text.secondary,
-    marginBottom: spacing.sm,
-  },
-  storeButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  storeButtonText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  mapContainer: {
-    height: 200,
-    borderRadius: 12,
-    overflow: 'hidden',
+    alignItems: 'center',
   },
   footer: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
     backgroundColor: colors.background.primary,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.primary,
   },
-  totalContainer: {
+  fullCancelButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  totalLabel: {
-    ...typography.h3,
-    color: colors.text.primary,
-    fontWeight: typography.fontWeights.bold,
-  },
-  totalAmount: {
-    fontSize: typography.fontSizes.xl,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  cancelButton: {
     backgroundColor: colors.error,
     paddingVertical: spacing.md,
     borderRadius: 12,
-    alignItems: 'center',
+    shadowColor: colors.error,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   cancelButtonDisabled: {
     opacity: 0.5,
   },
-  cancelButtonText: {
-    ...typography.body1,
+  fullCancelButtonText: {
+    fontSize: typography.fontSizes.md,
     color: colors.text.inverse,
-    fontWeight: '600',
+    fontWeight: typography.fontWeights.bold,
+    marginLeft: spacing.xs,
   },
   loadingContainer: {
     flex: 1,

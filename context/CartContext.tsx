@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { CartItem } from '../data/food/models';
 import * as cartApi from '../utils/cart';
+import { fetchStoreById } from '../utils/stores';
 import { useAuth } from '@clerk/clerk-expo';
 
 type CartAction =
@@ -184,7 +185,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (response.success && response.data) {
         console.log('📦 CartContext: Raw cart items received:', response.data.items);
         
-        const cartItems = response.data.items.map((item: any) => {
+        const cartItems = await Promise.all(response.data.items.map(async (item: any) => {
           console.log('📦 CartContext: Processing cart item', {
             backendId: item.id,
             productId: item.productId,
@@ -193,8 +194,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
             unitPrice: item.unitPrice,
             isActive: item.isActive,
             expiresAt: item.expiresAt,
-            isSelected: item.isSelected
+            isSelected: item.isSelected,
+            // Store-related fields
+            storeId: item.storeId,
+            storeName: item.storeName,
+            storeProfileImage: item.storeProfileImage,
+            storeImageUrl: item.storeImageUrl,
+            storeImage: item.storeImage,
+            // Show all available keys to see what the backend actually provides
+            allBackendKeys: Object.keys(item)
           });
+          
+          let enrichedStoreName = item.storeName;
+          let enrichedStoreProfileImage = item.storeProfileImage || item.storeImageUrl;
+          
+          // If store details are missing but we have a storeId, fetch them
+          if (item.storeId && (!item.storeName || item.storeName.trim() === '')) {
+            try {
+              console.log('🔄 CartContext: Fetching store details for missing store data:', item.storeId);
+              const storeData = await fetchStoreById(item.storeId, token);
+              
+              if (storeData.success && storeData.data) {
+                enrichedStoreName = storeData.data.name || storeData.data.storeName || item.storeName;
+                enrichedStoreProfileImage = storeData.data.profileImageUrl || storeData.data.imageUrl || storeData.data.image || enrichedStoreProfileImage;
+                
+                console.log('✅ CartContext: Enriched store data:', {
+                  storeId: item.storeId,
+                  originalStoreName: item.storeName,
+                  enrichedStoreName,
+                  originalStoreImage: item.storeProfileImage,
+                  enrichedStoreImage: enrichedStoreProfileImage,
+                  storeDataKeys: Object.keys(storeData.data)
+                });
+              }
+            } catch (error) {
+              console.log('⚠️ CartContext: Failed to fetch store details for', item.storeId, error);
+              // Keep original values on error
+            }
+          }
           
           const mappedItem = {
             id: item.id, // This should now be the correct product ID from backend
@@ -204,20 +241,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
             image: item.productImage,
             quantity: item.quantity,
             storeId: item.storeId,
-            storeName: item.storeName,
+            storeName: enrichedStoreName,
+            storeProfileImage: enrichedStoreProfileImage,
             category: item.category,
             isActive: item.isActive,
             expiresAt: item.expiresAt,
             selected: item.isSelected
           };
           
-          console.log('✅ CartContext: Mapped cart item', {
+          console.log('✅ CartContext: Final mapped cart item', {
             frontendId: mappedItem.id,
-            name: mappedItem.name
+            name: mappedItem.name,
+            // Store mapping results
+            mappedStoreId: mappedItem.storeId,
+            mappedStoreName: mappedItem.storeName,
+            mappedStoreProfileImage: mappedItem.storeProfileImage,
+            hasStoreProfileImageAfterMapping: !!mappedItem.storeProfileImage,
+            wasEnriched: enrichedStoreName !== item.storeName || enrichedStoreProfileImage !== (item.storeProfileImage || item.storeImageUrl)
           });
           
           return mappedItem;
-        });
+        }));
         
         console.log('✅ CartContext: Setting cart items', {
           itemCount: cartItems.length,

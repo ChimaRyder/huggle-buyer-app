@@ -261,17 +261,9 @@ export default function ProductScreen() {
         console.log('✅ ProductScreen: Successfully added to cart');
         setShowAddToCartModal(true);
       } else if (drawerAction === 'order') {
-        // Order now logic - add to cart then navigate to checkout
-        const cartItem = genericProductToCartItem(currentProduct, quantity);
+        // Order now logic - navigate directly to checkout WITHOUT adding to cart
+        console.log('🚚 ProductScreen: Order now - bypassing cart, going directly to checkout');
         
-        console.log('🚚 ProductScreen: Created cart item for order now', {
-          cartItem
-        });
-        
-        console.log('📡 ProductScreen: Calling addItem for order now...');
-        await addItem(cartItem);
-        
-        console.log('✅ ProductScreen: Successfully added to cart, navigating to order review');
         // Close drawer first, then navigate
         closeDrawer();
         // Navigate directly to OrderReviewScreen for immediate checkout
@@ -288,7 +280,8 @@ export default function ProductScreen() {
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add item to cart';
+      const errorMessage = error instanceof Error ? error.message : 
+        drawerAction === 'cart' ? 'Failed to add item to cart' : 'Failed to process order';
       console.error('❌ ProductScreen: confirmAction failed', {
         error: errorMessage,
         errorStack: error instanceof Error ? error.stack : undefined,

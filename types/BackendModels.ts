@@ -187,7 +187,6 @@ export interface BackendOrder {
   updatedAt: string;
   status: OrderStatus;
   paymentStatus?: PaymentStatus;
-  deliveryAddress?: string;
   deliveryDate?: string;
   notes?: string;
 }
@@ -198,7 +197,6 @@ export interface CreateOrderRequest {
     productId: string;
     quantity: number;
   }>;
-  deliveryAddress?: string;
   notes?: string;
 }
 

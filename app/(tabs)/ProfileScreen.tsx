@@ -66,7 +66,7 @@ const ProfileScreen = () => {
               onPress={() => handleMenuItemPress(item.screen)}
             >
               <View style={styles.menuItemLeft}>
-                <Ionicons name={item.icon as any} size={24} color={colors.primary} />
+                <Ionicons name={item.icon as any} size={24} color={colors.primary.main} />
                 <Text style={styles.menuItemText}>{item.title}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />

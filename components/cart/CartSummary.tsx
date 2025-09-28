@@ -14,6 +14,8 @@ interface CartSummaryProps {
   total: number;
   onCheckout: () => void;
   hasItems: boolean;
+  isDisabled?: boolean;
+  disabledReason?: string;
 }
 
 const CartSummary: React.FC<CartSummaryProps> = ({ 
@@ -22,7 +24,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   tax, 
   total, 
   onCheckout, 
-  hasItems 
+  hasItems,
+  isDisabled = false,
+  disabledReason
 }) => {
   return (
     <View style={styles.summaryContainer}>
@@ -46,12 +50,23 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
       </View>
       
+      {disabledReason && (
+        <View style={styles.disabledReasonContainer}>
+          <Text style={styles.disabledReasonText}>{disabledReason}</Text>
+        </View>
+      )}
+      
       <TouchableOpacity 
-        style={[styles.checkoutButton, !hasItems && styles.disabledButton]} 
+        style={[
+          styles.checkoutButton, 
+          (!hasItems || isDisabled) && styles.disabledButton
+        ]} 
         onPress={onCheckout}
-        disabled={!hasItems}
+        disabled={!hasItems || isDisabled}
       >
-        <Text style={styles.checkoutButtonText}>Checkout</Text>
+        <Text style={styles.checkoutButtonText}>
+          {isDisabled ? 'Cannot Checkout' : 'Checkout'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -103,6 +118,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: colors.text.inverse,
+  },
+  disabledReasonContainer: {
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF6B6B',
+  },
+  disabledReasonText: {
+    fontSize: 14,
+    color: '#FF6B6B',
+    textAlign: 'center',
   },
 });
 

@@ -8,7 +8,6 @@ export interface CreateOrderRequest {
     productId: string;
     quantity: number;
   }>;
-  deliveryAddress?: string;
   notes?: string;
 }
 
@@ -28,7 +27,6 @@ export interface OrderApiResponse extends BackendOrder {
   totalAmount: number;
   status: string; // Will be converted to OrderStatus enum
   notes?: string;
-  deliveryAddress?: string;
   cancelledBy?: string;
   cancellationReason?: string;
   items: Array<{
@@ -88,7 +86,6 @@ export class OrderService {
       updatedAt: apiOrder.updatedAt || apiOrder.createdAt,
       status: this.convertStatusStringToEnum(apiOrder.status),
       paymentStatus: undefined, // Not implemented yet
-      deliveryAddress: apiOrder.deliveryAddress,
       deliveryDate: undefined, // Not implemented yet
       notes: apiOrder.notes,
     };

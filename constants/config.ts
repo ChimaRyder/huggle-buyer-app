@@ -10,7 +10,8 @@ const getApiBaseUrl = (): string => {
   // return "https://rpbwh9rd-5132.asse.devtunnels.ms";
   // return "http://10.89.3.46:5132";
   // return "http://10.98.7.44:5132";
-  return "http://192.168.1.12:5132";
+  // return "http://192.168.1.12:5132";
+  return "http://192.168.254.114:5132";
   // return "http://localhost:5132"
 };
 
