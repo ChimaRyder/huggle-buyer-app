@@ -12,15 +12,18 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useAuth } from "@clerk/clerk-expo";
 import { useOrderContext, type Order } from "@/context/OrderContext";
 import { OrderStatus } from "@/types/BackendModels";
 import { OrderMap } from "@/components/order";
 import { colors, spacing, typography, shadows } from "@/constants/theme";
+import { getReviewByOrderItemId, checkOrderItemReviewStatus } from "@/utils/reviews";
 
 interface OrderDetailsProps {
   orderId?: string;
@@ -28,10 +31,15 @@ interface OrderDetailsProps {
 }
 
 const OrderDetails: React.FC<OrderDetailsProps> = () => {
+  console.log('🚀 OrderDetails: Component rendering started');
+  
   const router = useRouter();
   const params = useLocalSearchParams();
   const orderId = params.orderId as string;
   const isReadOnly = params.isReadOnly === 'true';
+  const { getToken } = useAuth();
+  
+  console.log('🔍 OrderDetails: orderId:', orderId, 'isReadOnly:', isReadOnly);
 
   const { 
     currentOrder, 
@@ -45,6 +53,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
     clearCurrentOrder
   } = useOrderContext();
 
+  // State for pull-to-refresh
+  const [refreshing, setRefreshing] = useState(false);
 
   const getStatusInfo = (status: OrderStatus) => {
     const statusMap = {
@@ -65,6 +75,34 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+    });
+  };
+
+  const onRefresh = async () => {
+    if (!orderId) return;
+    
+    setRefreshing(true);
+    try {
+      await fetchOrderById(orderId);
+    } catch (error) {
+      console.error('Error refreshing order:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleReviewItem = (item: any) => {
+    // Navigate to review screen to write new review
+    router.push({
+      pathname: "/(screens)/order/ReviewProductScreen" as any,
+      params: {
+        productId: item.productId,
+        orderId: currentOrder!.id,
+        orderItemId: item.id,
+        productName: item.productName,
+        isEdit: "false",
+        existingReviewId: "",
+      },
     });
   };
 
@@ -109,6 +147,9 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
     };
   }, [orderId]);
 
+  // Note: Removed automatic refresh on focus to prevent infinite rerenders
+  // Users can use pull-to-refresh to update data after creating reviews
+
   useEffect(() => {
     return () => {
       clearCurrentOrder();
@@ -126,7 +167,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={styles.loadingText}>Loading order details...</Text>
         </View>
       </SafeAreaView>
@@ -156,6 +197,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
 
   const statusInfo = getStatusInfo(currentOrder.status);
 
+  console.log('🎨 OrderDetails: Main render - currentOrder status:', currentOrder.status, 'statusInfo:', statusInfo);
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
@@ -166,7 +209,18 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary.main]}
+            tintColor={colors.primary.main}
+          />
+        }
+      >
         {/* Order Status Card */}
         <View style={[styles.statusCard, { backgroundColor: statusInfo.bgColor }]}>
           <View style={styles.statusRow}>
@@ -215,42 +269,83 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
             activeOpacity={0.7}
           >
             <View style={styles.storeIconContainer}>
-              <Ionicons name="storefront" size={20} color={colors.primary} />
+              <Ionicons name="storefront" size={20} color={colors.primary.main} />
             </View>
             <View style={styles.storeHeaderInfo}>
               <Text style={styles.storeHeaderName}>{currentOrder.storeName || 'Unknown Store'}</Text>
               <View style={styles.visitStoreButton}>
                 <Text style={styles.visitStoreText}>Visit Store</Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                <Ionicons name="chevron-forward" size={14} color={colors.primary.main} />
               </View>
             </View>
           </TouchableOpacity>
 
           {/* Items List */}
           <View style={styles.itemsList}>
-            {currentOrder.items.map((item, index) => (
-              <View key={item.id} style={[styles.itemCard, index === currentOrder.items.length - 1 && styles.lastItemCard]}>
-                <Image
-                  source={item.productImage ? { uri: item.productImage } : require("@/assets/images/sample-store.jpg")}
-                  style={styles.itemImage}
-                  resizeMode="cover"
-                />
-                <View style={styles.itemDetails}>
-                  <Text style={styles.itemName} numberOfLines={2}>
-                    {item.productName}
-                  </Text>
-                  <View style={styles.itemMetaRow}>
-                    <View style={styles.quantityBadge}>
-                      <Text style={styles.quantityText}>×{item.quantity}</Text>
+            {currentOrder.items.map((item, index) => {
+              const showReviewButton = currentOrder.status === OrderStatus.Completed;
+              const hasReviewed = item.hasReviewed || false; // Use the field from API response
+              
+              console.log(`🔍 OrderDetails: Rendering item ${item.id} - showReviewButton: ${showReviewButton}, hasReviewed: ${hasReviewed}`);
+              
+              return (
+                <View key={item.id} style={[styles.itemCard, index === currentOrder.items.length - 1 && styles.lastItemCard]}>
+                  <Image
+                    source={item.productImage ? { uri: item.productImage } : require("@/assets/images/sample-store.jpg")}
+                    style={styles.itemImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.itemDetails}>
+                    <Text style={styles.itemName} numberOfLines={2}>
+                      {item.productName}
+                    </Text>
+                    <View style={styles.itemMetaRow}>
+                      <View style={styles.quantityBadge}>
+                        <Text style={styles.quantityText}>×{item.quantity}</Text>
+                      </View>
+                      <Text style={styles.itemPrice}>₱{item.unitPrice.toFixed(2)}</Text>
                     </View>
-                    <Text style={styles.itemPrice}>₱{item.unitPrice.toFixed(2)}</Text>
+                    <Text style={styles.itemTotal}>
+                      Total: ₱{(item.unitPrice * item.quantity).toFixed(2)}
+                    </Text>
+                    
+                    {/* Review Button for Completed Orders */}
+                    {showReviewButton && (
+                      <View style={styles.reviewButtonContainer}>
+                        {hasReviewed ? (
+                          // Non-clickable reviewed indicator
+                          <View style={styles.reviewedButton}>
+                            <Ionicons 
+                              name="star" 
+                              size={16} 
+                              color={colors.success} 
+                            />
+                            <Text style={styles.reviewedButtonText}>
+                              Reviewed
+                            </Text>
+                          </View>
+                        ) : (
+                          // Clickable write review button
+                          <TouchableOpacity
+                            style={styles.reviewButton}
+                            onPress={() => handleReviewItem(item)}
+                          >
+                            <Ionicons 
+                              name="star-outline" 
+                              size={16} 
+                              color={colors.primary.main} 
+                            />
+                            <Text style={styles.reviewButtonText}>
+                              Write Review
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
                   </View>
-                  <Text style={styles.itemTotal}>
-                    Total: ₱{(item.unitPrice * item.quantity).toFixed(2)}
-                  </Text>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
@@ -426,7 +521,7 @@ const styles = StyleSheet.create({
   },
   visitStoreText: {
     fontSize: typography.fontSizes.sm,
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: typography.fontWeights.medium,
     marginRight: spacing.xs,
   },
@@ -486,11 +581,47 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: typography.fontSizes.md,
     fontWeight: typography.fontWeights.bold,
-    color: colors.primary,
+    color: colors.primary.main,
   },
   itemTotal: {
     fontSize: typography.fontSizes.sm,
     color: colors.text.secondary,
+  },
+  reviewButtonContainer: {
+    marginTop: spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  reviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary.main,
+  },
+  reviewButtonText: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.primary.main,
+    fontWeight: typography.fontWeights.medium,
+    marginLeft: spacing.xs,
+  },
+  reviewedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.successSubtle || colors.background.secondary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.success,
+  },
+  reviewedButtonText: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.success,
+    fontWeight: typography.fontWeights.medium,
+    marginLeft: spacing.xs,
   },
   summarySection: {
     marginBottom: spacing.xl,
@@ -533,7 +664,7 @@ const styles = StyleSheet.create({
   summaryTotalValue: {
     fontSize: typography.fontSizes.xl,
     fontWeight: typography.fontWeights.bold,
-    color: colors.primary,
+    color: colors.primary.main,
   },
   notesCard: {
     flexDirection: 'row',
@@ -615,7 +746,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   backButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: 24,

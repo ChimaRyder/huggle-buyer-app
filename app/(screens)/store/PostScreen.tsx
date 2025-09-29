@@ -18,8 +18,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
-// TODO: Replace with API service imports
-import { colors, spacing, typography } from "@/constants/theme";
+import { colors, spacing, typography } from '@/constants/theme';
+import { usePostContext } from '@/context/PostContext';
+import { useAuth } from '@clerk/clerk-expo';
+import { submitPostReport } from '@/utils/reports';
+import type { BackendPost } from '@/types/BackendModels';
 
 const { width } = Dimensions.get("window");
 
@@ -28,17 +31,19 @@ interface PostScreenProps {}
 const PostScreen: React.FC<PostScreenProps> = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const [post, setPost] = useState<any>(null);
-  const [store, setStore] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { getToken, userId } = useAuth();
+  const { 
+    currentPost, 
+    isFetchingPost, 
+    postError, 
+    fetchPostById, 
+    toggleLike 
+  } = usePostContext();
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
-  const [liked, setLiked] = useState<boolean>(false);
-  const [likeCount, setLikeCount] = useState<number>(0);
 
   // Helper to format date
   const formatDate = (date: string | Date) => {
@@ -58,56 +63,21 @@ const PostScreen: React.FC<PostScreenProps> = () => {
   };
 
   useEffect(() => {
-    const loadPost = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Get post from mock data
-        // TODO: Replace with API call
-        const allPosts: any[] = []; // await ApiService.getAllPosts();
-        const postData = allPosts.find(p => p.id === id);
-        
-        if (!postData) {
-          throw new Error('Post not found');
-        }
-        
-        setPost(postData);
-        setLiked(Math.random() > 0.5); // Random liked state for demo
-        setLikeCount(postData.likes || 0);
-        
-        // Fetch store info
-        if (postData.storeId) {
-          // TODO: Replace with API call
-          const storeData = null; // await ApiService.getStoreById(postData.storeId);
-          setStore(storeData);
-        }
-      } catch (err: any) {
-        setError(err.message || "Failed to load post");
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (id) loadPost();
-  }, [id]);
+    if (id && typeof id === 'string') {
+      fetchPostById(id);
+    }
+  }, [id, fetchPostById]);
 
   const handleLikeToggle = async () => {
-    if (!post) return;
+    if (!currentPost) return;
     
-    // Toggle like state immediately for better UX
-    setLiked(!liked);
-    setLikeCount(prev => liked ? prev - 1 : prev + 1);
-    
-    // In a real app, would send request to backend
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 200));
-    } catch (err: any) {
-      // Revert on error
-      setLiked(liked);
-      setLikeCount(prev => liked ? prev + 1 : prev - 1);
-      setError(err.message || "Failed to update like");
+      await toggleLike(currentPost.id);
+    } catch (error) {
+      console.error('Error toggling like:', error);
     }
   };
+
 
   const handleReport = async () => {
     if (!reportReason) {
@@ -115,10 +85,22 @@ const PostScreen: React.FC<PostScreenProps> = () => {
       return;
     }
     
+    if (!currentPost || !userId) {
+      alert("Unable to submit report. Please try again.");
+      return;
+    }
+    
     setReportLoading(true);
     try {
-      // Simulate report submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const token = await getToken({ template: "seller_app" });
+      
+      await submitPostReport(
+        userId,
+        currentPost.id,
+        reportReason,
+        reportDescription,
+        token
+      );
       
       setShowReportModal(false);
       setReportReason("");
@@ -132,33 +114,15 @@ const PostScreen: React.FC<PostScreenProps> = () => {
   };
 
   const handleStorePress = () => {
-    if (post?.storeId) {
-      // Map post store IDs back to restaurant IDs for StoreHomepageScreen
-      const storeIdMap = {
-        "grocery-1": "1", // Farm Fresh Market
-        "grocery-2": "4", // Green Valley Grocers -> Green Thumb Grocers
-        "grocery-3": "3", // Metro Fresh Foods -> Tropical Paradise
-        "grocery-4": "5", // Berry Best Market
-        "grocery-5": "2", // Organic Harvest Co.
-        "grocery-6": "3", // Metro Fresh Foods -> Tropical Paradise
-        "grocery-7": "6", // Garden Fresh Market -> Root Cellar
-        "grocery-8": "1", // City Farmers Market -> Farm Fresh Market
-        "store-1": "1",
-        "store-2": "2", 
-        "store-3": "3",
-        "store-4": "4"
-      };
-      
-      const restaurantId = storeIdMap[post.storeId as keyof typeof storeIdMap] || post.storeId;
-      
+    if (currentPost?.storeId) {
       router.push({
         pathname: "/(screens)/store/StoreHomepageScreen",
-        params: { id: restaurantId },
+        params: { id: currentPost.storeId },
       });
     }
   };
 
-  if (loading) {
+  if (isFetchingPost) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.loadingContainer}>
@@ -173,13 +137,13 @@ const PostScreen: React.FC<PostScreenProps> = () => {
     );
   }
 
-  if (error || !post) {
+  if (postError || !currentPost) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
           <Text style={styles.errorText}>
-            {error || "Post not found."}
+            {postError || "Post not found."}
           </Text>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Go Back</Text>
@@ -210,7 +174,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
       >
         {/* Image carousel */}
         <View style={styles.imageContainer}>
-          {post.images && post.images.length > 0 && (
+          {currentPost.imageUrls && currentPost.imageUrls.length > 0 && (
             <ScrollView
               horizontal
               pagingEnabled
@@ -224,7 +188,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
               scrollEventThrottle={16}
               style={styles.imageScrollView}
             >
-              {post.images.map((img: string, idx: number) => (
+              {currentPost.imageUrls.map((img: string, idx: number) => (
                 <Image
                   key={idx}
                   source={{ uri: img }}
@@ -236,16 +200,16 @@ const PostScreen: React.FC<PostScreenProps> = () => {
           )}
           
           {/* Image indicator */}
-          {post.images && post.images.length > 1 && (
+          {currentPost.imageUrls && currentPost.imageUrls.length > 1 && (
             <View style={styles.imageIndicator}>
-              {post.images.map((_, idx: number) => (
+              {currentPost.imageUrls.map((_, idx: number) => (
                 <View
                   key={idx}
                   style={[
                     styles.indicatorDot,
                     { 
                       backgroundColor: idx === currentImageIdx 
-                        ? colors.text.inverse 
+                        ? colors.text.primaryInverted 
                         : 'rgba(255,255,255,0.5)' 
                     }
                   ]}
@@ -259,16 +223,16 @@ const PostScreen: React.FC<PostScreenProps> = () => {
         <View style={styles.actionsContainer}>
           <View style={styles.likeSection}>
             <Text style={styles.likesText}>
-              {likeCount} {likeCount === 1 ? 'like' : 'likes'}
+              {currentPost.likeCount} {currentPost.likeCount === 1 ? 'like' : 'likes'}
             </Text>
             <TouchableOpacity
               style={styles.likeButton}
               onPress={handleLikeToggle}
             >
               <Ionicons
-                name={liked ? "heart" : "heart-outline"}
+                name={currentPost.isLiked ? "heart" : "heart-outline"}
                 size={28}
-                color={liked ? colors.primary : colors.text.secondary}
+                color={currentPost.isLiked ? colors.primary.main : colors.text.secondary}
               />
             </TouchableOpacity>
           </View>
@@ -278,11 +242,11 @@ const PostScreen: React.FC<PostScreenProps> = () => {
         <View style={styles.contentContainer}>
           <Text style={styles.caption}>
             <TouchableOpacity onPress={handleStorePress}>
-              <Text style={styles.storeNameInCaption}>{post.storeName}</Text>
+              <Text style={styles.storeNameInCaption}>{currentPost.storeName || 'Store'}</Text>
             </TouchableOpacity>
-            {' '}{post.caption}
+            {currentPost.content ? ` ${currentPost.content}` : ''}
           </Text>
-          <Text style={styles.timestamp}>{formatDate(post.createdAt)}</Text>
+          <Text style={styles.timestamp}>{formatDate(currentPost.createdAt)}</Text>
         </View>
       </ScrollView>
       
@@ -306,7 +270,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
                     styles.reasonButton,
                     {
                       backgroundColor:
-                        reportReason === reason ? colors.primary : colors.background.secondary,
+                        reportReason === reason ? colors.primary.main : colors.background.secondary,
                     }
                   ]}
                   onPress={() => setReportReason(reason)}
@@ -340,7 +304,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
               style={[
                 styles.submitButton,
                 {
-                  backgroundColor: reportLoading ? colors.text.secondary : colors.primary
+                  backgroundColor: reportLoading ? colors.text.secondary : colors.primary.main
                 }
               ]}
               onPress={handleReport}
@@ -482,7 +446,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   backButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: 24,
@@ -562,7 +526,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     ...typography.body2,
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: '600',
   },
 });

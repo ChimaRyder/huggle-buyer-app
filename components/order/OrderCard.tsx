@@ -31,12 +31,16 @@ interface OrderCardProps {
   };
   onCancel?: () => void;
   showCancelButton?: boolean;
+  onReviewItems?: () => void;
+  showReviewButton?: boolean;
 }
 
 const OrderCard: React.FC<OrderCardProps> = ({
   order,
   onCancel,
   showCancelButton = false,
+  onReviewItems,
+  showReviewButton = false,
 }) => {
   const canCancel =
     (order.status === "Pending" || order.status === "Confirmed") &&
@@ -80,17 +84,31 @@ const OrderCard: React.FC<OrderCardProps> = ({
             <Text style={styles.totalLabel}>Total: </Text>
             <Text style={styles.totalPriceText}>{order.totalPrice}</Text>
           </View>
-          {canCancel && onCancel && (
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                onCancel && onCancel();
-              }}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          )}
+          <View style={styles.actionButtonsContainer}>
+            {showReviewButton && onReviewItems && (
+              <TouchableOpacity
+                style={styles.reviewButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onReviewItems && onReviewItems();
+                }}
+              >
+                <Ionicons name="star-outline" size={16} color={colors.text.inverse} />
+                <Text style={styles.reviewButtonText}>Review Items</Text>
+              </TouchableOpacity>
+            )}
+            {canCancel && onCancel && (
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onCancel && onCancel();
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -145,17 +163,31 @@ const OrderCard: React.FC<OrderCardProps> = ({
           <Text style={styles.totalPrice}>{order.price}</Text>
         </View>
 
-        {canCancel && onCancel && (
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              onCancel();
-            }}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.actionButtonsContainer}>
+          {showReviewButton && onReviewItems && (
+            <TouchableOpacity
+              style={styles.reviewButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                onReviewItems && onReviewItems();
+              }}
+            >
+              <Ionicons name="star-outline" size={16} color={colors.text.inverse} />
+              <Text style={styles.reviewButtonText}>Review Items</Text>
+            </TouchableOpacity>
+          )}
+          {canCancel && onCancel && (
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                onCancel();
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -372,5 +404,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: spacing.sm,
     gap: spacing.sm,
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  reviewButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.sm,
+  },
+  reviewButtonText: {
+    color: colors.text.inverse,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.medium,
+    marginLeft: spacing.xs,
   },
 });

@@ -12,16 +12,42 @@ import { useRouter } from 'expo-router';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
+import { useApi } from '@/context/ApiContext';
+import { disablePushToken } from '@/utils/pushToken';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // TODO: Replace with API call to fetch user profile menu items
 
 const ProfileScreen = () => {
   const router = useRouter();
   const { user } = useUser();
   const { signOut } = useAuth();
+  const { client: apiClient } = useApi();
 
-  const handleSignOut = () => {
-    signOut();
-    router.replace('/');
+  const handleSignOut = async () => {
+    try {
+      console.log('🚪 ProfileScreen: Starting logout process...');
+      
+      // Try to get stored push token ID and deactivate it
+      const storedTokenId = await AsyncStorage.getItem('pushTokenId');
+      if (storedTokenId) {
+        console.log('📱 ProfileScreen: Deactivating push token on logout...');
+        const response = await disablePushToken(apiClient, storedTokenId);
+        if (response.success) {
+          console.log('✅ ProfileScreen: Push token deactivated successfully');
+        } else {
+          console.error('❌ ProfileScreen: Failed to deactivate push token:', response.error);
+        }
+        // Clear stored token ID regardless of API result
+        await AsyncStorage.removeItem('pushTokenId');
+      }
+    } catch (error) {
+      console.error('❌ ProfileScreen: Error during logout process:', error);
+    } finally {
+      // Always sign out, even if push token deactivation fails
+      console.log('🚪 ProfileScreen: Completing sign out...');
+      signOut();
+      router.replace('/');
+    }
   };
 
   // TODO: Replace with API call to fetch user profile menu items

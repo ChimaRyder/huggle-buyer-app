@@ -12,6 +12,7 @@ interface OrderItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  hasReviewed?: boolean;
 }
 
 interface Order {
@@ -58,6 +59,7 @@ interface OrderContextType {
   // Order management
   fetchOrders: () => Promise<void>;
   fetchOrderById: (orderId: string) => Promise<Order | null>;
+  getOrderById: (orderId: string) => Promise<Order | null>; // Convenience method that uses cache or fetches
   createOrder: (request: CreateOrderRequest) => Promise<Order>;
   updateOrderStatus: (orderId: string, request: UpdateOrderStatusRequest) => Promise<Order>;
   cancelOrder: (orderId: string, request?: CancelOrderRequest) => Promise<Order>;
@@ -89,16 +91,16 @@ export function OrderProvider({ children }: OrderProviderProps) {
   const { userId } = useAuth();
 
   // Helper function to convert API order to frontend format
-  const convertApiOrderToFrontend = (apiOrder: any): Order => {
+  const convertApiOrderToFrontend = (apiOrder: any, existingOrder?: Order): Order => {
     return {
-      id: apiOrder.id,
-      buyerId: apiOrder.buyerId,
-      storeId: apiOrder.storeId,
-      storeName: apiOrder.storeName,
-      totalAmount: apiOrder.totalAmount,
+      id: apiOrder.id || existingOrder?.id || '',
+      buyerId: apiOrder.buyerId || existingOrder?.buyerId || '',
+      storeId: apiOrder.storeId || existingOrder?.storeId || '',
+      storeName: apiOrder.storeName || existingOrder?.storeName || '',
+      totalAmount: apiOrder.totalAmount ?? existingOrder?.totalAmount ?? 0,
       status: convertStatusStringToEnum(apiOrder.status),
-      notes: apiOrder.notes,
-      cancelledBy: apiOrder.cancelledBy,
+      notes: apiOrder.notes ?? existingOrder?.notes,
+      cancelledBy: apiOrder.cancelledBy ?? existingOrder?.cancelledBy,
       items: apiOrder.items?.map((item: any) => ({
         id: item.id,
         productId: item.productId,
@@ -107,9 +109,10 @@ export function OrderProvider({ children }: OrderProviderProps) {
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         totalPrice: item.totalPrice,
-      })) || [],
-      createdAt: apiOrder.createdAt,
-      updatedAt: apiOrder.updatedAt,
+        hasReviewed: item.hasReviewed || false,
+      })) ?? existingOrder?.items ?? [],
+      createdAt: apiOrder.createdAt || existingOrder?.createdAt || '',
+      updatedAt: apiOrder.updatedAt || existingOrder?.updatedAt || apiOrder.createdAt || '',
     };
   };
 
@@ -314,7 +317,10 @@ export function OrderProvider({ children }: OrderProviderProps) {
 
       if (response.success) {
         const orderData = extractResponseData(response);
-        const cancelledOrder = convertApiOrderToFrontend(orderData);
+        
+        // Find existing order for merge
+        const existingOrder = orders.find(o => o.id === orderId) || currentOrder;
+        const cancelledOrder = convertApiOrderToFrontend(orderData, existingOrder || undefined);
         
         // Update in orders list
         setOrders(prev => prev.map(order => 
@@ -372,6 +378,20 @@ export function OrderProvider({ children }: OrderProviderProps) {
     await fetchOrders();
   };
 
+  // Get order by ID - tries cache first, then fetches if not found
+  const getOrderById = async (orderId: string): Promise<Order | null> => {
+    // First, try to find in local cache
+    const cachedOrder = orders.find(order => order.id === orderId);
+    if (cachedOrder) {
+      console.log('🔍 OrderContext: Found order in cache:', orderId);
+      return cachedOrder;
+    }
+    
+    // If not in cache, fetch from API
+    console.log('🔍 OrderContext: Order not in cache, fetching from API:', orderId);
+    return await fetchOrderById(orderId);
+  };
+
   // Clear error
   const clearError = (): void => {
     setError(null);
@@ -404,6 +424,7 @@ export function OrderProvider({ children }: OrderProviderProps) {
     
     fetchOrders,
     fetchOrderById,
+    getOrderById,
     createOrder,
     updateOrderStatus,
     cancelOrder,

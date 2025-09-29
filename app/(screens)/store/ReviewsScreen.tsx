@@ -5,40 +5,98 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from "react-native";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ReviewCard } from "@/components/review";
+import { useAuth } from '@clerk/clerk-expo';
+import { ReviewCard, FilterBar } from "@/components/review";
 import { colors } from "@/constants/theme";
 import { BackendReview } from "@/types/BackendModels";
+import { fetchReviews, fetchReviewsByStore, ReviewsFilter, getFilterDescription } from "@/utils/reviews";
 
 
 export default function ReviewsScreen() {
   const router = useRouter();
   const { id: storeId, productId } = useLocalSearchParams();
+  const { getToken } = useAuth();
   
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // TODO: Get reviews from API based on storeId and productId
-  const reviews: BackendReview[] = [];
+  // State for reviews data
+  const [reviews, setReviews] = useState<BackendReview[]>([]);
+  const [filters, setFilters] = useState<ReviewsFilter>({
+    sortBy: 'newest', // Default sorting
+  });
   
   // Debug logging
-  console.log('ReviewsScreen - storeId:', storeId, 'productId:', productId, 'reviews found:', reviews.length);
+  console.log('ReviewsScreen - storeId:', storeId, 'productId:', productId, 'filters:', filters);
+
+  // Function to fetch reviews
+  const fetchReviewsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = await getToken({template: "seller_app"});
+      
+      let response;
+      if (productId && typeof productId === 'string') {
+        console.log('🔍 ReviewsScreen: Fetching product reviews for:', productId);
+        response = await fetchReviews(token, { productId, filters });
+      } else if (storeId && typeof storeId === 'string') {
+        console.log('🔍 ReviewsScreen: Fetching store reviews for:', storeId);
+        response = await fetchReviewsByStore(token, { storeId, filters });
+      } else {
+        throw new Error('No valid productId or storeId provided');
+      }
+      
+      if (response && response.data) {
+        const reviewsData = Array.isArray(response.data) ? response.data : [];
+        setReviews(reviewsData);
+        console.log('✅ ReviewsScreen: Successfully fetched', reviewsData.length, 'reviews');
+      } else {
+        setReviews([]);
+        console.log('📭 ReviewsScreen: No reviews found');
+      }
+    } catch (error) {
+      console.error('❌ ReviewsScreen: Error fetching reviews:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load reviews');
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Effect to fetch reviews when component mounts or filters change
+  useEffect(() => {
+    fetchReviewsData();
+  }, [productId, storeId, filters]);
 
   // TODO: Get product name from API
   const getProductName = (productId: string): string | undefined => {
     return undefined;
   };
 
-  // TODO: Implement refresh with API call
-  const handleRefresh = () => {
+  // Handle refresh
+  const handleRefresh = async () => {
     setRefreshing(true);
-    // TODO: Call API to refresh reviews
-    setTimeout(() => {
+    try {
+      await fetchReviewsData();
+    } catch (error) {
+      console.error('❌ ReviewsScreen: Error refreshing reviews:', error);
+    } finally {
       setRefreshing(false);
-    }, 1000);
+    }
+  };
+  
+  // Handle filter changes
+  const handleFiltersChange = (newFilters: ReviewsFilter) => {
+    console.log('🔧 ReviewsScreen: Updating filters:', newFilters);
+    setFilters(newFilters);
   };
 
 
@@ -72,13 +130,29 @@ export default function ReviewsScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>{productId ? 'Product Reviews' : 'Store Reviews'}</Text>
-          <Text style={styles.headerSubtitle}>{ratingStats.total} Reviews</Text>
+          <Text style={styles.headerSubtitle}>
+            {loading ? 'Loading...' : `${ratingStats.total} Reviews`}
+            {!loading && filters && Object.keys(filters).length > 1 && (
+              <Text style={styles.filterIndicator}> • {getFilterDescription(filters)}</Text>
+            )}
+          </Text>
         </View>
       </View>
 
+      {/* Filter Bar */}
+      {!loading && !error && (
+        <FilterBar
+          activeFilters={filters}
+          onFiltersChange={handleFiltersChange}
+          totalReviews={ratingStats.total}
+          reviewsWithMedia={ratingStats.withPhotos}
+          ratingDistribution={ratingStats.distribution}
+          isLoading={refreshing}
+        />
+      )}
 
       {/* Star Rating Graph */}
-      {reviews.length > 0 && (
+      {!loading && !error && reviews.length > 0 && (
         <View style={styles.ratingGraphContainer}>
           <View style={styles.ratingOverviewGraph}>
             <Text style={styles.averageRatingGraph}>{ratingStats.average.toFixed(1)}</Text>
@@ -121,15 +195,39 @@ export default function ReviewsScreen() {
 
 
       {/* Reviews List */}
-      {reviews.length === 0 ? (
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+          <Text style={styles.loadingText}>Loading reviews...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => fetchReviewsData()}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : reviews.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="chatbubble-outline" size={48} color={colors.text.tertiary} />
           <Text style={styles.emptyText}>
-            No reviews yet
+            {filters.rating || filters.hasMedia ? 'No reviews match your filters' : 'No reviews yet'}
           </Text>
           <Text style={styles.emptySubtext}>
-            Be the first to review a product from this store!
+            {filters.rating || filters.hasMedia 
+              ? 'Try adjusting your filter criteria'
+              : (productId ? 'Be the first to review this product!' : 'Be the first to review a product from this store!')
+            }
           </Text>
+          {(filters.rating || filters.hasMedia) && (
+            <TouchableOpacity 
+              style={styles.clearFiltersButton} 
+              onPress={() => handleFiltersChange({ sortBy: 'newest' })}
+            >
+              <Text style={styles.clearFiltersButtonText}>Clear Filters</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <ScrollView
@@ -150,6 +248,7 @@ export default function ReviewsScreen() {
               createdAt={review.createdAt}
               showExpandButton={true}
               productName={!productId ? getProductName(review.productId) : undefined}
+              highlightMedia={filters.hasMedia || false}
             />
           ))}
         </ScrollView>
@@ -276,5 +375,62 @@ const styles = StyleSheet.create({
   reviewsListContent: {
     paddingHorizontal: 16,
     paddingBottom: 24,
+  },
+  // Loading/Error states
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.error,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: colors.text.inverse,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Filter indicator
+  filterIndicator: {
+    color: colors.primary.main,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  // Clear filters button
+  clearFiltersButton: {
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  clearFiltersButtonText: {
+    color: colors.text.inverse,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

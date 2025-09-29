@@ -12,6 +12,7 @@ import { ApiProvider } from '@/context/ApiContext';
 import { LocationProvider } from '@/context/LocationContext';
 import { OrderProvider } from '@/context/OrderContext';
 import { ProductProvider } from '@/context/ProductContext';
+import { PostProvider } from '@/context/PostContext';
 import { StoreProvider } from '@/context/StoreContext';
 import { handleError, ErrorType, ErrorSeverity } from '@/utils/errorHandler';
 
@@ -54,13 +55,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         <LocationProvider>
           <OrderProvider>
             <ProductProvider>
-              <StoreProvider>
-                <AppStateProvider>
-                  {children}
-                  {/* Global Toast Messages */}
-                  <Toast />
-                </AppStateProvider>
-              </StoreProvider>
+              <PostProvider>
+                <StoreProvider>
+                  <AppStateProvider>
+                    {children}
+                    {/* Global Toast Messages */}
+                    <Toast />
+                  </AppStateProvider>
+                </StoreProvider>
+              </PostProvider>
             </ProductProvider>
           </OrderProvider>
         </LocationProvider>

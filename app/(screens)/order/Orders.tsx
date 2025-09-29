@@ -123,7 +123,7 @@ const Orders = () => {
     })) || [];
 
     // Compose total price
-    const totalPrice = `₱${order.totalAmount.toFixed(2)}`;
+    const totalPrice = `₱${(order.totalAmount || 0).toFixed(2)}`;
 
     // Compose product name for single/multi
     let productName = "Unknown Product";
@@ -214,6 +214,15 @@ const Orders = () => {
   const handleCancelPress = (order: EnrichedOrder) => {
     setOrderToCancel(order);
     setShowCancelModal(true);
+  };
+
+  const handleReviewItems = (order: EnrichedOrder) => {
+    router.push({
+      pathname: "/(screens)/order/OrderItemsReviewScreen" as any,
+      params: {
+        orderId: order.id,
+      },
+    });
   };
 
 
@@ -330,6 +339,8 @@ const Orders = () => {
                   }}
                   showCancelButton={canCancelOrder(order.status)}
                   onCancel={() => handleCancelPress(order)}
+                  showReviewButton={order.status === OrderStatus.Completed}
+                  onReviewItems={() => handleReviewItems(order)}
                 />
               </TouchableOpacity>
             ))
