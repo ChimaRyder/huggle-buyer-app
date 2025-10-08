@@ -7,6 +7,7 @@ import {
   TextInput,
   Image,
   FlatList,
+  ScrollView,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
@@ -159,34 +160,35 @@ export default function ChatListScreen() {
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      ) : filteredChats.length > 0 ? (
+      ) : (
         <FlatList
           data={filteredChats}
           renderItem={renderChatItem}
           keyExtractor={(item) => item.id}
           style={styles.chatList}
-          contentContainerStyle={styles.chatListContent}
+          contentContainerStyle={filteredChats.length === 0 ? styles.emptyContainer : styles.chatListContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              colors={[colors.primary.main]}
-              tintColor={colors.primary.main}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
           }
+          ListEmptyComponent={() => (
+            <>
+              <Ionicons name="chatbubbles-outline" size={64} color={colors.text.tertiary} />
+              <Text style={styles.emptyTitle}>No conversations found</Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery.length > 0
+                  ? "Try searching for a different store"
+                  : "Start shopping to chat with stores!"
+                }
+              </Text>
+            </>
+          )}
         />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="chatbubbles-outline" size={64} color={colors.text.tertiary} />
-          <Text style={styles.emptyTitle}>No conversations found</Text>
-          <Text style={styles.emptySubtitle}>
-            {searchQuery.length > 0
-              ? "Try searching for a different store"
-              : "Start shopping to chat with stores!"
-            }
-          </Text>
-        </View>
       )}
     </SafeAreaView>
   );
