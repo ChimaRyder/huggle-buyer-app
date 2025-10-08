@@ -11,6 +11,7 @@ const getApiBaseUrl = (): string => {
   // return "http://10.89.3.46:5132";
   // return "http://10.98.7.44:5132";
   return "http://192.168.1.12:5132";
+  // return "http://192.168.254.114:5132";
   // return "http://localhost:5132"
 };
 
@@ -82,5 +83,16 @@ export const API_ENDPOINTS = {
     products: "/api/products/search",
     stores: "/api/stores/search",
     storesPopular: "/api/stores/popular",
+  },
+  posts: {
+    list: "/api/posts",
+    byId: (id: string) => `/api/posts/${id}`,
+    feed: "/api/posts/feed",
+    byStore: (storeId: string) => `/api/posts/store/${storeId}`,
+    like: (id: string) => `/api/posts/${id}/like`,
+  },
+  pushTokens: {
+    register: "/api/buyers/push-tokens",
+    updateStatus: (tokenId: string) => `/api/buyers/push-tokens/${tokenId}`,
   },
 } as const;

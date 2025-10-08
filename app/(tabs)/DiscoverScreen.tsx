@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radii } from '@/constants/theme';
-// TODO: Replace with API call to fetch discover posts
+import { usePostContext } from '@/context/PostContext';
+import type { BackendPost } from '@/types/BackendModels';
 
 const { width } = Dimensions.get('window');
 const GRID_COLUMNS = 3;
@@ -23,65 +24,46 @@ const ITEM_SPACING = spacing.sm * (GRID_COLUMNS - 1); // spacing between items
 const AVAILABLE_WIDTH = width - HORIZONTAL_PADDING - ITEM_SPACING;
 const ITEM_SIZE = AVAILABLE_WIDTH / GRID_COLUMNS;
 
-interface Post {
-  id: string;
-  storeId: string;
-  storeName: string;
-  storeAvatar: string;
-  images: string[];
-  caption: string;
-  likes: number;
-  createdAt: string;
-}
-
 const DiscoverScreen = () => {
   const router = useRouter();
-  const [posts, setPosts] = useState<Post[]>([]);
+  const { 
+    allPosts, 
+    isFetchingPosts, 
+    postsError, 
+    fetchPosts, 
+    refreshPosts 
+  } = usePostContext();
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  // TODO: Replace with API call to fetch discover posts
-  const groceryPosts: Post[] = [];
 
   useEffect(() => {
-    loadPosts();
+    fetchPosts();
   }, []);
-
-  const loadPosts = async () => {
-    setLoading(true);
-    try {
-      // TODO: Replace with actual API call to fetch discover posts
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      setPosts([]);
-    } catch (error) {
-      console.error('Error loading posts:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadPosts();
-    setRefreshing(false);
+    try {
+      await refreshPosts();
+    } catch (error) {
+      console.error('Error refreshing posts:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const handlePostPress = (post: Post) => {
+  const handlePostPress = (post: BackendPost) => {
     router.push(`/(screens)/store/PostScreen?id=${post.id}`);
   };
 
-  const formatLikes = (likes: number): string => {
-    if (likes >= 1000) {
-      return `${(likes / 1000).toFixed(1)}K`;
-    }
-    return likes.toString();
-  };
 
-  const renderGridItem = ({ item: post, index }: { item: Post; index: number }) => {
+  const renderGridItem = ({ item: post, index }: { item: BackendPost; index: number }) => {
     // Keep all items the same size for consistent grid layout
     const itemWidth = ITEM_SIZE;
     const itemHeight = ITEM_SIZE;
+
+    // Use first image or placeholder if no images
+    const imageUri = post.imageUrls && post.imageUrls.length > 0 
+      ? post.imageUrls[0] 
+      : 'https://via.placeholder.com/400x400?text=No+Image';
 
     return (
       <TouchableOpacity
@@ -97,39 +79,10 @@ const DiscoverScreen = () => {
         activeOpacity={0.9}
       >
         <Image
-          source={{ uri: post.images[0] }}
+          source={{ uri: imageUri }}
           style={styles.postImage}
           resizeMode="cover"
         />
-        
-        {/* Overlay with post info */}
-        <View style={styles.overlay}>
-          {/* Multiple images indicator */}
-          {post.images.length > 1 && (
-            <View style={styles.multipleImagesIndicator}>
-              <Ionicons name="copy-outline" size={16} color={colors.text.primaryInverted} />
-            </View>
-          )}
-          
-          {/* Likes indicator */}
-          <View style={styles.likesIndicator}>
-            <Ionicons name="heart" size={14} color={colors.text.primaryInverted} />
-            <Text style={styles.likesText}>{formatLikes(post.likes)}</Text>
-          </View>
-        </View>
-
-        {/* Store info overlay for featured posts */}
-        {(index === 0 || index % 9 === 0) && (
-          <View style={styles.storeOverlay}>
-            <Image
-              source={{ uri: post.storeAvatar }}
-              style={styles.storeAvatar}
-            />
-            <Text style={styles.storeName} numberOfLines={1}>
-              {post.storeName}
-            </Text>
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
@@ -137,13 +90,13 @@ const DiscoverScreen = () => {
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
-        <Ionicons name="compass-outline" size={24} color={colors.primary} style={styles.headerIcon} />
+        <Ionicons name="compass-outline" size={24} color={colors.primary.main} style={styles.headerIcon} />
         <Text style={styles.headerTitle}>Discover</Text>
       </View>
     </View>
   );
 
-  if (loading) {
+  if (isFetchingPosts && allPosts.length === 0) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         {renderHeader()}
@@ -167,7 +120,7 @@ const DiscoverScreen = () => {
     );
   }
 
-  if (posts.length === 0) {
+  if (allPosts.length === 0 && !isFetchingPosts) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         {renderHeader()}
@@ -183,8 +136,12 @@ const DiscoverScreen = () => {
           }
         >
           <Ionicons name="compass-outline" size={64} color={colors.text.tertiary} />
-          <Text style={styles.emptyTitle}>No posts available</Text>
-          <Text style={styles.emptySubtitle}>Check back later for new content from stores!</Text>
+          <Text style={styles.emptyTitle}>
+            {postsError ? 'Failed to load posts' : 'No posts available'}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            {postsError ? postsError : 'Check back later for new content from stores!'}
+          </Text>
         </ScrollView>
       </SafeAreaView>
     );
@@ -195,7 +152,7 @@ const DiscoverScreen = () => {
       {renderHeader()}
       
       <FlatList
-        data={posts}
+        data={allPosts}
         renderItem={renderGridItem}
         numColumns={GRID_COLUMNS}
         showsVerticalScrollIndicator={false}
@@ -209,6 +166,7 @@ const DiscoverScreen = () => {
           />
         }
         key={GRID_COLUMNS} // Force re-render when columns change
+        keyExtractor={(item) => item.id}
       />
     </SafeAreaView>
   );
@@ -255,60 +213,6 @@ const styles = StyleSheet.create({
   postImage: {
     width: '100%',
     height: '100%',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'space-between',
-    padding: spacing.sm,
-  },
-  multipleImagesIndicator: {
-    alignSelf: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: radii.xl,
-    padding: 4,
-  },
-  likesIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: radii.xl,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-  },
-  likesText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.primaryInverted,
-    marginLeft: 4,
-    fontWeight: typography.fontWeights.semibold,
-  },
-  storeOverlay: {
-    position: 'absolute',
-    bottom: spacing.sm,
-    left: spacing.sm,
-    right: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    borderRadius: radii.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  storeAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: radii.full,
-    marginRight: spacing.xs,
-  },
-  storeName: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.primaryInverted,
-    fontWeight: typography.fontWeights.semibold,
-    flex: 1,
   },
   // Loading states
   loadingContainer: {

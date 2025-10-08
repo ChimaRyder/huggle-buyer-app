@@ -7,6 +7,7 @@ export interface CartItem {
   quantity: number;
   storeId: string;
   storeName: string;
+  storeProfileImage?: string;
   category?: string;
   isActive?: boolean;
   expiresAt?: string;
@@ -59,6 +60,5 @@ export interface Order {
   total: number;
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
   createdAt: string;
-  deliveryAddress: string;
   estimatedDeliveryTime: string;
 }

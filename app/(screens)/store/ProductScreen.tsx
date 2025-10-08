@@ -10,9 +10,11 @@ import {
   Modal,
   Animated,
   RefreshControl,
+  TextInput,
 } from "react-native";
 import SafeImage from "@/components/common/SafeImage";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
 import { ReviewCard } from "@/components/review";
@@ -21,6 +23,9 @@ import { useCart } from '@/context/CartContext';
 import { CartItem } from '@/data/food/models';
 import { genericProductToCartItem } from '@/utils/cartHelpers';
 import AddToCartModal from '@/components/cart/AddToCartModal';
+import { fetchReviews } from '@/utils/reviews';
+import { submitProductReport } from '@/utils/reports';
+import { BackendReview } from '@/types/BackendModels';
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -99,6 +104,7 @@ const ProductSkeleton = () => {
 export default function ProductScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { getToken, userId } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [drawerAction, setDrawerAction] = useState<'cart' | 'order' | null>(null);
@@ -110,6 +116,17 @@ export default function ProductScreen() {
   const imageScrollViewRef = useRef(null);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   
+  // Report modal state
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
+  
+  // Reviews state
+  const [reviews, setReviews] = useState<BackendReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+  
   const {
     currentProduct,
     isFetchingProduct,
@@ -120,24 +137,51 @@ export default function ProductScreen() {
   
   const { addItem } = useCart();
   
+  // Function to fetch reviews
+  const fetchProductReviews = async (productId: string) => {
+    try {
+      setReviewsLoading(true);
+      setReviewsError(null);
+      const token = await getToken({template: "seller_app"});
+      console.log('🔍 ProductScreen: Fetching reviews for product:', productId);
+      
+      const response = await fetchReviews(token, { productId });
+      
+      if (response && response.data) {
+        const reviewsData = Array.isArray(response.data) ? response.data : [];
+        setReviews(reviewsData);
+        console.log('✅ ProductScreen: Successfully fetched', reviewsData.length, 'reviews');
+      } else {
+        setReviews([]);
+        console.log('📭 ProductScreen: No reviews found');
+      }
+    } catch (error) {
+      console.error('❌ ProductScreen: Error fetching reviews:', error);
+      setReviewsError(error instanceof Error ? error.message : 'Failed to load reviews');
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+  
   useEffect(() => {
     if (id && typeof id === 'string') {
       console.log('🔍 ProductScreen: Fetching product with ID:', id);
       fetchProductById(id);
+      fetchProductReviews(id); // Fetch reviews too
       setCurrentImageIndex(0); // Reset image carousel
     }
     
     // Cleanup when component unmounts or ID changes
     return () => {
       clearCurrentProduct();
+      setReviews([]);
+      setReviewsError(null);
     };
   }, [id, fetchProductById, clearCurrentProduct]);
 
   // TODO: Fetch store details from API
   const store = null;
-
-  // TODO: Fetch reviews from API  
-  const mockReviews: any[] = [];
 
   // Loading and error states
   if (isFetchingProduct) {
@@ -175,8 +219,8 @@ export default function ProductScreen() {
   });
 
   // Calculate average rating
-  const averageRating = mockReviews.length > 0 
-    ? (mockReviews.reduce((sum, review) => sum + review.rating, 0) / mockReviews.length).toFixed(1)
+  const averageRating = reviews.length > 0 
+    ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
     : "0.0";
 
   const handleRefresh = async () => {
@@ -184,10 +228,13 @@ export default function ProductScreen() {
     
     setRefreshing(true);
     try {
-      await fetchProductById(id);
-      console.log('✅ ProductScreen: Successfully refreshed product data');
+      await Promise.all([
+        fetchProductById(id),
+        fetchProductReviews(id)
+      ]);
+      console.log('✅ ProductScreen: Successfully refreshed product and reviews data');
     } catch (error) {
-      console.error('❌ ProductScreen: Error refreshing product:', error);
+      console.error('❌ ProductScreen: Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
@@ -261,17 +308,9 @@ export default function ProductScreen() {
         console.log('✅ ProductScreen: Successfully added to cart');
         setShowAddToCartModal(true);
       } else if (drawerAction === 'order') {
-        // Order now logic - add to cart then navigate to checkout
-        const cartItem = genericProductToCartItem(currentProduct, quantity);
+        // Order now logic - navigate directly to checkout WITHOUT adding to cart
+        console.log('🚚 ProductScreen: Order now - bypassing cart, going directly to checkout');
         
-        console.log('🚚 ProductScreen: Created cart item for order now', {
-          cartItem
-        });
-        
-        console.log('📡 ProductScreen: Calling addItem for order now...');
-        await addItem(cartItem);
-        
-        console.log('✅ ProductScreen: Successfully added to cart, navigating to order review');
         // Close drawer first, then navigate
         closeDrawer();
         // Navigate directly to OrderReviewScreen for immediate checkout
@@ -288,7 +327,8 @@ export default function ProductScreen() {
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add item to cart';
+      const errorMessage = error instanceof Error ? error.message : 
+        drawerAction === 'cart' ? 'Failed to add item to cart' : 'Failed to process order';
       console.error('❌ ProductScreen: confirmAction failed', {
         error: errorMessage,
         errorStack: error instanceof Error ? error.stack : undefined,
@@ -330,8 +370,42 @@ export default function ProductScreen() {
     // Use Math.round for more accurate positioning
     const newIndex = Math.round(calculatedIndex);
     // Ensure index is within bounds
-    const clampedIndex = Math.min(Math.max(newIndex, 0), mockReviews.length - 1);
+    const clampedIndex = Math.min(Math.max(newIndex, 0), reviews.length - 1);
     setCurrentReviewIndex(clampedIndex);
+  };
+  
+  const handleReport = async () => {
+    if (!reportReason) {
+      alert("Please select a reason for reporting.");
+      return;
+    }
+    
+    if (!currentProduct || !userId) {
+      alert("Unable to submit report. Please try again.");
+      return;
+    }
+    
+    setReportLoading(true);
+    try {
+      const token = await getToken({ template: "seller_app" });
+      
+      await submitProductReport(
+        userId,
+        currentProduct.id,
+        reportReason,
+        reportDescription,
+        token
+      );
+      
+      setShowReportModal(false);
+      setReportReason("");
+      setReportDescription("");
+      alert("Report submitted. Thank you for helping keep Huggle safe.");
+    } catch (err: any) {
+      alert(err.message || "Failed to submit report.");
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   return (
@@ -395,6 +469,14 @@ export default function ProductScreen() {
             onPress={() => router.back()}
           >
             <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          
+          {/* Report button overlay */}
+          <TouchableOpacity 
+            style={styles.reportButton}
+            onPress={() => setShowReportModal(true)}
+          >
+            <Ionicons name="flag-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -471,41 +553,69 @@ export default function ProductScreen() {
           
           {/* Reviews carousel */}
           <View style={styles.reviewsCarouselContainer}>
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onScroll={handleReviewScroll}
-              ref={scrollViewRef}
-              scrollEventThrottle={16}
-            >
-              {mockReviews.map((review) => (
-                <View key={review.id} style={styles.reviewSlide}>
-                  <ReviewCard 
-                    buyerId={review.buyerId}
-                    reviewerName={review.buyerName}
-                    message={review.content}
-                    rating={review.rating}
-                    imageUrls={review.imageUrls || []}
-                    createdAt={review.createdAt}
-                    showExpandButton={true}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-            
-            {/* Carousel indicators */}
-            <View style={styles.indicatorsContainer}>
-              {mockReviews.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.indicator,
-                    index === currentReviewIndex && styles.activeIndicator,
-                  ]}
-                />
-              ))}
-            </View>
+            {reviewsLoading ? (
+              <View style={styles.reviewsLoadingContainer}>
+                <ActivityIndicator size="small" color={colors.primary.main} />
+                <Text style={styles.reviewsLoadingText}>Loading reviews...</Text>
+              </View>
+            ) : reviewsError ? (
+              <View style={styles.reviewsErrorContainer}>
+                <Ionicons name="alert-circle-outline" size={24} color={colors.error} />
+                <Text style={styles.reviewsErrorText}>{reviewsError}</Text>
+                <TouchableOpacity 
+                  style={styles.retryButton}
+                  onPress={() => id && fetchProductReviews(id as string)}
+                >
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : reviews.length === 0 ? (
+              <View style={styles.noReviewsContainer}>
+                <Ionicons name="chatbubble-outline" size={32} color={colors.text.tertiary} />
+                <Text style={styles.noReviewsText}>No reviews yet</Text>
+                <Text style={styles.noReviewsSubtext}>Be the first to review this product!</Text>
+              </View>
+            ) : (
+              <>
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onScroll={handleReviewScroll}
+                  ref={scrollViewRef}
+                  scrollEventThrottle={16}
+                >
+                  {reviews.map((review) => (
+                    <View key={review.id} style={styles.reviewSlide}>
+                      <ReviewCard 
+                        buyerId={review.buyerId}
+                        reviewerName={review.buyerName}
+                        message={review.content}
+                        rating={review.rating}
+                        imageUrls={review.imageUrls || []}
+                        createdAt={review.createdAt}
+                        showExpandButton={true}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+                
+                {/* Carousel indicators */}
+                {reviews.length > 1 && (
+                  <View style={styles.indicatorsContainer}>
+                    {reviews.map((_, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.indicator,
+                          index === currentReviewIndex && styles.activeIndicator,
+                        ]}
+                      />
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -664,6 +774,81 @@ export default function ProductScreen() {
         }}
         onClose={() => setShowAddToCartModal(false)}
       />
+      
+      {/* Report Modal */}
+      <Modal
+        visible={showReportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.reportModalOverlay}>
+          <View style={styles.reportModalContainer}>
+            <Text style={styles.reportModalTitle}>Report Product</Text>
+            
+            <Text style={styles.reportModalLabel}>Reason</Text>
+            <View style={styles.reportReasonContainer}>
+              {["Inappropriate", "Fraud", "Spam", "Other"].map((reason) => (
+                <TouchableOpacity
+                  key={reason}
+                  style={[
+                    styles.reportReasonButton,
+                    {
+                      backgroundColor:
+                        reportReason === reason ? colors.primary.main : colors.background.secondary,
+                    }
+                  ]}
+                  onPress={() => setReportReason(reason)}
+                >
+                  <Text
+                    style={[
+                      styles.reportReasonText,
+                      {
+                        color: reportReason === reason ? colors.text.inverse : colors.text.primary
+                      }
+                    ]}
+                  >
+                    {reason}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            <Text style={styles.reportModalLabel}>Description (optional)</Text>
+            <TextInput
+              style={styles.reportTextInput}
+              multiline
+              numberOfLines={3}
+              value={reportDescription}
+              onChangeText={setReportDescription}
+              placeholder="Describe the issue..."
+              placeholderTextColor={colors.text.secondary}
+            />
+            
+            <TouchableOpacity
+              style={[
+                styles.reportSubmitButton,
+                {
+                  backgroundColor: reportLoading ? colors.text.secondary : colors.primary.main
+                }
+              ]}
+              onPress={handleReport}
+              disabled={reportLoading}
+            >
+              <Text style={styles.reportSubmitButtonText}>
+                {reportLoading ? "Submitting..." : "Submit Report"}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.reportCancelButton}
+              onPress={() => setShowReportModal(false)}
+            >
+              <Text style={styles.reportCancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -726,6 +911,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 50,
     left: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: 20,
+    padding: 10,
+  },
+  reportButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
     backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 20,
     padding: 10,
@@ -1101,5 +1294,132 @@ const styles = StyleSheet.create({
   confirmButtonDisabled: {
     backgroundColor: colors.background.secondary,
     opacity: 0.5,
+  },
+  // Reviews loading/error states
+  reviewsLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    gap: 10,
+  },
+  reviewsLoadingText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  reviewsErrorContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+  },
+  reviewsErrorText: {
+    fontSize: 14,
+    color: colors.error,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  retryButtonText: {
+    color: colors.text.inverse,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  noReviewsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  noReviewsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  noReviewsSubtext: {
+    fontSize: 14,
+    color: colors.text.tertiary,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  // Report Modal styles
+  reportModalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  reportModalContainer: {
+    backgroundColor: colors.background.tertiary,
+    borderRadius: 16,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  reportModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text.primary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  reportModalLabel: {
+    fontSize: 16,
+    color: colors.text.primary,
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  reportReasonContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  reportReasonButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  reportReasonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  reportTextInput: {
+    minHeight: 80,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: 8,
+    marginBottom: 20,
+    fontSize: 16,
+    color: colors.text.primary,
+    textAlignVertical: 'top',
+  },
+  reportSubmitButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  reportSubmitButtonText: {
+    fontSize: 16,
+    color: colors.text.inverse,
+    fontWeight: '600',
+  },
+  reportCancelButton: {
+    alignItems: 'center',
+  },
+  reportCancelButtonText: {
+    fontSize: 16,
+    color: colors.primary.main,
+    fontWeight: '600',
   },
 });

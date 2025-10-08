@@ -13,6 +13,7 @@ interface ReviewCardProps {
   showExpandButton?: boolean;
   isCompact?: boolean;
   productName?: string;
+  highlightMedia?: boolean; // Whether to highlight media presence when filtering
 }
 
 const { width } = Dimensions.get('window');
@@ -27,6 +28,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   showExpandButton = false,
   isCompact = false,
   productName,
+  highlightMedia = false,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
@@ -74,20 +76,28 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               )}
             </View>
             
-            {/* Rating */}
-            <View
-              style={styles.ratingContainer}
-              accessibilityRole="text"
-              accessibilityLabel={`Rating: ${rating} out of 5`}
-            >
-              <FontAwesome
-                name="star"
-                size={16}
-                color={colors.warning}
-                style={styles.star}
-                accessibilityLabel="Star icon"
-              />
-              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+            {/* Rating and Media Indicator */}
+            <View style={styles.ratingSection}>
+              {highlightMedia && imageUrls.length > 0 && (
+                <View style={styles.mediaIndicator}>
+                  <Ionicons name="camera" size={14} color={colors.primary.main} />
+                  <Text style={styles.mediaIndicatorText}>{imageUrls.length}</Text>
+                </View>
+              )}
+              <View
+                style={styles.ratingContainer}
+                accessibilityRole="text"
+                accessibilityLabel={`Rating: ${rating} out of 5`}
+              >
+                <FontAwesome
+                  name="star"
+                  size={16}
+                  color={colors.warning}
+                  style={styles.star}
+                  accessibilityLabel="Star icon"
+                />
+                <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+              </View>
             </View>
           </View>
 
@@ -246,6 +256,11 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     color: colors.text.secondary,
   },
+  ratingSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -257,6 +272,20 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colors.primary.main,
     fontWeight: "bold",
+  },
+  mediaIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primary.main + '15',
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 12,
+    gap: 2,
+  },
+  mediaIndicatorText: {
+    fontSize: fontSizes.xs,
+    color: colors.primary.main,
+    fontWeight: "600",
   },
   productNameContainer: {
     flexDirection: "row",

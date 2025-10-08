@@ -10,10 +10,12 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { CreateBuyerAccount } from "../../utils/user"; // Adjust the import path as necessary
+import { CreateBuyerAccount } from "../../utils/user";
 import { registerForPushNotificationsAsync } from "@/utils/Notifications";
 import { addPushToken } from "@/utils/pushToken";
 import { ShoppingBag } from "lucide-react-native";
+import { useApi } from "@/context/ApiContext";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -22,19 +24,32 @@ export default function AuthScreen() {
   const [status, setStatus] = useState("Checking user information...");
   const theme = useTheme();
   const { getToken } = useAuth();
+  const { client: apiClient } = useApi();
 
   const registerAndFetchToken = async () => {
-    const pToken = await registerForPushNotificationsAsync().catch((err) => {});
-    const token = await getToken({ template: "seller_app" });
-    if (user && pToken) {
-      await addPushToken(
-        {
-          userId: user.id,
-          pushToken: pToken,
-          isActive: true,
-        },
-        token
-      );
+    try {
+      console.log('📱 AuthScreen: Starting push token registration...');
+      const pToken = await registerForPushNotificationsAsync();
+      
+      if (user && pToken) {
+        console.log('📱 AuthScreen: Got push token, registering with backend...');
+        const response = await addPushToken(apiClient, { token: pToken });
+        
+        if (response.success) {
+          console.log('✅ AuthScreen: Push token registered successfully');
+          // Store the token ID for later deactivation
+          if (response.data && response.data.Id) {
+            await AsyncStorage.setItem('pushTokenId', response.data.Id);
+            console.log('💾 AuthScreen: Stored push token ID for future use');
+          }
+        } else {
+          console.error('❌ AuthScreen: Failed to register push token:', response.error);
+        }
+      } else {
+        console.log('⚠️ AuthScreen: No push token or user available');
+      }
+    } catch (error) {
+      console.error('❌ AuthScreen: Error in push token registration:', error);
     }
   };
 

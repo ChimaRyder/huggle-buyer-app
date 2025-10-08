@@ -6,20 +6,34 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '@/constants/theme';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const SettingsScreen = () => {
   const router = useRouter();
-  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
+  const { preferences: pushNotificationPrefs, updatePreferences: updatePushNotifications } = usePushNotifications();
   const [locationEnabled, setLocationEnabled] = React.useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
 
   const handleBackPress = () => {
     router.back();
+  };
+
+  const handlePushNotificationToggle = async (enabled: boolean) => {
+    try {
+      await updatePushNotifications(enabled);
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Failed to update push notification preferences. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const settingsItems = [
@@ -28,9 +42,10 @@ const SettingsScreen = () => {
       title: 'Push Notifications',
       subtitle: 'Receive order updates and promotions',
       type: 'toggle',
-      value: notificationsEnabled,
-      onToggle: setNotificationsEnabled,
+      value: pushNotificationPrefs.isEnabled,
+      onToggle: handlePushNotificationToggle,
       icon: 'notifications-outline',
+      isLoading: pushNotificationPrefs.isLoading,
     },
     {
       id: 'location',
@@ -102,11 +117,15 @@ const SettingsScreen = () => {
               <Switch
                 value={item.value}
                 onValueChange={item.onToggle}
+                disabled={item.isLoading || false}
                 trackColor={{
                   false: colors.border.secondary,
                   true: colors.primary,
                 }}
                 thumbColor={colors.background.primary}
+                style={{
+                  opacity: (item.isLoading || false) ? 0.6 : 1,
+                }}
               />
             </View>
           ))}

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -9,19 +8,18 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Layout, Text } from "@ui-kitten/components";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { OrderCard } from "@/components/order";
-import { ConfirmationModal } from "@/components/common";
+import { ConfirmationModal, PageTitle } from "@/components/common";
 import { colors, spacing, typography } from "@/constants/theme";
 import {
   BackendOrder,
   OrderStatus,
 } from "@/types/BackendModels";
-import { OrderService, OrderApiResponse } from "@/services/orderService";
-import { useApi } from "@/context/ApiContext";
+import { useOrderContext } from "@/context/OrderContext";
 
 interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
   productName?: string;
@@ -41,132 +39,32 @@ interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
 
 const Orders = () => {
   const router = useRouter();
-  const { client } = useApi();
-  const orderService = new OrderService(client);
+  const { 
+    orders: contextOrders, 
+    isFetching, 
+    error: contextError, 
+    refreshOrders,
+    cancelOrder: contextCancelOrder,
+    canCancelOrder: contextCanCancelOrder,
+  } = useOrderContext();
 
-  const handleBackPress = () => {
-    router.back();
-  };
   const [selectedTab, setSelectedTab] = useState<
     "Pending" | "Confirmed" | "Ready for Pickup" | "Completed" | "Cancelled"
   >("Pending");
-  const [orders, setOrders] = useState<EnrichedOrder[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [orderToCancel, setOrderToCancel] = useState<EnrichedOrder | null>(
-    null
-  );
+  const [orderToCancel, setOrderToCancel] = useState<any>(null);
   const [cancelling, setCancelling] = useState(false);
-
-  useEffect(() => {
-    loadOrders();
-  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      if (!loading) {
-        loadOrders();
-      }
-    }, [loading])
+      refreshOrders();
+    }, [])
   );
-
-  const loadOrders = async () => {
-    try {
-      setError(null);
-      
-      // Fetch orders from API
-      const response = await orderService.getOrders();
-      
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to load orders');
-      }
-
-      // Convert API response to frontend format and enrich with additional data
-      const enrichedOrders = response.data.map((apiOrder) => {
-        try {
-          // Convert API order to frontend format
-          const frontendOrder = orderService.convertApiOrderToFrontend(apiOrder);
-          
-          // Support multiple products per order from API items
-          const items = apiOrder.items.map((item) => ({
-            image: item.productImage || require("@/assets/images/sample-store.jpg"),
-            name: item.productName || "Unknown Product",
-            price: `₱${Number(item.unitPrice).toFixed(2)}`,
-            quantity: item.quantity,
-          }));
-
-          // Compose total price
-          const totalPrice = `₱${apiOrder.totalAmount.toFixed(2)}`;
-
-          // Compose product name for single/multi
-          let productName = "Unknown Product";
-          if (apiOrder.items.length === 1) {
-            productName = apiOrder.items[0].productName || "Unknown Product";
-          } else if (apiOrder.items.length > 1) {
-            const firstName = apiOrder.items[0].productName || "Unknown Product";
-            productName = `${firstName} + ${apiOrder.items.length - 1} more`;
-          }
-
-          // Compose description for single/multi
-          let description = "";
-          if (apiOrder.items.length === 1) {
-            description = `Quantity: ${apiOrder.items[0].quantity}`;
-          } else {
-            description = `${apiOrder.items.length} items`;
-          }
-
-          return {
-            ...frontendOrder,
-            productName,
-            productImage: items[0]?.image,
-            storeName: apiOrder.storeName || "Unknown Store",
-            storeLocation: apiOrder.deliveryAddress || "Unknown Location",
-            formattedDate: formatOrderDate(apiOrder.createdAt),
-            description,
-            items,
-            totalPrice,
-          };
-        } catch (error) {
-          console.error(`Error enriching order ${apiOrder.id}:`, error);
-          return {
-            id: apiOrder.id,
-            buyerId: apiOrder.buyerId,
-            storeId: apiOrder.storeId,
-            storeName: apiOrder.storeName || "Unknown Store",
-            productId: [],
-            productNames: [],
-            quantity: [],
-            unitPrices: [],
-            totalPrice: apiOrder.totalAmount,
-            createdAt: apiOrder.createdAt,
-            updatedAt: apiOrder.updatedAt || apiOrder.createdAt,
-            status: orderService.convertApiOrderToFrontend(apiOrder).status,
-            deliveryAddress: apiOrder.deliveryAddress,
-            notes: apiOrder.notes,
-            productName: "Unknown Product",
-            productImage: require("@/assets/images/sample-store.jpg"),
-            storeLocation: "Unknown Location",
-            formattedDate: formatOrderDate(apiOrder.createdAt),
-            description: "",
-            items: [],
-          };
-        }
-      });
-
-      setOrders(enrichedOrders);
-    } catch (error) {
-      console.error("Error loading orders:", error);
-      setError("Failed to load orders. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadOrders();
+    await refreshOrders();
     setRefreshing(false);
   };
 
@@ -214,9 +112,54 @@ const Orders = () => {
     }
   };
 
-  const filtered = orders.filter(
+  // Transform context orders to enriched format
+  const enrichedOrders = contextOrders.map((order) => {
+    // Support multiple products per order from API items
+    const items = order.items?.map((item) => ({
+      image: item.productImage ? { uri: item.productImage } : require("@/assets/images/sample-store.jpg"),
+      name: item.productName || "Unknown Product",
+      price: `₱${Number(item.unitPrice).toFixed(2)}`,
+      quantity: item.quantity,
+    })) || [];
+
+    // Compose total price
+    const totalPrice = `₱${(order.totalAmount || 0).toFixed(2)}`;
+
+    // Compose product name for single/multi
+    let productName = "Unknown Product";
+    if (order.items?.length === 1) {
+      productName = order.items[0].productName || "Unknown Product";
+    } else if (order.items && order.items.length > 1) {
+      const firstName = order.items[0].productName || "Unknown Product";
+      productName = `${firstName} + ${order.items.length - 1} more`;
+    }
+
+    // Compose description for single/multi
+    let description = "";
+    if (order.items?.length === 1) {
+      description = `Quantity: ${order.items[0].quantity}`;
+    } else if (order.items) {
+      description = `${order.items.length} items`;
+    }
+
+    return {
+      ...order,
+      productName,
+      productImage: items[0]?.image || (order.items?.[0]?.productImage ? { uri: order.items[0].productImage } : require("@/assets/images/sample-store.jpg")),
+      storeName: order.storeName || "Unknown Store",
+      storeLocation: "Unknown Location",
+      formattedDate: formatOrderDate(order.createdAt),
+      description,
+      items,
+      totalPrice,
+      storeId: order.storeId, // Ensure store ID is preserved for grouping
+    };
+  });
+
+  const filtered = enrichedOrders.filter(
     (order) => getStatusFromEnum(order.status) === selectedTab
   );
+
 
   const handleOrderPress = (order: EnrichedOrder) => {
     router.push({
@@ -234,23 +177,10 @@ const Orders = () => {
     try {
       setCancelling(true);
       
-      // Cancel order via API
-      const response = await orderService.cancelOrder(orderToCancel.id, {
+      // Cancel order via OrderContext
+      await contextCancelOrder(orderToCancel.id, {
         reason: 'Cancelled by buyer'
       });
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to cancel order');
-      }
-
-      // Update order status in local state
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderToCancel.id
-            ? { ...order, status: OrderStatus.Cancelled }
-            : order
-        )
-      );
 
       setShowCancelModal(false);
       setOrderToCancel(null);
@@ -286,89 +216,78 @@ const Orders = () => {
     setShowCancelModal(true);
   };
 
-  if (loading) {
+  const handleReviewItems = (order: EnrichedOrder) => {
+    router.push({
+      pathname: "/(screens)/order/OrderItemsReviewScreen" as any,
+      params: {
+        orderId: order.id,
+      },
+    });
+  };
+
+
+  if (isFetching && contextOrders.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Orders</Text>
-          <View style={styles.headerPlaceholder} />
-        </View>
-        
+      <Layout style={styles.container}>
+        <PageTitle title="Orders" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={styles.loadingText}>Loading your orders...</Text>
         </View>
-      </SafeAreaView>
+      </Layout>
     );
   }
 
-  if (error) {
+  if (contextError && contextOrders.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Orders</Text>
-          <View style={styles.headerPlaceholder} />
-        </View>
-        
+      <Layout style={styles.container}>
+        <PageTitle title="Orders" />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadOrders}>
+          <Text style={styles.errorText}>{contextError}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={refreshOrders}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </Layout>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Orders</Text>
-        <View style={styles.headerPlaceholder} />
-      </View>
+    <Layout style={styles.container}>
+      <PageTitle title="Orders" />
 
       {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      <View style={styles.tabsContainer}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabsScrollContainer}
+          style={styles.tabsScroll}
         >
-          {["Pending", "Confirmed", "Ready for Pickup", "Completed", "Cancelled"].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tab,
-                selectedTab === tab && styles.activeTab,
-              ]}
-              onPress={() => setSelectedTab(tab)}
-            >
-              <Text
+            {["Pending", "Confirmed", "Ready for Pickup", "Completed", "Cancelled"].map((tab) => (
+              <TouchableOpacity
+                key={tab}
                 style={[
-                  styles.tabText,
-                  selectedTab === tab && styles.activeTabText,
+                  styles.tab,
+                  selectedTab === tab && styles.activeTab,
                 ]}
+                onPress={() => setSelectedTab(tab)}
               >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.tabText,
+                    selectedTab === tab && styles.activeTabText,
+                  ]}
+                >
+                  {tab}
+                </Text>
+              </TouchableOpacity>
+            ))}
         </ScrollView>
       </View>
 
         <ScrollView
+          style={styles.contentScrollView}
           contentContainerStyle={styles.scrollContainer}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -391,6 +310,7 @@ const Orders = () => {
                 key={order.id}
                 onPress={() => handleOrderPress(order)}
                 style={styles.orderCardContainer}
+                activeOpacity={0.8}
               >
                 <OrderCard
                   order={{
@@ -419,6 +339,8 @@ const Orders = () => {
                   }}
                   showCancelButton={canCancelOrder(order.status)}
                   onCancel={() => handleCancelPress(order)}
+                  showReviewButton={order.status === OrderStatus.Completed}
+                  onReviewItems={() => handleReviewItems(order)}
                 />
               </TouchableOpacity>
             ))
@@ -439,7 +361,7 @@ const Orders = () => {
         }}
         loading={cancelling}
       />
-    </SafeAreaView>
+    </Layout>
   );
 };
 
@@ -448,119 +370,100 @@ export default Orders;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.tertiary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
     backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.primary,
   },
-  backButton: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerPlaceholder: {
-    width: 24, // Same width as icons for centering
-  },
-  headerTitle: {
-    fontSize: typography.fontSizes.xxl,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.primary,
-  },
-  tabContainer: {
+  tabsContainer: {
     backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.primary,
+  },
+  contentScrollView: {
+    flex: 1,
   },
   tabsScrollContainer: {
-    flexDirection: "row",
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  tabsScroll: {
+    marginBottom: 27,
+    minHeight: 56,
   },
   tab: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 2,
+    borderBottomColor: "#104911",
+    paddingBottom: 8,
+    marginHorizontal: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    minHeight: 48,
+    justifyContent: "center",
     alignItems: "center",
-    minWidth: 80,
   },
   activeTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: colors.primary,
+    borderBottomColor: "#F9A620",
   },
   tabText: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.secondary,
-    fontWeight: typography.fontWeights.medium,
+    color: "#104911",
+    fontWeight: "bold",
   },
   activeTabText: {
-    color: colors.primary,
-    fontWeight: typography.fontWeights.semibold,
+    color: "#F9A620",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: spacing.xl,
+    padding: 20,
   },
   loadingText: {
-    marginTop: spacing.sm,
-    fontSize: typography.fontSizes.lg,
-    color: colors.text.secondary,
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: spacing.xl,
+    padding: 20,
   },
   errorText: {
-    fontSize: typography.fontSizes.lg,
-    color: colors.text.danger,
+    fontSize: 16,
+    color: "#d32f2f",
     textAlign: "center",
-    marginBottom: spacing.xl,
+    marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
+    backgroundColor: "#548C2F",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: colors.text.inverse,
-    fontWeight: typography.fontWeights.bold,
+    color: "white",
+    fontWeight: "bold",
   },
   scrollContainer: {
-    paddingTop: spacing.lg,
     paddingBottom: 120,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.background.tertiary,
   },
   orderCardContainer: {
-    marginBottom: spacing.md,
+    marginBottom: 0,
   },
   emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
     alignItems: "center",
-    paddingTop: spacing.xxxl,
-    paddingHorizontal: spacing.xl,
+    paddingTop: 100,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   emptyText: {
-    fontSize: typography.fontSizes.xl,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.text.secondary,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#666",
     textAlign: "center",
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: typography.fontSizes.md,
-    color: colors.text.tertiary,
+    fontSize: 14,
+    color: "#999",
     textAlign: "center",
   },
 });

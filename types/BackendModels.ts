@@ -187,7 +187,6 @@ export interface BackendOrder {
   updatedAt: string;
   status: OrderStatus;
   paymentStatus?: PaymentStatus;
-  deliveryAddress?: string;
   deliveryDate?: string;
   notes?: string;
 }
@@ -198,7 +197,6 @@ export interface CreateOrderRequest {
     productId: string;
     quantity: number;
   }>;
-  deliveryAddress?: string;
   notes?: string;
 }
 
@@ -268,6 +266,55 @@ export enum NotificationType {
   System = 'system',
 }
 
+// Post related interfaces
+export interface BackendPost {
+  id: string;
+  sellerId: string;
+  sellerName?: string;
+  storeId: string;
+  storeName?: string;
+  content?: string;
+  imageUrls: string[];
+  likeCount: number;
+  isLiked: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePostRequest {
+  content?: string;
+  imageUrls?: string[];
+  storeId?: string;
+}
+
+export interface UpdatePostRequest {
+  content?: string;
+  imageUrls?: string[];
+}
+
+// Push token related interfaces
+export interface BackendPushToken {
+  id: string;
+  userId: string;
+  token: string;
+  deviceType: string;
+  deviceId?: string;
+  appVersion?: string;
+  isActive: boolean;
+  lastUsedAt?: string;
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RegisterPushTokenRequest {
+  token: string;
+}
+
+export interface UpdatePushTokenStatusRequest {
+  isActive: boolean;
+}
+
 // API Response types
 export type ProductsResponse = ApiResponse<BackendProduct[]>;
 export type ProductResponse = ApiResponse<BackendProduct>;
@@ -280,3 +327,7 @@ export type OrderResponse = ApiResponse<BackendOrder>;
 export type CartResponse = ApiResponse<BackendCartItem[]>;
 export type BuyerResponse = ApiResponse<BackendBuyer>;
 export type NotificationsResponse = ApiResponse<BackendNotification[]>;
+export type PostsResponse = ApiResponse<BackendPost[]>;
+export type PostResponse = ApiResponse<BackendPost>;
+export type PushTokenResponse = ApiResponse<BackendPushToken>;
+export type PushTokensResponse = ApiResponse<BackendPushToken[]>;

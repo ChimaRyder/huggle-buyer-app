@@ -1,14 +1,17 @@
 import { API_BASE_URL } from "./constants";
+import type { BackendPost } from '@/types/BackendModels';
 
-// Fetch all posts from the backend
-// TODO ADD product type prop and add it to params para sa homepage
-export const fetchPosts = async (token: string | null = null) => {
+/**
+ * @deprecated Use PostContext instead
+ * Fetch all posts from the backend
+ */
+export const fetchPosts = async (token: string | null = null, page: number = 1, pageSize: number = 20) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/products/display/posts`, {
+    const response = await fetch(`${API_BASE_URL}/api/posts?page=${page}&pageSize=${pageSize}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
     if (!response.ok) {
@@ -16,7 +19,7 @@ export const fetchPosts = async (token: string | null = null) => {
     }
     return await response.json();
   } catch (error) {
-    console.error("Error fetching posts yawa:", error);
+    console.error("Error fetching posts:", error);
     throw error;
   }
 };
@@ -50,14 +53,17 @@ export const getPostsByStoreId = async (
   }
 };
 
-// Like a post
+/**
+ * @deprecated Use PostContext instead
+ * Like a post
+ */
 export const likePost = async (postId: string, token: string | null = null) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/like`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
     if (!response.ok) {
@@ -70,7 +76,10 @@ export const likePost = async (postId: string, token: string | null = null) => {
   }
 };
 
-// Unlike a post
+/**
+ * @deprecated Use PostContext instead
+ * Unlike a post
+ */
 export const unlikePost = async (
   postId: string,
   token: string | null = null
@@ -80,7 +89,7 @@ export const unlikePost = async (
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
     if (!response.ok) {
@@ -93,26 +102,7 @@ export const unlikePost = async (
   }
 };
 
-// Check if post is liked by current user
-export const isPostLiked = async (
-  postId: string,
-  token: string | null = null
-) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/like`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
-    }
-    const data = await response.json();
-    return data.liked;
-  } catch (error) {
-    console.error("Error checking if post is liked:", error);
-    throw error;
-  }
-};
+/**
+ * @deprecated The backend now includes isLiked status in post data
+ * @note This function is no longer needed as posts include like status
+ */

@@ -13,9 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '@/context/CartContext';
-import { useApi } from '@/context/ApiContext';
 import { useStoreContext } from '@/context/StoreContext';
-import { OrderService, CreateOrderRequest } from '@/services/orderService';
+import { useOrderContext } from '@/context/OrderContext';
 import SafeImage from '@/components/common/SafeImage';
 import { colors, spacing, typography } from '@/constants/theme';
 
@@ -27,6 +26,8 @@ interface OrderItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  storeId?: string;
+  storeName?: string;
 }
 
 
@@ -41,22 +42,25 @@ const OrderReviewScreen = () => {
     quantity?: string;
   }>();
   const { selectedItems, selectedTotal, clearCart, items } = useCart();
-  const { client } = useApi();
   const { currentStore, fetchStoreById, isFetchingStore } = useStoreContext();
-  const orderService = new OrderService(client);
+  const { createOrder, isCreating, error: orderError } = useOrderContext();
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   useEffect(() => {
+    console.log('OrderReviewScreen: Loading order data, storeId:', storeId);
     loadOrderData();
     if (storeId) {
       fetchStoreById(storeId);
     }
   }, [storeId]);
+
+  useEffect(() => {
+    console.log('OrderReviewScreen: orderItems updated:', orderItems.length, 'items');
+    console.log('OrderReviewScreen: calculateTotal():', calculateTotal());
+  }, [orderItems]);
 
   const loadOrderData = () => {
     let items: OrderItem[] = [];
@@ -84,6 +88,8 @@ const OrderReviewScreen = () => {
         quantity: item.quantity,
         unitPrice: item.price,
         totalPrice: item.price * item.quantity,
+        storeId: item.storeId,
+        storeName: item.storeName,
       }));
     }
     
@@ -100,40 +106,44 @@ const OrderReviewScreen = () => {
       return;
     }
 
-    setIsCreatingOrder(true);
     try {
       // Create order request
-      const orderRequest: CreateOrderRequest = {
-        storeId: storeInfo?.id || storeId || '',
+      const orderRequest = {
+        storeId: currentStore?.id || storeId || '',
         items: orderItems.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
         })),
-        deliveryAddress: deliveryAddress || undefined,
         notes: orderNotes || undefined,
       };
 
-      // Create order via API
-      const response = await orderService.createOrder(orderRequest);
+      console.log('🔍 OrderReviewScreen: Creating order with request:', orderRequest);
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to create order');
-      }
-
-      const createdOrder = response.data;
+      // Create order via OrderContext
+      const createdOrder = await createOrder(orderRequest);
+      
+      console.log('🔍 OrderReviewScreen: Order created successfully:', {
+        id: createdOrder.id,
+        totalAmount: createdOrder.totalAmount,
+        storeId: createdOrder.storeId,
+        status: createdOrder.status
+      });
       
       // Clear cart after successful order creation
       await clearCart();
 
       // Navigate to order confirmation with real order details
+      const orderParams = {
+        orderId: createdOrder.id || '',
+        storeName: createdOrder.storeName || currentStore?.name || 'Unknown Store',
+        totalAmount: createdOrder.totalAmount ? createdOrder.totalAmount.toString() : '0.00',
+      };
+      
+      console.log('🔍 OrderReviewScreen: Navigation params:', orderParams);
+      
       router.replace({
         pathname: '/(screens)/cart/OrderConfirmationScreen',
-        params: {
-          orderId: createdOrder.id,
-          storeName: createdOrder.storeName || storeInfo?.name || 'Unknown Store',
-          totalAmount: createdOrder.totalAmount.toString(),
-          estimatedTime: '25-35 minutes',
-        },
+        params: orderParams,
       });
     } catch (error: any) {
       console.error('Error creating order:', error);
@@ -142,16 +152,16 @@ const OrderReviewScreen = () => {
         error.message || 'There was an error creating your order. Please try again.',
         [{ text: 'OK' }]
       );
-    } finally {
-      setIsCreatingOrder(false);
     }
   };
 
   const calculateSubtotal = () => {
-    return orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    if (!orderItems.length) return 0;
+    return orderItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
   };
 
   const calculateTax = (subtotal: number) => {
+    if (!subtotal) return 0;
     return subtotal * 0.12; // 12% VAT
   };
 
@@ -161,7 +171,8 @@ const OrderReviewScreen = () => {
 
   const calculateSavedAmount = () => {
     // Mock saved amount - in real app this would be based on discounts/promos
-    return orderItems.reduce((sum, item) => sum + (item.unitPrice * 0.1 * item.quantity), 0);
+    if (!orderItems.length) return 0;
+    return orderItems.reduce((sum, item) => sum + ((item.unitPrice || 0) * 0.1 * (item.quantity || 0)), 0);
   };
 
   const calculateTotal = () => {
@@ -171,12 +182,121 @@ const OrderReviewScreen = () => {
     return subtotal + tax + deliveryFee;
   };
 
+  // Group order items by store
+  const groupOrderItemsByStore = () => {
+    const groupedItems: { [storeId: string]: { storeName: string; items: OrderItem[] } } = {};
+    
+    orderItems.forEach(item => {
+      const storeId = item.storeId || 'unknown';
+      const storeName = item.storeName || 'Unknown Store';
+      
+      if (!groupedItems[storeId]) {
+        groupedItems[storeId] = {
+          storeName,
+          items: []
+        };
+      }
+      
+      groupedItems[storeId].items.push(item);
+    });
+    
+    return groupedItems;
+  };
+
+  // Render order items grouped by store
+  const renderOrderItemsByStore = () => {
+    const groupedItems = groupOrderItemsByStore();
+    const storeIds = Object.keys(groupedItems);
+
+    if (storeIds.length === 0) {
+      return null;
+    }
+
+    if (storeIds.length === 1) {
+      // Single store - render without store headers
+      const storeData = groupedItems[storeIds[0]];
+      return storeData.items.map((item) => (
+        <View key={item.id} style={styles.orderItem}>
+          <SafeImage 
+            source={{ uri: item.productImage }}
+            style={styles.productImage}
+            placeholderColor={colors.background.secondary}
+          />
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemName}>{item.productName}</Text>
+            <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+            <Text style={styles.itemPrice}>₱{item.unitPrice.toFixed(2)} each</Text>
+          </View>
+          <Text style={styles.itemTotalPrice}>₱{item.totalPrice.toFixed(2)}</Text>
+        </View>
+      ));
+    }
+
+    // Multiple stores - render with store headers
+    return storeIds.map((storeId) => {
+      const storeData = groupedItems[storeId];
+      const storeSubtotal = storeData.items.reduce((sum, item) => sum + item.totalPrice, 0);
+      
+      return (
+        <View key={storeId} style={styles.storeItemsGroup}>
+          {/* Store Header */}
+          <View style={styles.storeItemsHeader}>
+            <View style={styles.storeItemsHeaderContent}>
+              <Ionicons name="storefront" size={16} color={colors.primary.main} />
+              <Text style={styles.storeItemsName}>{storeData.storeName}</Text>
+            </View>
+            <Text style={styles.storeItemsSubtotal}>₱{storeSubtotal.toFixed(2)}</Text>
+          </View>
+
+          {/* Store Items */}
+          {storeData.items.map((item) => (
+            <View key={item.id} style={styles.orderItem}>
+              <SafeImage 
+                source={{ uri: item.productImage }}
+                style={styles.productImage}
+                placeholderColor={colors.background.secondary}
+              />
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName}>{item.productName}</Text>
+                <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+                <Text style={styles.itemPrice}>₱{item.unitPrice.toFixed(2)} each</Text>
+              </View>
+              <Text style={styles.itemTotalPrice}>₱{item.totalPrice.toFixed(2)}</Text>
+            </View>
+          ))}
+        </View>
+      );
+    });
+  };
+
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading order details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (orderItems.length === 0) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Review Order</Text>
+          <View style={styles.headerPlaceholder} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <Ionicons name="cart-outline" size={64} color={colors.text.secondary} />
+          <Text style={styles.loadingText}>No items to review</Text>
+          <Text style={[styles.loadingText, { fontSize: typography.fontSizes.md, marginTop: spacing.sm }]}>
+            Please add items to your cart first
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -193,7 +313,11 @@ const OrderReviewScreen = () => {
         <View style={styles.headerPlaceholder} />
       </View>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollContainer} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Store Information */}
         {currentStore && (
           <View style={styles.section}>
@@ -226,21 +350,7 @@ const OrderReviewScreen = () => {
         {/* Order Items */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Your Order</Text>
-          {orderItems.map((item) => (
-            <View key={item.id} style={styles.orderItem}>
-              <SafeImage 
-                source={{ uri: item.productImage }}
-                style={styles.productImage}
-                placeholderColor={colors.background.secondary}
-              />
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.productName}</Text>
-                <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
-                <Text style={styles.itemPrice}>₱{item.unitPrice.toFixed(2)} each</Text>
-              </View>
-              <Text style={styles.itemTotalPrice}>₱{item.totalPrice.toFixed(2)}</Text>
-            </View>
-          ))}
+          {renderOrderItemsByStore()}
         </View>
 
 
@@ -285,26 +395,32 @@ const OrderReviewScreen = () => {
           </View>
         </View>
 
-        <View style={styles.bottomSpacing} />
       </ScrollView>
 
       {/* Fixed Bottom Button */}
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity 
-          style={[styles.confirmButton, isCreatingOrder && styles.confirmButtonDisabled]} 
-          onPress={handleConfirmOrder}
-          disabled={isCreatingOrder}
-        >
-          {isCreatingOrder ? (
-            <View style={styles.loadingButtonContent}>
-              <ActivityIndicator size="small" color={colors.text.inverse} />
-              <Text style={styles.confirmButtonText}>Creating Order...</Text>
-            </View>
-          ) : (
-            <Text style={styles.confirmButtonText}>Order Now • ₱{calculateTotal().toFixed(2)}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      {orderItems.length > 0 && (
+        <View style={styles.bottomContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.confirmButton, 
+              isCreating && styles.confirmButtonDisabled
+            ]} 
+            onPress={handleConfirmOrder}
+            disabled={isCreating}
+          >
+            {isCreating ? (
+              <View style={styles.loadingButtonContent}>
+                <ActivityIndicator size="small" color={colors.text.inverse} />
+                <Text style={styles.confirmButtonText}>Creating Order...</Text>
+              </View>
+            ) : (
+              <Text style={styles.confirmButtonText}>
+                Order Now • ₱{(calculateTotal() || 0).toFixed(2)}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -351,7 +467,10 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+  },
+  scrollContent: {
     padding: spacing.md,
+    paddingBottom: 100, // Make room for fixed button
   },
   section: {
     marginBottom: spacing.lg,
@@ -496,21 +615,24 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.bold,
     color: colors.primary,
   },
-  bottomSpacing: {
-    height: 100,
-  },
   bottomContainer: {
     backgroundColor: colors.background.primary,
     padding: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border.primary,
+    minHeight: 80,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   confirmButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     paddingVertical: spacing.md,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 50,
   },
   confirmButtonDisabled: {
     backgroundColor: colors.background.disabled,
@@ -524,6 +646,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  storeItemsGroup: {
+    marginBottom: spacing.md,
+  },
+  storeItemsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    marginBottom: spacing.sm,
+  },
+  storeItemsHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  storeItemsName: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+  },
+  storeItemsSubtotal: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.primary.main,
   },
 });
 

@@ -8,6 +8,7 @@ import {
   Alert,
   RefreshControl,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -79,11 +80,26 @@ const CartScreen = () => {
       }
     }
 
-    // Determine the store ID from selected items
-    // Assuming all selected items belong to the same store
+    // Check if selected items are from different stores
+    const uniqueStoreIds = new Set(selectedItems.map(item => item.storeId));
+    if (uniqueStoreIds.size > 1) {
+      const storeNames = Array.from(uniqueStoreIds).map(storeId => {
+        const item = selectedItems.find(item => item.storeId === storeId);
+        return item?.storeName || 'Unknown Store';
+      });
+      
+      Alert.alert(
+        'Mixed Store Order Not Allowed',
+        `You can only order from one store at a time. Your selected items are from: ${storeNames.join(', ')}. Please select items from only one store.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // For simplicity, use the first selected item's store
     const storeId = selectedItems[0]?.storeId || 'unknown-store';
       
-    // Navigate to OrderReviewScreen instead of directly to confirmation
+    // Navigate to OrderReviewScreen
     router.push({
       pathname: '/(screens)/cart/OrderReviewScreen',
       params: { storeId },
@@ -158,6 +174,129 @@ const CartScreen = () => {
   const deliveryFee = subtotal > 0 ? 2.99 : 0;
   const tax = subtotal * 0.08;
   const totalWithFees = subtotal + deliveryFee + tax;
+
+  // Check if checkout should be disabled due to mixed stores
+  const uniqueStoreIds = new Set(selectedItems.map(item => item.storeId));
+  const hasMixedStores = uniqueStoreIds.size > 1;
+  const isCheckoutDisabled = hasMixedStores;
+  const checkoutDisabledReason = hasMixedStores 
+    ? `Items from ${uniqueStoreIds.size} different stores selected. Please select items from only one store.`
+    : undefined;
+
+  // Group items by store
+  const groupItemsByStore = () => {
+    const groupedItems: { [storeId: string]: { storeName: string; items: typeof items } } = {};
+    
+    items.forEach(item => {
+      console.log('🛒 Cart Screen: Processing item for grouping:', {
+        itemId: item.id,
+        itemName: item.name,
+        storeId: item.storeId,
+        storeName: item.storeName,
+        storeProfileImage: item.storeProfileImage,
+        hasStoreProfileImage: !!item.storeProfileImage,
+        allItemKeys: Object.keys(item)
+      });
+
+      const storeId = item.storeId || 'unknown';
+      const storeName = item.storeName || 'Unknown Store';
+      
+      console.log('🏪 Cart Screen: Store processing result:', {
+        originalStoreId: item.storeId,
+        finalStoreId: storeId,
+        originalStoreName: item.storeName,
+        finalStoreName: storeName,
+        isUsingFallback: !item.storeName || !item.storeId
+      });
+      
+      if (!groupedItems[storeId]) {
+        groupedItems[storeId] = {
+          storeName,
+          items: []
+        };
+      }
+      
+      groupedItems[storeId].items.push(item);
+    });
+    
+    console.log('🛒 Cart Screen: Final grouped items:', Object.keys(groupedItems).map(storeId => ({
+      storeId,
+      storeName: groupedItems[storeId].storeName,
+      itemCount: groupedItems[storeId].items.length,
+      hasStoreImage: groupedItems[storeId].items[0]?.storeProfileImage
+    })));
+    
+    return groupedItems;
+  };
+
+  // Calculate subtotal for a specific store
+  const getStoreSubtotal = (storeItems: typeof items) => {
+    return storeItems
+      .filter(item => item.selected)
+      .reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  };
+
+  // Render items grouped by store
+  const renderItemsByStore = () => {
+    const groupedItems = groupItemsByStore();
+    const storeIds = Object.keys(groupedItems);
+
+    if (storeIds.length === 0) {
+      return null;
+    }
+
+    return storeIds.map((storeId) => {
+      const storeData = groupedItems[storeId];
+      const storeSubtotal = getStoreSubtotal(storeData.items);
+      const hasSelectedItems = storeData.items.some(item => item.selected);
+
+      return (
+        <View key={storeId} style={styles.storeSection}>
+          {/* Store Header */}
+          <View style={styles.storeHeader}>
+            <View style={styles.storeHeaderContent}>
+              {storeData.items[0]?.storeProfileImage ? (
+                <Image 
+                  source={{ uri: storeData.items[0].storeProfileImage }} 
+                  style={styles.storeProfileImage}
+                />
+              ) : (
+                <View style={styles.storeIcon}>
+                  <Ionicons name="storefront" size={20} color={colors.primary.main} />
+                </View>
+              )}
+              <View style={styles.storeInfo}>
+                <Text style={styles.storeName}>{storeData.storeName}</Text>
+                <Text style={styles.storeItemsCount}>
+                  {storeData.items.length} item{storeData.items.length > 1 ? 's' : ''}
+                </Text>
+              </View>
+            </View>
+            {hasSelectedItems && (
+              <View style={styles.storeSubtotalContainer}>
+                <Text style={styles.storeSubtotalLabel}>Subtotal</Text>
+                <Text style={styles.storeSubtotal}>₱{storeSubtotal.toFixed(2)}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Store Items */}
+          <View style={styles.storeItems}>
+            {storeData.items.map((item) => (
+              <CartItemCard
+                key={item.id}
+                item={item}
+                onIncrease={() => handleIncrease(item.id)}
+                onDecrease={() => handleDecrease(item.id)}
+                onRemove={() => handleRemoveItem(item.id)}
+                onToggleSelection={() => toggleItemSelection(item.id)}
+              />
+            ))}
+          </View>
+        </View>
+      );
+    });
+  };
 
 
   // Render empty cart
@@ -249,18 +388,19 @@ const CartScreen = () => {
             </Text>
           </View>
         )}
+
+        {/* Mixed Store Warning */}
+        {hasMixedStores && (
+          <View style={styles.warningBanner}>
+            <Ionicons name="information-circle" size={20} color="#FF6B6B" />
+            <Text style={styles.warningText}>
+              You have items from {uniqueStoreIds.size} different stores. You can only order from one store at a time.
+            </Text>
+          </View>
+        )}
         
         <View style={styles.itemsContainer}>
-          {items.map((item) => (
-            <CartItemCard
-              key={item.id}
-              item={item}
-              onIncrease={() => handleIncrease(item.id)}
-              onDecrease={() => handleDecrease(item.id)}
-              onRemove={() => handleRemoveItem(item.id)}
-              onToggleSelection={() => toggleItemSelection(item.id)}
-            />
-          ))}
+          {renderItemsByStore()}
         </View>
       </ScrollView>
       
@@ -277,6 +417,8 @@ const CartScreen = () => {
           total={totalWithFees}
           onCheckout={handleCheckout}
           hasItems={selectedItems.length > 0}
+          isDisabled={isCheckoutDisabled}
+          disabledReason={checkoutDisabledReason}
         />
       </View>
     </SafeAreaView>
@@ -393,6 +535,75 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
+  },
+  storeSection: {
+    marginBottom: 24,
+  },
+  storeHeader: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.primary,
+  },
+  storeHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  storeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.background.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  storeProfileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  storeInfo: {
+    flex: 1,
+  },
+  storeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: 2,
+  },
+  storeItemsCount: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+  },
+  storeSubtotalContainer: {
+    alignItems: 'flex-end',
+  },
+  storeSubtotalLabel: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+    marginBottom: 2,
+  },
+  storeSubtotal: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary.main,
+  },
+  storeItems: {
+    paddingLeft: 8,
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#FF6B6B',
+    marginLeft: 8,
+    flex: 1,
   },
 });
 

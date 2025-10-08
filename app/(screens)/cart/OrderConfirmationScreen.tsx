@@ -15,17 +15,30 @@ const OrderConfirmationScreen = () => {
   const { 
     orderId, 
     storeName, 
-    totalAmount, 
-    estimatedTime 
+    totalAmount,
+    isMultiStoreCheckout,
+    remainingStores
   } = useLocalSearchParams<{
     orderId?: string;
     storeName?: string;
     totalAmount?: string;
-    estimatedTime?: string;
+    isMultiStoreCheckout?: string;
+    remainingStores?: string;
   }>();
+
+  console.log('🔍 OrderConfirmationScreen: Received params:', {
+    orderId,
+    storeName,
+    totalAmount
+  });
 
   const handleBackToHome = () => {
     router.replace('/(tabs)');
+  };
+
+  const handleContinueToNextStore = () => {
+    // Navigate back to cart to continue with remaining stores
+    router.replace('/(screens)/cart/CartScreen');
   };
 
   const handleViewOrder = () => {
@@ -47,28 +60,26 @@ const OrderConfirmationScreen = () => {
             <Ionicons name="checkmark-circle" size={80} color={colors.success} />
           </View>
           
-          <Text style={styles.title}>Order Placed Successfully!</Text>
+          <Text style={styles.title}>
+            {isMultiStoreCheckout === 'true' ? 'Order Placed for Store!' : 'Order Placed Successfully!'}
+          </Text>
           <Text style={styles.description}>
             Your order has been placed and sent to {storeName || 'the restaurant'}. 
-            You'll receive notifications about your order status updates.
+            {isMultiStoreCheckout === 'true' && remainingStores ? 
+              ` You still have items from other stores in your cart.` :
+              ` You'll receive notifications about your order status updates.`
+            }
           </Text>
           
           <View style={styles.orderInfo}>
             <Text style={styles.orderLabel}>Order Number</Text>
-            <Text style={styles.orderValue}>#{orderId || 'HGL-UNKNOWN'}</Text>
+            <Text style={styles.orderValue}>#{orderId ? orderId.substring(0, 8).toUpperCase() : 'HGL-UNKNOWN'}</Text>
             
             <Text style={styles.orderLabel}>Restaurant</Text>
             <Text style={styles.orderValue}>{storeName || 'Unknown Restaurant'}</Text>
             
-            {totalAmount && (
-              <>
-                <Text style={styles.orderLabel}>Total Amount</Text>
-                <Text style={styles.orderValue}>₱{totalAmount}</Text>
-              </>
-            )}
-            
-            <Text style={styles.orderLabel}>Estimated Preparation Time</Text>
-            <Text style={styles.orderValue}>{estimatedTime || '25-35 minutes'}</Text>
+            <Text style={styles.orderLabel}>Total Amount</Text>
+            <Text style={styles.orderValue}>₱{totalAmount || '0.00'}</Text>
             
             <Text style={styles.orderLabel}>Status</Text>
             <Text style={[styles.orderValue, styles.statusPending]}>Pending Confirmation</Text>
@@ -84,9 +95,21 @@ const OrderConfirmationScreen = () => {
             <Text style={styles.secondaryButtonText}>Track Order</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.primaryButton} onPress={handleBackToHome}>
-            <Text style={styles.primaryButtonText}>Back to Home</Text>
-          </TouchableOpacity>
+          {isMultiStoreCheckout === 'true' && remainingStores ? (
+            <TouchableOpacity style={styles.primaryButton} onPress={handleContinueToNextStore}>
+              <Text style={styles.primaryButtonText}>Continue Shopping</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.primaryButton} onPress={handleBackToHome}>
+              <Text style={styles.primaryButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+          )}
+          
+          {isMultiStoreCheckout === 'true' && (
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleBackToHome}>
+              <Text style={styles.secondaryButtonText}>Done Shopping</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -153,7 +176,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   primaryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     paddingVertical: spacing.md,
     borderRadius: 12,
     alignItems: 'center',
@@ -174,7 +197,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.medium,
-    color: colors.primary,
+    color: colors.primary.main,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,37 +8,72 @@ import {
   Image,
   Alert,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useUser } from "@clerk/clerk-expo";
+import { useUser, useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { colors, spacing, typography } from "@/constants/theme";
-
-// Mock function to simulate image upload
-const mockUploadImage = async (uri: string, name: string, folder: string) => {
-  console.log(`Mock uploading ${name} to ${folder}`);
-  return uri;
-};
-
-// Mock function to create a review
-const mockCreateReview = async (reviewData: any) => {
-  console.log("Creating review:", reviewData);
-  return { success: true, id: "mock-id-" + Date.now() };
-};
+import { createReview, updateReview, getReviewByOrderItemId } from "@/utils/reviews";
+import { uploadReviewImages, validateImage } from "@/utils/firebaseStorage";
+import { inspectReviewResponse, testFirebaseStorageUrls } from "@/utils/debugReviewAPI";
 
 export default function ReviewProductScreen() {
   const router = useRouter();
-  const { productId, orderId, storeId } = useLocalSearchParams();
+  const { 
+    productId, 
+    orderId, 
+    storeId, 
+    orderItemId,
+    productName,
+    isEdit,
+    existingReviewId 
+  } = useLocalSearchParams();
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(0);
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // TODO: Get product details from API
-  const product = null;
+  const isEditMode = isEdit === "true";
+  const displayProductName = productName as string || "Product";
+
+  useEffect(() => {
+    if (isEditMode && orderItemId) {
+      loadExistingReview();
+    }
+  }, [isEditMode, orderItemId]);
+
+  const loadExistingReview = async () => {
+    try {
+      setLoading(true);
+      const token = await getToken();
+      const response = await getReviewByOrderItemId(token, orderItemId as string);
+      
+      if (response?.data) {
+        const review = response.data;
+        setRating(review.Rating || 0);
+        setContent(review.Content || "");
+        // Handle image URLs if they exist - support both single ImageUrl and multiple ImageUrls
+        if (review.ImageUrls && Array.isArray(review.ImageUrls)) {
+          setImageUris(review.ImageUrls);
+        } else if (review.ImageUrl) {
+          setImageUris([review.ImageUrl]);
+        } else {
+          setImageUris([]);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading existing review:", error);
+      Alert.alert("Error", "Failed to load existing review");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -48,7 +83,30 @@ export default function ReviewProductScreen() {
     });
     if (!result.canceled && result.assets) {
       const newUris = result.assets.map((asset) => asset.uri);
-      setImageUris(prev => [...prev, ...newUris].slice(0, 4)); // Limit to 4 images
+      
+      // Validate images before adding them
+      try {
+        for (const uri of newUris) {
+          await validateImage(uri, 5 * 1024 * 1024); // 5MB limit
+        }
+        
+        // Add validated images
+        setImageUris(prev => {
+          const combined = [...prev, ...newUris];
+          if (combined.length > 4) {
+            Alert.alert("Image Limit", "You can only add up to 4 images per review.");
+            return combined.slice(0, 4);
+          }
+          return combined;
+        });
+      } catch (error) {
+        Alert.alert(
+          "Invalid Image", 
+          error instanceof Error 
+            ? error.message 
+            : "One or more selected images are invalid. Please choose different images."
+        );
+      }
     }
   };
 
@@ -62,24 +120,34 @@ export default function ReviewProductScreen() {
       return;
     }
 
-    if (!content.trim()) {
-      Alert.alert("Error", "Please write a review");
-      return;
-    }
+    // Content is now optional - only rating is required
 
     setSubmitting(true);
 
     try {
-      // Upload images
+      const token = await getToken();
+      
+      // Validate and upload images
       const uploadedImageUrls = [];
-      for (const uri of imageUris) {
+      if (imageUris.length > 0) {
         try {
-          const name = `${Date.now()}_image.jpg`;
-          const url = await mockUploadImage(uri, name, "review_photos");
-          uploadedImageUrls.push(url);
+          // Validate all images first
+          for (const uri of imageUris) {
+            await validateImage(uri, 5 * 1024 * 1024); // 5MB limit
+          }
+          
+          // Upload all images to Firebase Storage
+          const urls = await uploadReviewImages(imageUris);
+          uploadedImageUrls.push(...urls);
+          console.log(`Successfully uploaded ${uploadedImageUrls.length} images`);
         } catch (uploadError) {
           console.error("Image upload failed:", uploadError);
-          Alert.alert("Upload Error", "Failed to upload one or more images");
+          Alert.alert(
+            "Upload Error", 
+            uploadError instanceof Error 
+              ? uploadError.message 
+              : "Failed to upload one or more images. Please try again."
+          );
           return;
         }
       }
@@ -87,32 +155,93 @@ export default function ReviewProductScreen() {
       // Create review data
       const reviewData = {
         productId: productId as string,
-        buyerId: user?.id,
+        buyerId: user?.id || "",
         orderId: orderId as string,
+        orderItemId: orderItemId as string || null,
         content: content,
         imageUrls: uploadedImageUrls,
         rating: rating,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        storeId: storeId as string,
       };
+      
+      console.log("Review data being sent:", {
+        ...reviewData,
+        imageUrls: `[${uploadedImageUrls.length} images]`
+      });
 
-      // Submit review
-      const result = await mockCreateReview(reviewData);
+      let result;
+      if (isEditMode && existingReviewId) {
+        // Update existing review
+        console.log("Updating existing review with ID:", existingReviewId);
+        result = await updateReview(token, existingReviewId as string, reviewData);
+      } else {
+        // Create new review
+        console.log("Creating new review");
+        result = await createReview(token, reviewData);
+      }
 
-      if (result.success) {
-        Alert.alert("Success", "Your review has been posted!");
+      if (result.success !== false) {
+        console.log("✅ Review creation/update succeeded!");
+        
+        // Test Firebase Storage URL accessibility
+        if (uploadedImageUrls.length > 0) {
+          await testFirebaseStorageUrls(uploadedImageUrls);
+        }
+        
+        // Inspect the created review to see what was actually saved
+        if (orderItemId) {
+          setTimeout(async () => {
+            try {
+              const savedReview = await inspectReviewResponse(token, orderItemId as string);
+              if (savedReview) {
+                console.log("🔍 Review was saved with these image fields:");
+                console.log("- ImageUrl:", savedReview.ImageUrl);
+                console.log("- ImageUrls:", savedReview.ImageUrls);
+              }
+            } catch (inspectError) {
+              console.log("Could not inspect saved review:", inspectError);
+            }
+          }, 1000); // Wait 1 second for database to update
+        }
+        
+        Alert.alert(
+          "Success", 
+          isEditMode 
+            ? "Your review has been updated!" 
+            : "Your review has been posted! Pull down to refresh the order details to see the updated status."
+        );
         router.back();
       } else {
-        throw new Error("Failed to create review");
+        throw new Error("Failed to save review");
       }
     } catch (error) {
-      console.error("Failed to post review:", error);
-      Alert.alert("Error", "Failed to post review. Please try again.");
+      console.error("Failed to save review:", error);
+      Alert.alert("Error", "Failed to save review. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Loading Review...</Text>
+          </View>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading review data...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -125,10 +254,10 @@ export default function ReviewProductScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Write Review</Text>
-          {product && (
-            <Text style={styles.headerSubtitle}>{product.name}</Text>
-          )}
+          <Text style={styles.headerTitle}>
+            {isEditMode ? "Edit Review" : "Write Review"}
+          </Text>
+          <Text style={styles.headerSubtitle}>{displayProductName}</Text>
         </View>
       </View>
 
@@ -159,11 +288,11 @@ export default function ReviewProductScreen() {
 
         {/* Review Text Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Share your experience</Text>
+          <Text style={styles.sectionTitle}>Share your experience (optional)</Text>
           <TextInput
             value={content}
             onChangeText={setContent}
-            placeholder="Tell others what you think about this product..."
+            placeholder="Tell others what you think about this product (optional)..."
             placeholderTextColor={colors.text.tertiary}
             multiline
             style={styles.reviewInput}
@@ -215,16 +344,19 @@ export default function ReviewProductScreen() {
         <TouchableOpacity
           style={[
             styles.submitButton, 
-            (!rating || !content.trim() || submitting) && styles.submitButtonDisabled
+            (!rating || submitting) && styles.submitButtonDisabled
           ]}
           onPress={handleSubmit}
-          disabled={!rating || !content.trim() || submitting}
+          disabled={!rating || submitting}
         >
           <Text style={[
             styles.submitButtonText,
-            (!rating || !content.trim() || submitting) && styles.submitButtonTextDisabled
+            (!rating || submitting) && styles.submitButtonTextDisabled
           ]}>
-            {submitting ? "Posting Review..." : "Post Review"}
+            {submitting ? 
+              (isEditMode ? "Updating Review..." : "Posting Review...") : 
+              (isEditMode ? "Update Review" : "Post Review")
+            }
           </Text>
         </TouchableOpacity>
       </View>
@@ -362,7 +494,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border.primary,
   },
   submitButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.success,
     borderRadius: 12,
     paddingVertical: spacing.md,
     alignItems: "center",
@@ -376,6 +508,17 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.semibold,
   },
   submitButtonTextDisabled: {
+    color: colors.text.secondary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.xl,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.fontSizes.md,
     color: colors.text.secondary,
   },
 });

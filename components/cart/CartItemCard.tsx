@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { CartItem } from '../../data/food/models';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/theme';
@@ -23,79 +24,159 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
   const isExpired = item.expiresAt ? new Date(item.expiresAt) <= new Date() : false;
   const isInactive = item.isActive === false;
   const isUnavailable = isExpired || isInactive;
+
+  // Swipe gesture state
+  const translateX = React.useRef(new Animated.Value(0)).current;
+  const [isSwipedOpen, setIsSwipedOpen] = React.useState(false);
+
+  // Debug store data
+  React.useEffect(() => {
+    console.log('🛒 CartItemCard: Item data:', {
+      name: item.name,
+      storeName: item.storeName,
+      storeProfileImage: item.storeProfileImage,
+      storeId: item.storeId,
+      allKeys: Object.keys(item)
+    });
+  }, [item]);
+
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: translateX } }],
+    { useNativeDriver: true }
+  );
+
+  const onHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      const { translationX } = event.nativeEvent;
+      
+      if (translationX < -80) {
+        // Swipe left to show delete
+        setIsSwipedOpen(true);
+        Animated.spring(translateX, {
+          toValue: -80,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        // Return to original position
+        setIsSwipedOpen(false);
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    }
+  };
+
+  const handleDelete = () => {
+    // Close swipe first, then delete
+    setIsSwipedOpen(false);
+    Animated.spring(translateX, {
+      toValue: 0,
+      useNativeDriver: true,
+    }).start(() => {
+      onRemove();
+    });
+  };
   return (
     <View style={[styles.container, isUnavailable && styles.unavailableContainer]}>
-      {onToggleSelection && (
-        <TouchableOpacity 
-          style={styles.checkbox} 
-          onPress={() => {
-            // For unavailable items, only allow deselection
-            if (isUnavailable && !item.selected) {
-              return; // Don't allow selection of unavailable items
-            }
-            onToggleSelection();
-          }}
-          disabled={false}
-        >
-          <View style={[
-            styles.checkboxInner, 
-            item.selected && styles.checkboxSelected,
-            isUnavailable && !item.selected && styles.checkboxDisabled
-          ]}>
-            {item.selected && (
-              <Ionicons name="checkmark" size={16} color="white" />
-            )}
-          </View>
-        </TouchableOpacity>
-      )}
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image }} style={[styles.image, isUnavailable && styles.unavailableImage]} />
-        {isUnavailable && (
-          <View style={styles.unavailableOverlay}>
-            <Text style={styles.unavailableText}>
-              {isExpired ? 'Expired' : 'Unavailable'}
-            </Text>
-          </View>
-        )}
-      </View>
-      
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-          <TouchableOpacity onPress={onRemove} style={styles.removeButton}>
-            <Ionicons name="close" size={20} color={colors.danger} />
+      {/* Swipeable content */}
+      <View style={styles.swipeContainer}>
+        {/* Delete button background - always present but behind content */}
+        <View style={styles.deleteAction}>
+          <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+            <Ionicons name="trash-outline" size={24} color="white" />
+            <Text style={styles.deleteText}>Delete</Text>
           </TouchableOpacity>
         </View>
-        
-        <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
-        
-        <View style={styles.footer}>
-          <Text style={styles.price}>${(item.price * item.quantity).toFixed(2)}</Text>
-          
-          <View style={styles.quantityContainer}>
-            <TouchableOpacity 
-              style={[styles.quantityButton, (item.quantity <= 1 || isUnavailable) && styles.disabledButton]} 
-              onPress={onDecrease}
-              disabled={item.quantity <= 1 || isUnavailable}
-            >
-              <Ionicons 
-                name="remove" 
-                size={16} 
-                color={item.quantity > 1 && !isUnavailable ? colors.primary.main : "#C7C7CC"}
-              />
-            </TouchableOpacity>
-            
-            <Text style={[styles.quantityText, isUnavailable && styles.unavailableText]}>{item.quantity}</Text>
-            
-            <TouchableOpacity 
-              style={[styles.quantityButton, isUnavailable && styles.disabledButton]} 
-              onPress={onIncrease}
-              disabled={isUnavailable}
-            >
-              <Ionicons name="add" size={16} color={isUnavailable ? "#C7C7CC" : colors.primary.main} />
-            </TouchableOpacity>
-          </View>
-        </View>
+
+        {/* Main content that slides over the delete button */}
+        <PanGestureHandler
+          onGestureEvent={onGestureEvent}
+          onHandlerStateChange={onHandlerStateChange}
+        >
+          <Animated.View 
+            style={[
+              styles.swipeableContent,
+              { transform: [{ translateX }] }
+            ]}
+          >
+            {/* Main content row */}
+            <View style={styles.mainContent}>
+              {/* Left side with checkbox */}
+              <View style={styles.leftColumn}>
+                {onToggleSelection && (
+                  <TouchableOpacity 
+                    style={styles.checkbox} 
+                    onPress={() => {
+                      // For unavailable items, only allow deselection
+                      if (isUnavailable && !item.selected) {
+                        return; // Don't allow selection of unavailable items
+                      }
+                      onToggleSelection();
+                    }}
+                    disabled={false}
+                  >
+                    <View style={[
+                      styles.checkboxInner, 
+                      item.selected && styles.checkboxSelected,
+                      isUnavailable && !item.selected && styles.checkboxDisabled
+                    ]}>
+                      {item.selected && (
+                        <Ionicons name="checkmark" size={16} color="white" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Product image */}
+              <View style={styles.imageContainer}>
+                <Image source={{ uri: item.image }} style={[styles.image, isUnavailable && styles.unavailableImage]} />
+                {isUnavailable && (
+                  <View style={styles.unavailableOverlay}>
+                    <Text style={styles.unavailableText}>
+                      {isExpired ? 'Expired' : 'Unavailable'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              
+              {/* Product details */}
+              <View style={styles.content}>
+                <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
+                <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
+                
+                <View style={styles.footer}>
+                  <Text style={styles.price}>₱{(item.price * item.quantity).toFixed(2)}</Text>
+                  
+                  <View style={styles.quantityContainer}>
+                    <TouchableOpacity 
+                      style={[styles.quantityButton, (item.quantity <= 1 || isUnavailable) && styles.disabledButton]} 
+                      onPress={onDecrease}
+                      disabled={item.quantity <= 1 || isUnavailable}
+                    >
+                      <Ionicons 
+                        name="remove" 
+                        size={16} 
+                        color={item.quantity > 1 && !isUnavailable ? colors.primary.main : "#C7C7CC"}
+                      />
+                    </TouchableOpacity>
+                    
+                    <Text style={[styles.quantityText, isUnavailable && styles.unavailableText]}>{item.quantity}</Text>
+                    
+                    <TouchableOpacity 
+                      style={[styles.quantityButton, isUnavailable && styles.disabledButton]} 
+                      onPress={onIncrease}
+                      disabled={isUnavailable}
+                    >
+                      <Ionicons name="add" size={16} color={isUnavailable ? "#C7C7CC" : colors.primary.main} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Animated.View>
+        </PanGestureHandler>
       </View>
     </View>
   );
@@ -103,7 +184,6 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     backgroundColor: colors.background.primary,
     marginBottom: 16,
     borderRadius: 12,
@@ -117,9 +197,26 @@ const styles = StyleSheet.create({
     elevation: 0,
     padding: 12,
   },
-  imageContainer: {
-    width: 100,
+  swipeContainer: {
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  swipeableContent: {
+    backgroundColor: colors.background.primary,
+  },
+  mainContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  leftColumn: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 40,
     height: 100,
+  },
+  imageContainer: {
+    width: 80,
+    height: 80,
     borderRadius: 12,
     overflow: 'hidden',
     marginRight: 12,
@@ -133,21 +230,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 4,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
   name: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text.secondary,
-    flex: 1,
-    marginRight: 8,
-  },
-  removeButton: {
-    padding: 4,
+    marginBottom: 4,
   },
   description: {
     fontSize: 12,
@@ -188,7 +275,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   checkbox: {
-    marginRight: 12,
+    // Center the checkbox vertically in the left column
   },
   checkboxInner: {
     width: 24,
@@ -230,6 +317,28 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     fontSize: 12,
     fontWeight: '600',
+  },
+  deleteAction: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.danger,
+  },
+  deleteButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  deleteText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });
 
