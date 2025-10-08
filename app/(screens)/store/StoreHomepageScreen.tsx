@@ -239,10 +239,20 @@ export default function StoreHomepageScreen() {
   };
 
   const handleChatWithSeller = () => {
-    // TODO: Navigate to chat screen or messaging interface
+    if (!id || typeof id !== 'string' || !currentStore) {
+      console.error('🔍 StoreHomepageScreen: Missing store ID or store data');
+      return;
+    }
+
     console.log('🔍 StoreHomepageScreen: Opening chat with seller for store:', id);
-    // For now, we'll show an alert. Later this can be replaced with actual navigation
-    // router.push(`/(screens)/chat/ChatScreen?storeId=${id}&sellerId=${currentStore.sellerId}`);
+    router.push({
+      pathname: `/(screens)/chat/[id]`,
+      params: {
+        id,
+        storeName: currentStore.name,
+        storeImage: currentStore.profileImageUrl || ''
+      }
+    });
   };
 
   const toggleDescription = () => {
@@ -622,7 +632,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.tertiary, // Very light gray background
   },
-  errorText: {
+  errorTextGeneral: {
     fontSize: 18,
     textAlign: "center",
     marginTop: 50,
