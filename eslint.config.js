@@ -1,8 +1,3 @@
-export default [
-  {
-    files: ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"],
-    ignores: ["node_modules"],
-    plugins: {},
-    rules: {},
-  },
-];
+import pkg from 'eslint-config-expo';
+
+export default pkg;

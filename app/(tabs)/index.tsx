@@ -1,156 +1,176 @@
-import React, { useEffect, useState } from "react";
+/** 
+ * Home Screen
+ * Main landing screen for food e-commerce app showing categories and restaurants
+ */
+
+import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   StyleSheet,
-  View,
   SafeAreaView,
-  Modal,
-  Text,
-  TouchableOpacity,
   RefreshControl,
-} from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import CategoryCarousel from "../../components/CategoryCarousel";
-import ProductGrid from "../../components/ProductGrid";
-import GreeterSection from "../../components/GreeterSection";
-import { useAuth, useUser } from "@clerk/clerk-expo";
-import { Ionicons } from "@expo/vector-icons";
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useCart } from '@/context/CartContext';
+import { useProductContext } from '@/context/ProductContext';
+import { useStoreContext } from '@/context/StoreContext';
+import { useLocationContext } from '@/context/LocationContext';
 
-export default function HomeScreen() {
-  const [showModal, setShowModal] = useState(false);
-  const { getToken } = useAuth();
+import { GreeterSection } from '@/components/layout';
+import { colors } from '@/constants/theme';
+import {
+  CategorySection,
+  TrendingItemsSection,
+  PopularStoresSection
+} from '@/components/home';
+
+const HomeScreen = () => {
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
-  const { user } = useUser();
+  const { itemCount, items, isLoading, error } = useCart();
+  
+  // Debug logging for cart state
+  console.log('🏠 HomeScreen: Cart debug info:', {
+    itemCount,
+    totalItems: items.length,
+    isLoading,
+    error,
+    cartItems: items.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
+  });
+  
+  // Context hooks
+  const { fetchTrendingProducts } = useProductContext();
+  const { fetchPopularStores } = useStoreContext();
+  const { currentLocation, initializeLocationInBackground } = useLocationContext();
 
-  // TODO: Check from backend not in AsyncStorage
-  // get buyer nya check if location is null
+  // Initialize location on home screen mount to ensure products can load
   useEffect(() => {
-    const checkLocation = async () => {
-      // You can replace this with a backend check if needed
-      const location = await AsyncStorage.getItem("userLocation");
-      if (!location) {
-        setShowModal(true);
+    const initializeLocation = async () => {
+      try {
+        console.log('🏠 HomeScreen: Initializing location on mount');
+        await initializeLocationInBackground();
+        console.log('✅ HomeScreen: Location initialization completed');
+      } catch (error) {
+        console.warn('⚠️ HomeScreen: Location initialization failed:', error);
       }
     };
-    checkLocation();
-  }, []);
 
-  const handleModalConfirm = () => {
-    setShowModal(false);
-    router.push("/screens/MapsScreen");
+    initializeLocation();
+  }, [initializeLocationInBackground]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    
+    try {
+      // Refresh all data if location is available
+      if (currentLocation) {
+        const refreshPromises = [
+          fetchTrendingProducts(currentLocation.latitude, currentLocation.longitude, 10),
+          fetchPopularStores(currentLocation.latitude, currentLocation.longitude, 5)
+        ];
+        
+        await Promise.all(refreshPromises);
+        console.log('✅ HomeScreen: Successfully refreshed all data');
+      } else {
+        console.log('📍 HomeScreen: No location available for refresh');
+      }
+    } catch (error) {
+      console.error('❌ HomeScreen: Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleRestaurantPress = (id: string) => {
+    router.push(`/(screens)/store/StoreHomepageScreen?id=${id}`);
+  };
+
+  const handleToggleFavorite = (id: string) => {
+    // In a real app, this would update the backend
+    console.log(`Toggled favorite for restaurant ${id}`);
+  };
+
+  const handleCategoryPress = (categoryId: string) => {
+    router.push({ pathname: '/(screens)/home/CategoryScreen', params: { categoryId: categoryId } });
+  };
+
+  const handleCartPress = () => {
+    router.push('/(screens)/cart/CartScreen');
+  };
+
+  const handleSearchFocus = () => {
+    router.push('/(screens)/search/SearchScreen');
+  };
+
+  const handleFoodItemPress = (itemId: string) => {
+    router.push(`/(screens)/store/ProductScreen?id=${itemId}`);
+  };
+
+  const handleSeeAllTrendingItems = () => {
+    router.push('/(screens)/home/TrendingProductsScreen');
+  };
+
+  const handleSeeAllPopularStores = () => {
+    // For now, we'll navigate to a search screen with a filter for popular stores
+    // You might want to create a dedicated screen for this later
+    router.push('/(screens)/search/SearchScreen');
   };
 
   const handleLocationPress = () => {
-    router.push("/screens/MapsScreen");
-  };
-
-  const [refreshing, setRefreshing] = useState(false);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    // Optionally, trigger refresh on ProductGrid via ref or context if needed
-    // For now, just wait a bit (simulate network call)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setRefreshing(false);
+    router.push('/(screens)/home/MapsScreen');
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* <Modal visible={showModal} transparent animationType="fade">
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.4)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary.main]}
+              tintColor={colors.primary.main}
+            />
+          }
         >
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 20,
-              padding: 28,
-              alignItems: "center",
-              width: 320,
-            }}
-          >
-            <Text
-              style={{ fontWeight: "bold", fontSize: 18, marginBottom: 10 }}
-            >
-              Pin point your location to get started
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: "#0d2329",
-                borderRadius: 10,
-                paddingVertical: 12,
-                paddingHorizontal: 40,
-                marginTop: 16,
-              }}
-              onPress={handleModalConfirm}
-            >
-              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-                Pin Location
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal> */}
-      <ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#548C2F"]}
+          <GreeterSection 
+            onSearchFocus={handleSearchFocus} 
+            onLocationPress={handleLocationPress}
           />
-        }
-      >
-        <GreeterSection onLocationPress={handleLocationPress} />
-        <CategoryCarousel />
-        <View style={styles.productsContainer}>
-          <ProductGrid />
-        </View>
-      </ScrollView>
-      {/* Floating Cart Button */}
-      <TouchableOpacity
-        style={{
-          position: "absolute",
-          bottom: 24,
-          right: 24,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: "#548C2F",
-          alignItems: "center",
-          justifyContent: "center",
-          elevation: 4,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
-        }}
-        onPress={() => router.push("/(screens)/cart" as any)}
-      >
-        <Ionicons name="cart" size={32} color="white" />
-      </TouchableOpacity>
-    </SafeAreaView>
+          
+          <CategorySection onCategoryPress={handleCategoryPress} />
+          
+          <TrendingItemsSection 
+            onFoodItemPress={handleFoodItemPress} 
+            onSeeAllPress={handleSeeAllTrendingItems}
+          />
+          
+          <PopularStoresSection 
+            onRestaurantPress={handleRestaurantPress} 
+            onToggleFavorite={handleToggleFavorite} 
+            onSeeAllPress={handleSeeAllPopularStores}
+          />
+        </ScrollView>
+        
+      </SafeAreaView>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F7F8FA", //F7F8FA
-  },
   container: {
     flex: 1,
+    backgroundColor: colors.background.tertiary, // Very light gray background
   },
-  productsContainer: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 16,
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
   },
 });
+
+export default HomeScreen;

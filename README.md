@@ -1,50 +1,72 @@
-# Welcome to your Expo app 👋
+# Food E-commerce App (Pickup Orders)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is a prototype of a food e-commerce application for pickup orders, built on top of the existing Huggle buyer app.
 
-## Get started
+## Features
 
-1. Install dependencies
+### Main Screens
+1. **Home Screen** - Browse food categories and popular restaurants
+2. **Search Screen** - Search for restaurants or food items
+3. **Favorites Screen** - View favorite restaurants
+4. **Profile Screen** - User profile and settings
+5. **Notifications Screen** - Order and promotional notifications
 
-   ```bash
-   npm install
-   ```
+### Food-Specific Screens
+1. **Restaurant Detail Screen** - View restaurant menu and place orders
+2. **Cart Screen** - Manage food items and checkout
+3. **Category Screen** - Browse restaurants by food category
+4. **Order Confirmation Screen** - View order confirmation details
 
-2. Start the app
+## Architecture
 
-   ```bash
-    npx expo start
-   ```
+### Data Models
+- `FoodCategory` - Food categories (Burgers, Pizza, etc.)
+- `Restaurant` - Restaurant information
+- `FoodItem` - Individual food items
+- `CartItem` - Items in the shopping cart
+- `Order` - Order information
 
-In the output, you'll find options to open the app in a
+### Components
+- `RestaurantCard` - Display restaurant information
+- `FoodItemCard` - Display food item information
+- `CartItemCard` - Display cart items with quantity controls
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Context
+- `CartContext` - Manage shopping cart state across the app
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Implementation Notes
 
-## Get a fresh project
+This is a frontend-only prototype with mock data. Backend integration would require:
+1. REST API endpoints for restaurants, food items, and orders
+2. User authentication and profile management
+3. Payment processing integration
+4. Real-time order status updates
 
-When you're ready, run:
-
-```bash
-npm run reset-project
+## Directory Structure
+```
+/components
+  /food          - Food-specific UI components
+  /restaurant    - Restaurant-specific UI components
+  /cart          - Cart-related UI components
+/context         - React context providers
+/data
+  /food          - Food data models and mock data
+/screens
+  /food          - Food-specific screens
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting Started
 
-## Learn more
+1. Install dependencies: `npm install`
+2. Start the app: `npm run dev`
+3. Choose your platform (iOS, Android, or Web)
 
-To learn more about developing your project with Expo, look at the following resources:
+## Future Enhancements
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+1. Backend integration for real data
+2. User order history
+3. Restaurant ratings and reviews
+4. Advanced search and filtering
+5. Promotion and discount codes
+6. Multiple payment methods
+7. Real-time order tracking

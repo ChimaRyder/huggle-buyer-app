@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL } from "./constants";
 
 export const CreateBuyerAccount = async (
   token: string | null = null,
@@ -12,7 +12,7 @@ export const CreateBuyerAccount = async (
     emailAddress: email,
   };
   try {
-    const response = await fetch(`${API_BASE_URL}/api/buyer`, {
+    const response = await fetch(`${API_BASE_URL}/api/buyers`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

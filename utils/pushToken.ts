@@ -1,97 +1,104 @@
-import { API_BASE_URL } from "./api";
+import { API_ENDPOINTS } from "@/constants/config";
+import type { ApiResponse } from '@/types/common';
+
+export interface PushTokenRequest {
+  token: string;
+}
 
 export interface PushToken {
-  pushToken: string;
+  id: string;
   userId: string;
+  token: string;
+  deviceType: string;
+  deviceId?: string;
+  appVersion?: string;
   isActive: boolean;
-  [key: string]: any;
+  lastUsedAt?: string;
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-function buildHeaders(token: string | null) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
+export interface UpdatePushTokenStatusRequest {
+  isActive: boolean;
 }
 
-export const addPushToken = async (
-  pushToken: PushToken,
-  token: string | null
-) => {
+/**
+ * Add or register a new push token
+ */
+export const addPushToken = async (apiClient: any, pushTokenData: PushTokenRequest): Promise<ApiResponse<PushToken>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/pushtoken`, {
-      method: "POST",
-      headers: buildHeaders(token),
-      body: JSON.stringify(pushToken),
-    });
-    if (!response.ok) {
-      console.error(
-        "Failed to add push token:",
-        response.status,
-        response.statusText
-      );
-      // If pushToken is not found or other error
-      return null;
+    console.log('📱 PushToken: Adding push token:', pushTokenData.token.substring(0, 20) + '...');
+    
+    const response = await apiClient.post<PushToken>(
+      API_ENDPOINTS.pushTokens.register,
+      pushTokenData
+    );
+    
+    if (response.success) {
+      console.log('✅ PushToken: Successfully registered push token');
+    } else {
+      console.error('❌ PushToken: Failed to register push token:', response.error);
     }
-    return await response.json();
+    
+    return response;
   } catch (error) {
-    console.error("Error adding push token:", error);
-    return null;
+    console.error('❌ PushToken: Error adding push token:', error);
+    return {
+      success: false,
+      error: 'Failed to register push token'
+    };
   }
 };
 
-export const getPushToken = async (token: string | null) => {
+/**
+ * Update push token status (enable/disable)
+ */
+export const updatePushTokenStatus = async (
+  apiClient: any, 
+  tokenId: string, 
+  statusData: UpdatePushTokenStatusRequest
+): Promise<ApiResponse<any>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/pushtoken`, {
-      headers: buildHeaders(token),
-    });
-    if (!response.ok) {
-      return null;
+    console.log(`📱 PushToken: Updating token status to ${statusData.isActive ? 'active' : 'inactive'}`);
+    
+    const response = await apiClient.put(
+      API_ENDPOINTS.pushTokens.updateStatus(tokenId),
+      statusData
+    );
+    
+    if (response.success) {
+      console.log('✅ PushToken: Successfully updated push token status');
+    } else {
+      console.error('❌ PushToken: Failed to update push token status:', response.error);
     }
-    return await response.json();
+    
+    return response;
   } catch (error) {
-    console.error("Error getting push token:", error);
-    return null;
+    console.error('❌ PushToken: Error updating push token status:', error);
+    return {
+      success: false,
+      error: 'Failed to update push token status'
+    };
   }
 };
 
-export const updatePushToken = async (
-  pushToken: PushToken,
-  token: string | null
-) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/pushtoken`, {
-      method: "PUT",
-      headers: buildHeaders(token),
-      body: JSON.stringify(pushToken),
-    });
-    if (!response.ok) {
-      return null;
-    }
-    return await response.json();
-  } catch (error) {
-    console.error("Error updating push token:", error);
-    return null;
-  }
-};
-
+/**
+ * Disable push token (set isActive to false)
+ */
 export const disablePushToken = async (
-  pushToken: PushToken,
-  token: string | null
-) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/pushtoken/disable`, {
-      method: "POST",
-      headers: buildHeaders(token),
-      body: JSON.stringify(pushToken),
-    });
-    if (!response.ok) {
-      return null;
-    }
-    return await response.json();
-  } catch (error) {
-    console.error("Error disabling push token:", error);
-    return null;
-  }
+  apiClient: any, 
+  tokenId: string
+): Promise<ApiResponse<any>> => {
+  return updatePushTokenStatus(apiClient, tokenId, { isActive: false });
+};
+
+/**
+ * Enable push token (set isActive to true)
+ */
+export const enablePushToken = async (
+  apiClient: any, 
+  tokenId: string
+): Promise<ApiResponse<any>> => {
+  return updatePushTokenStatus(apiClient, tokenId, { isActive: true });
 };

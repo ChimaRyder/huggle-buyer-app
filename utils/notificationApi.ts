@@ -5,7 +5,7 @@ export const getNotifications = async (
   token: string | null,
   unreadOnly = false
 ) => {
-  const url = `${API_BASE_URL}/api/notifications?userId=${userId}&unreadOnly=${unreadOnly}`;
+  const url = `${API_BASE_URL}/api/notifications?unreadOnly=${unreadOnly}`;
   const response = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
@@ -20,7 +20,7 @@ export const getUnreadNotificationCount = async (
   userId: string,
   token: string | null
 ) => {
-  const url = `${API_BASE_URL}/api/notifications/unread-count?userId=${userId}`;
+  const url = `${API_BASE_URL}/api/notifications/unread-count`;
   const response = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
@@ -51,7 +51,7 @@ export const markAllNotificationsAsRead = async (
   userId: string,
   token: string | null
 ) => {
-  const url = `${API_BASE_URL}/api/notifications/mark-all-read?userId=${userId}`;
+  const url = `${API_BASE_URL}/api/notifications/mark-all-read`;
   const response = await fetch(url, {
     method: "PUT",
     headers: {
@@ -76,5 +76,22 @@ export const deleteNotification = async (
     },
   });
   if (!response.ok) throw new Error("Failed to delete notification");
+  return response.json();
+};
+
+export const storePushToken = async (
+  pushToken: string,
+  token: string | null
+) => {
+  const url = `${API_BASE_URL}/api/notifications/push-token`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token,
+    },
+    body: JSON.stringify({ PushToken: pushToken }),
+  });
+  if (!response.ok) throw new Error("Failed to store push token");
   return response.json();
 };

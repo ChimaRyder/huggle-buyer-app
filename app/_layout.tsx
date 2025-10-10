@@ -1,7 +1,6 @@
 // app/_layout.tsx
 import React, { useEffect } from "react";
 import {
-  DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
@@ -11,16 +10,15 @@ import { Slot } from "expo-router";
 import * as eva from "@eva-design/eva";
 import { ApplicationProvider } from "@ui-kitten/components";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "../utils/cache";
-import Constants from "expo-constants";
 
-import { registerForPushNotificationsAsync } from "@/utils/Notifications";
-import { StyleSheet, SafeAreaView } from "react-native";
+import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import Toast from 'react-native-toast-message';
 import mainTheme from '@/assets/themes/main-theme.json'
+import { CartProvider } from "@/context/CartContext";
+import { AppProvider } from "@/components/AppProvider";
+import { ChatProvider } from "@/context/ChatContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,8 +26,6 @@ SplashScreen.preventAutoHideAsync();
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   const [fontsLoaded] = useFonts({
     "Poppins-Regular": require("../assets/fonts/Poppins-Regular.ttf"),
     "Poppins-Bold": require("../assets/fonts/Poppins-Bold.ttf"),
@@ -51,19 +47,23 @@ export default function RootLayout() {
         publishableKey={publishableKey || ""}
         tokenCache={tokenCache}
       >
-        <SafeAreaView style={styles.container}>
-          <ApplicationProvider
-            {...eva}
-            theme={colorScheme === "dark" ? {...eva.dark, ...mainTheme} : {...eva.light,...mainTheme}}
-          >
-            <ThemeProvider
-              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-            >
-              <Slot />
-              <StatusBar style="auto" />
-            </ThemeProvider>
-          </ApplicationProvider>
-        </SafeAreaView>
+        <AppProvider>
+          <ChatProvider>
+            <CartProvider>
+              <ApplicationProvider
+                {...eva}
+                theme={{...eva.light, ...mainTheme}}
+              >
+                <ThemeProvider
+                  value={DefaultTheme}
+                >
+                  <Slot />
+                  <StatusBar style="light" backgroundColor="#4CAF50" />
+                </ThemeProvider>
+              </ApplicationProvider>
+            </CartProvider>
+          </ChatProvider>
+        </AppProvider>
       </ClerkProvider>
     </GestureHandlerRootView>
   );
@@ -71,8 +71,7 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#F7F8FA", //F7F8FA
-    marginTop: 24,
+    backgroundColor: "transparent",
     flex: 1,
   },
 });
