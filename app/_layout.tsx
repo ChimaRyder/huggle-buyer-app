@@ -18,6 +18,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import mainTheme from '@/assets/themes/main-theme.json'
 import { CartProvider } from "@/context/CartContext";
 import { AppProvider } from "@/components/AppProvider";
+import { ChatProvider } from "@/context/ChatContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,19 +48,21 @@ export default function RootLayout() {
         tokenCache={tokenCache}
       >
         <AppProvider>
-          <CartProvider>
-            <ApplicationProvider
-              {...eva}
-              theme={{...eva.light, ...mainTheme}}
-            >
-              <ThemeProvider
-                value={DefaultTheme}
+          <ChatProvider>
+            <CartProvider>
+              <ApplicationProvider
+                {...eva}
+                theme={{...eva.light, ...mainTheme}}
               >
-                <Slot />
-                <StatusBar style="light" backgroundColor="#4CAF50" />
-              </ThemeProvider>
-            </ApplicationProvider>
-          </CartProvider>
+                <ThemeProvider
+                  value={DefaultTheme}
+                >
+                  <Slot />
+                  <StatusBar style="light" backgroundColor="#4CAF50" />
+                </ThemeProvider>
+              </ApplicationProvider>
+            </CartProvider>
+          </ChatProvider>
         </AppProvider>
       </ClerkProvider>
     </GestureHandlerRootView>

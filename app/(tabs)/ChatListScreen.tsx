@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,36 +7,73 @@ import {
   TextInput,
   Image,
   FlatList,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing, typography, radii } from '@/constants/theme';
-// TODO: Replace with API call to fetch chat conversations
-type ChatConversation = {
-  id: string;
-  storeId: string;
-  storeName: string;
-  storeImage: string;
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
-  isOnline: boolean;
-};
+import { useChat } from '@/context/ChatContext';
+import {
+  channelToChatConversation,
+  filterChannelsByQuery,
+  sortChannelsByLastMessage,
+  type ChatConversation
+} from '@/utils/chatUtils';
 
 export default function ChatListScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  // TODO: Replace with API call to fetch chat conversations
-  const [chats] = useState<ChatConversation[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const {
+    channels,
+    isLoading,
+    error,
+    isConnected,
+    refreshChannels,
+    user
+  } = useChat();
+
+  // Convert Stream Chat channels to our ChatConversation format
+  const chats: ChatConversation[] = React.useMemo(() => {
+    if (!channels.length || !user) return [];
+
+    const sortedChannels = sortChannelsByLastMessage(channels);
+    return sortedChannels.map(channel => channelToChatConversation(channel, user.id));
+  }, [channels, user]);
 
   // Filter chats based on search query
-  const filteredChats = chats.filter(chat =>
-    chat.storeName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredChats = React.useMemo(() => {
+    return chats.filter(chat =>
+      chat.storeName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [chats, searchQuery]);
+
+  // Handle pull to refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshChannels();
+    } catch (err) {
+      console.error('Failed to refresh channels:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleChatPress = (chat: ChatConversation) => {
-    router.push(`/(screens)/chat/${chat.storeId}`);
+    console.log('ChatListScreen: Navigating to chat with store:', chat.storeId, chat.storeName);
+    router.push({
+      pathname: `/(screens)/chat/[id]`,
+      params: {
+        id: chat.storeId,
+        storeName: chat.storeName,
+        storeImage: chat.storeImage
+      }
+    });
   };
 
   const renderChatItem = ({ item }: { item: ChatConversation }) => (
@@ -51,12 +88,12 @@ export default function ChatListScreen() {
           <Text style={styles.storeName} numberOfLines={1}>
             {item.storeName}
           </Text>
-          <Text style={styles.messageTime}>{item.lastMessageTime}</Text>
+          <Text style={styles.messageTime}>{`${item.lastMessageTime}`}</Text>
         </View>
         
         <View style={styles.messageRow}>
           <Text style={styles.lastMessage} numberOfLines={2}>
-            {item.lastMessage}
+            {`${item.lastMessage}`}
           </Text>
           {item.unreadCount > 0 && (
             <View style={styles.unreadBadge}>
@@ -100,26 +137,58 @@ export default function ChatListScreen() {
       </View>
 
       {/* Chat List */}
-      {filteredChats.length > 0 ? (
+      {isLoading && !isRefreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading conversations...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="warning-outline" size={64} color={colors.error} />
+          <Text style={styles.errorTitle}>Unable to load chats</Text>
+          <Text style={styles.errorSubtitle}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      ) : !isConnected ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="cloud-offline-outline" size={64} color={colors.text.tertiary} />
+          <Text style={styles.errorTitle}>Not connected</Text>
+          <Text style={styles.errorSubtitle}>Please check your connection and try again</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
         <FlatList
           data={filteredChats}
           renderItem={renderChatItem}
           keyExtractor={(item) => item.id}
           style={styles.chatList}
-          contentContainerStyle={styles.chatListContent}
+          contentContainerStyle={filteredChats.length === 0 ? styles.emptyContainer : styles.chatListContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+          ListEmptyComponent={() => (
+            <>
+              <Ionicons name="chatbubbles-outline" size={64} color={colors.text.tertiary} />
+              <Text style={styles.emptyTitle}>No conversations found</Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery.length > 0
+                  ? "Try searching for a different store"
+                  : "Start shopping to chat with stores!"
+                }
+              </Text>
+            </>
+          )}
         />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="chatbubbles-outline" size={64} color={colors.text.tertiary} />
-          <Text style={styles.emptyTitle}>No conversations found</Text>
-          <Text style={styles.emptySubtitle}>
-            {searchQuery.length > 0 
-              ? "Try searching for a different store"
-              : "Start shopping to chat with stores!"
-            }
-          </Text>
-        </View>
       )}
     </SafeAreaView>
   );
@@ -195,8 +264,8 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   storeAvatar: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     borderRadius: 28,
     backgroundColor: colors.background.tertiary,
   },
@@ -239,13 +308,13 @@ const styles = StyleSheet.create({
   },
   lastMessage: {
     fontSize: typography.fontSizes.md,
-    color: colors.text.secondary,
+    color: colors.text.tertiary,
     lineHeight: typography.lineHeights.normal * typography.fontSizes.md,
     flex: 1,
     marginRight: spacing.sm,
   },
   unreadBadge: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     borderRadius: radii.full,
     minWidth: 20,
     height: 20,
@@ -277,5 +346,49 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
     textAlign: 'center',
     lineHeight: typography.lineHeights.normal * typography.fontSizes.md,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  loadingText: {
+    fontSize: typography.fontSizes.md,
+    color: colors.text.secondary,
+    marginTop: spacing.md,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  errorTitle: {
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  errorSubtitle: {
+    fontSize: typography.fontSizes.md,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: typography.lineHeights.normal * typography.fontSizes.md,
+    marginBottom: spacing.lg,
+  },
+  retryButton: {
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+  },
+  retryButtonText: {
+    color: colors.text.inverse,
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
   },
 });

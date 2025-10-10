@@ -3,6 +3,9 @@ interface AppConfig {
   isDevelopment: boolean;
   isProduction: boolean;
   version: string;
+  streamChat: {
+    apiKey: string;
+  };
 }
 
 
@@ -10,9 +13,9 @@ const getApiBaseUrl = (): string => {
   // return "https://rpbwh9rd-5132.asse.devtunnels.ms";
   // return "http://10.89.3.46:5132";
   // return "http://10.98.7.44:5132";
-  return "http://192.168.1.8:5132";
-  // return "http://192.168.254.114:5132";
+  // return "http://192.168.1.12:5132";
   // return "http://localhost:5132"
+  return 'https://rpbwh9rd-5132.asse.devtunnels.ms'
 };
 
 
@@ -21,6 +24,11 @@ export const config: AppConfig = {
   isDevelopment: __DEV__,
   isProduction: !__DEV__,
   version: "1.0.0",
+  streamChat: {
+    // For development - replace with your actual Stream API key
+    // In production, this should come from environment variables
+    apiKey: process.env.EXPO_PUBLIC_STREAM_API_KEY || "your_stream_api_key_here",
+  },
 };
 
 // API endpoints

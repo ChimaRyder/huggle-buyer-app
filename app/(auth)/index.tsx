@@ -16,6 +16,7 @@ import { addPushToken } from "@/utils/pushToken";
 import { ShoppingBag } from "lucide-react-native";
 import { useApi } from "@/context/ApiContext";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { template } from "@babel/core";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -75,7 +76,7 @@ export default function AuthScreen() {
               router.dismissTo("/(tabs)");
             }, 500); // Small delay for smoother transition
           } else if (exists === 404) {
-            const token = await getToken();
+            const token = await getToken({template: "seller_app"});
             await CreateBuyerAccount(
               token,
               user.id,
