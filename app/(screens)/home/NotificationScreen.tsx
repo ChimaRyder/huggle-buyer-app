@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -21,120 +21,68 @@ import {
 } from "react-native-popup-menu";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/constants/theme";
+import { useAuth } from "@clerk/clerk-expo";
+import { 
+  getNotifications, 
+  markNotificationAsRead, 
+  deleteNotification,
+  markAllNotificationsAsRead 
+} from "@/utils/notificationApi";
 
-// Define notification types relevant to a produce app
+// Define notification types to match backend
 type NotificationType = 
-  | "OrderReady"
   | "OrderConfirmed"
+  | "OrderReady"
+  | "OrderCancelled"
   | "NewProduct"
-  | "PriceDrop"
-  | "SeasonalOffer"
-  | "DeliveryUpdate";
+  | "NewPost";
 
 type Notification = {
   id: string;
-  type: NotificationType;
+  userId: string;
   title: string;
   message: string;
-  createdAt: string;
+  type: string;
+  relatedEntityId?: string;
+  relatedEntityType?: string;
   isRead: boolean;
+  readAt?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-// Mock notification data for a produce app
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "OrderReady",
-    title: "Order Ready for Pickup",
-    message: "Your organic apples from Farm Fresh Market are ready for pickup.",
-    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-    isRead: false,
-  },
-  {
-    id: "2",
-    type: "NewProduct",
-    title: "Fresh Strawberries In Season",
-    message: "Sweet organic strawberries are now available at Berry Best.",
-    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    isRead: false,
-  },
-  {
-    id: "3",
-    type: "PriceDrop",
-    title: "Price Drop on Kale",
-    message: "Organic kale is now 20% off at Green Thumb Grocers.",
-    createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-    isRead: true,
-  },
-  {
-    id: "4",
-    type: "OrderConfirmed",
-    title: "Order Confirmed",
-    message: "Your order of fresh carrots and sweet potatoes has been confirmed.",
-    createdAt: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-    isRead: true,
-  },
-  {
-    id: "5",
-    type: "SeasonalOffer",
-    title: "Seasonal Produce Sale",
-    message: "Get 15% off all seasonal vegetables this week only.",
-    createdAt: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
-    isRead: true,
-  },
-  {
-    id: "6",
-    type: "DeliveryUpdate",
-    title: "Delivery Delayed",
-    message: "Your organic herbs delivery will be delayed by 30 minutes.",
-    createdAt: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
-    isRead: false,
-  },
-  {
-    id: "7",
-    type: "NewProduct",
-    title: "Exotic Mangoes Available",
-    message: "Fresh tropical mangoes now available at Tropical Paradise.",
-    createdAt: new Date(Date.now() - 518400000).toISOString(), // 6 days ago
-    isRead: true,
-  },
-];
 
 // Get icon based on notification type
-const getIconForType = (type: NotificationType) => {
+const getIconForType = (type: string) => {
   switch (type) {
     case "OrderReady":
       return require("@/assets/icons/bell.png");
     case "OrderConfirmed":
       return require("@/assets/icons/bell.png");
+    case "OrderCancelled":
+      return require("@/assets/icons/bell.png");
     case "NewProduct":
       return require("@/assets/icons/bell.png");
-    case "PriceDrop":
+    case "NewPost":
       return require("@/assets/icons/bell.png");
-    case "SeasonalOffer":
-      return require("@/assets/icons/bell.png");
-    case "DeliveryUpdate":
-      return require("@/assets/icons/location.png");
     default:
       return require("@/assets/icons/bell.png");
   }
 };
 
 // Get background color based on notification type
-const getColorForType = (type: NotificationType) => {
+const getColorForType = (type: string) => {
   switch (type) {
     case "OrderReady":
       return colors.success; // Green
     case "OrderConfirmed":
       return colors.info; // Blue
+    case "OrderCancelled":
+      return colors.danger; // Red
     case "NewProduct":
       return colors.secondary; // Blue-Green
-    case "PriceDrop":
-      return colors.warning; // Amber
-    case "SeasonalOffer":
+    case "NewPost":
       return colors.primary; // Primary Green
-    case "DeliveryUpdate":
-      return colors.danger; // Red
     default:
       return colors.gray500; // Gray
   }
@@ -142,42 +90,99 @@ const getColorForType = (type: NotificationType) => {
 
 const NotificationScreen = () => {
   const router = useRouter();
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const { userId, getToken } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handlePress = (notif: Notification) => {
-    if (!notif.isRead) {
-      // Mark as read
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
-      );
+  const fetchNotifications = async () => {
+    if (!userId) return;
+    
+    try {
+      const token = await getToken({ template: "seller_app" });
+      const data = await getNotifications(userId, token);
+      setNotifications(data.data || []);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      Alert.alert("Error", "Failed to load notifications");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [userId]);
+
+  const handlePress = async (notif: Notification) => {
+    if (!notif.isRead && userId) {
+      try {
+        const token = await getToken({ template: "seller_app" });
+        await markNotificationAsRead(notif.id, token);
+        // Update local state
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+        );
+      } catch (error) {
+        console.error("Failed to mark notification as read:", error);
+      }
     }
     
-    // Navigate based on notification type
-    if (notif.type === "OrderReady" || notif.type === "OrderConfirmed" || notif.type === "DeliveryUpdate") {
-      router.push("/(screens)/order/Orders");
+    // Navigate based on notification type and related entity
+    if (notif.type === "OrderReady" || notif.type === "OrderConfirmed" || notif.type === "OrderCancelled") {
+      if (notif.relatedEntityId) {
+        router.push(`/(screens)/order/Orders`);
+      } else {
+        router.push("/(screens)/order/Orders");
+      }
     } else if (notif.type === "NewProduct") {
-      router.push("/(screens)/search/SearchScreen");
+      if (notif.relatedEntityId) {
+        router.push(`/(screens)/store/ProductScreen?id=${notif.relatedEntityId}`);
+      } else {
+        router.push("/(screens)/search/SearchScreen");
+      }
+    } else if (notif.type === "NewPost") {
+      if (notif.relatedEntityId) {
+        router.push(`/(screens)/store/PostScreen?id=${notif.relatedEntityId}`);
+      } else {
+        router.push("/(screens)/search/SearchScreen");
+      }
     }
   };
 
-  const handleDelete = (notifId: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== notifId));
+  const handleDelete = async (notifId: string) => {
+    if (!userId) return;
+    
+    try {
+      const token = await getToken({ template: "seller_app" });
+      await deleteNotification(notifId, token);
+      setNotifications((prev) => prev.filter((n) => n.id !== notifId));
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+      Alert.alert("Error", "Failed to delete notification");
+    }
   };
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await fetchNotifications();
+    setRefreshing(false);
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => 
-      prev.map(notif => ({ ...notif, isRead: true }))
-    );
-    Alert.alert("Success", "All notifications marked as read");
+  const markAllAsRead = async () => {
+    if (!userId) return;
+    
+    try {
+      const token = await getToken({ template: "seller_app" });
+      await markAllNotificationsAsRead(userId, token);
+      setNotifications((prev) => 
+        prev.map(notif => ({ ...notif, isRead: true }))
+      );
+      Alert.alert("Success", "All notifications marked as read");
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+      Alert.alert("Error", "Failed to mark notifications as read");
+    }
   };
 
   const renderItem = ({ item }: { item: Notification }) => (
@@ -251,31 +256,37 @@ const NotificationScreen = () => {
           </TouchableOpacity>
         </View>
         <View style={styles.container}>
-          <FlatList
-            data={notifications}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={[colors.primary.main]}
-                tintColor={colors.primary.main}
-              />
-            }
-            contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 }}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Ionicons 
-                  name="notifications-off" 
-                  size={64} 
-                  color={colors.text.tertiary} 
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading notifications...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={notifications}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[colors.primary]}
+                  tintColor={colors.primary}
                 />
-                <Text style={styles.emptyText}>No notifications</Text>
-                <Text style={styles.emptySubtext}>We'll notify you when something important happens</Text>
-              </View>
-            }
-          />
+              }
+              contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 }}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Ionicons 
+                    name="notifications-off" 
+                    size={64} 
+                    color={colors.text.tertiary} 
+                  />
+                  <Text style={styles.emptyText}>No notifications</Text>
+                  <Text style={styles.emptySubtext}>We'll notify you when something important happens</Text>
+                </View>
+              }
+            />
+          )}
         </View>
       </SafeAreaView>
     </MenuProvider>
@@ -418,6 +429,17 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     textAlign: "center",
     paddingHorizontal: 32,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 100,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    fontWeight: '400',
   },
 });
 

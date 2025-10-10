@@ -110,10 +110,8 @@ export default function ProductScreen() {
   const [drawerAction, setDrawerAction] = useState<'cart' | 'order' | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
-  const imageScrollViewRef = useRef(null);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   
   // Report modal state
@@ -169,7 +167,6 @@ export default function ProductScreen() {
       console.log('🔍 ProductScreen: Fetching product with ID:', id);
       fetchProductById(id);
       fetchProductReviews(id); // Fetch reviews too
-      setCurrentImageIndex(0); // Reset image carousel
     }
     
     // Cleanup when component unmounts or ID changes
@@ -354,13 +351,6 @@ export default function ProductScreen() {
     router.push(`/(screens)/store/ReviewsScreen?id=${store?.id}&productId=${currentProduct.id}`);
   };
 
-  const handleImageScroll = (event) => {
-    const contentOffset = event.nativeEvent.contentOffset.x;
-    const imageWidth = SCREEN_WIDTH;
-    const newIndex = Math.round(contentOffset / imageWidth);
-    const clampedIndex = Math.min(Math.max(newIndex, 0), (currentProduct.image?.length || 1) - 1);
-    setCurrentImageIndex(clampedIndex);
-  };
 
   const handleReviewScroll = (event) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
@@ -422,46 +412,15 @@ export default function ProductScreen() {
           }
       >
         <View style={styles.imageContainer}>
-          {/* Image carousel */}
-          <ScrollView
-            ref={imageScrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleImageScroll}
-            scrollEventThrottle={16}
-            style={styles.imageScrollView}
-          >
-            {currentProduct.image && currentProduct.image.length > 0 ? (
-              currentProduct.image.map((imageUri, index) => (
-                <SafeImage 
-                  key={index}
-                  source={{ uri: imageUri }} 
-                  style={styles.image} 
-                />
-              ))
-            ) : (
-              <SafeImage 
-                source={{ uri: '' }} 
-                style={styles.image} 
-              />
-            )}
-          </ScrollView>
-          
-          {/* Image indicators */}
-          {currentProduct.image && currentProduct.image.length > 1 && (
-            <View style={styles.imageIndicatorsContainer}>
-              {currentProduct.image.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.imageIndicator,
-                    index === currentImageIndex && styles.activeImageIndicator,
-                  ]}
-                />
-              ))}
-            </View>
-          )}
+          {/* Simple single image display */}
+          <SafeImage 
+            source={{ 
+              uri: currentProduct.image && currentProduct.image.length > 0 
+                ? currentProduct.image[0] 
+                : '' 
+            }} 
+            style={styles.image} 
+          />
           
           {/* Back button overlay */}
           <TouchableOpacity 
@@ -882,30 +841,9 @@ const styles = StyleSheet.create({
     height: 300,
     position: "relative",
   },
-  imageScrollView: {
-    flex: 1,
-  },
   image: {
-    width: SCREEN_WIDTH,
+    width: '100%',
     height: 300,
-  },
-  imageIndicatorsContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  imageIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    marginHorizontal: 4,
-  },
-  activeImageIndicator: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   backButton: {
     position: "absolute",

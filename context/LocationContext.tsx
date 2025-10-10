@@ -310,8 +310,10 @@ export function LocationProvider({ children }: LocationProviderProps) {
       const lastInitialized = await AsyncStorage.getItem(LOCATION_INITIALIZED_KEY);
       const now = Date.now();
       
-      // Only initialize once every 10 minutes
-      if (lastInitialized && (now - parseInt(lastInitialized)) < 10 * 60 * 1000) {
+      // Only initialize once every 2 minutes (reduced from 10 minutes)
+      // But always initialize if we don't have a current location
+      if (currentLocation && lastInitialized && (now - parseInt(lastInitialized)) < 2 * 60 * 1000) {
+        console.log('⏸️ LocationContext: Skipping background initialization - recently done and have location');
         return;
       }
 
@@ -338,9 +340,9 @@ export function LocationProvider({ children }: LocationProviderProps) {
         const address = await getLocationAddress(location);
         const locationWithAddress = { ...location, address };
 
-        // Save to storage
-        await AsyncStorage.setItem(CURRENT_LOCATION_KEY, JSON.stringify(locationWithAddress));
-        setCurrentLocation(locationWithAddress);
+        // Save to storage and update state using setLocation helper
+        await setLocation(locationWithAddress);
+        console.log('✅ LocationContext: Background initialization saved location to context');
 
         // Mark as initialized
         await AsyncStorage.setItem(LOCATION_INITIALIZED_KEY, now.toString());
