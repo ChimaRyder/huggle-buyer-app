@@ -35,7 +35,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
   const [unreadCount, setUnreadCount] = useState(0);
   const { user } = useUser();
   const { getToken } = useAuth();
-  const { currentLocation, savedLocations, getLocationAddress, initializeLocationInBackground } = useLocationContext();
+  const { currentLocation, savedLocations, getLocationAddress, initializeLocationInBackground, setLocation } = useLocationContext();
 
   // Helper function to truncate location text to 25 characters
   const truncateLocation = (text: string, maxLength: number = 25): string => {
@@ -99,6 +99,16 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
           };
           
           const address = await getLocationAddress(deviceLocation);
+          const deviceLocationWithAddress = { ...deviceLocation, address };
+          
+          // Automatically save the device location to context so products can load
+          try {
+            await setLocation(deviceLocationWithAddress);
+            console.log('✅ GreeterSection: Automatically saved device location to context');
+          } catch (error) {
+            console.warn('⚠️ GreeterSection: Failed to save device location to context:', error);
+          }
+          
           const truncatedLocation = truncateLocation(address);
           setDisplayLocation(truncatedLocation);
         }

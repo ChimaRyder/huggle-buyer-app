@@ -3,7 +3,7 @@
  * Main landing screen for food e-commerce app showing categories and restaurants
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -42,7 +42,22 @@ const HomeScreen = () => {
   // Context hooks
   const { fetchTrendingProducts } = useProductContext();
   const { fetchPopularStores } = useStoreContext();
-  const { currentLocation } = useLocationContext();
+  const { currentLocation, initializeLocationInBackground } = useLocationContext();
+
+  // Initialize location on home screen mount to ensure products can load
+  useEffect(() => {
+    const initializeLocation = async () => {
+      try {
+        console.log('🏠 HomeScreen: Initializing location on mount');
+        await initializeLocationInBackground();
+        console.log('✅ HomeScreen: Location initialization completed');
+      } catch (error) {
+        console.warn('⚠️ HomeScreen: Location initialization failed:', error);
+      }
+    };
+
+    initializeLocation();
+  }, [initializeLocationInBackground]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
