@@ -143,8 +143,24 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
               
               {/* Product details */}
               <View style={styles.content}>
-                <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
+                <View style={styles.nameRow}>
+                  <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
+                  {item.isBundle && (
+                    <View style={styles.bundleBadge}>
+                      <Text style={styles.bundleBadgeText}>Bundle</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
+                
+                {/* Show bundle products if it's a bundle */}
+                {item.isBundle && item.bundleProducts && item.bundleProducts.length > 0 && (
+                  <View style={styles.bundleProducts}>
+                    <Text style={styles.bundleProductsText}>
+                      Includes: {item.bundleProducts.map(p => p.name).join(', ')}
+                    </Text>
+                  </View>
+                )}
                 
                 <View style={styles.footer}>
                   <Text style={styles.price}>₱{(item.price * item.quantity).toFixed(2)}</Text>
@@ -230,11 +246,38 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 4,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   name: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text.secondary,
+    flex: 1,
+  },
+  bundleBadge: {
+    backgroundColor: colors.warning + '20',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  bundleBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.warning,
+    textTransform: 'uppercase',
+  },
+  bundleProducts: {
+    marginTop: 4,
     marginBottom: 4,
+  },
+  bundleProductsText: {
+    fontSize: 11,
+    color: colors.text.tertiary,
+    fontStyle: 'italic',
   },
   description: {
     fontSize: 12,

@@ -43,9 +43,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     onFavoritePress?.(product);
   };
 
-  const hasDiscount = product.discountedPrice < product.originalPrice;
+  // Handle pricing for both products and bundles
+  const discountedPrice = product.discountedPrice ?? product.price ?? 0;
+  const originalPrice = product.originalPrice ?? discountedPrice;
+  const hasDiscount = discountedPrice < originalPrice;
   const discountPercentage = hasDiscount 
-    ? Math.round(((product.originalPrice - product.discountedPrice) / product.originalPrice) * 100)
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
     : 0;
 
   return (
@@ -57,7 +60,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: product.coverImage }}
+          source={{ 
+            uri: product.coverImage || (product.image && product.image.length > 0 ? product.image[0] : '') 
+          }}
           style={styles.image}
           resizeMode="cover"
         />
@@ -90,11 +95,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         
         <View style={styles.priceContainer}>
           <Text style={styles.discountedPrice}>
-            ±{product.discountedPrice.toFixed(2)}
+            ï¿½{discountedPrice.toFixed(2)}
           </Text>
           {hasDiscount && (
             <Text style={styles.originalPrice}>
-              ±{product.originalPrice.toFixed(2)}
+              ï¿½{originalPrice.toFixed(2)}
             </Text>
           )}
         </View>
@@ -103,7 +108,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={12} color={colors.warning} />
             <Text style={styles.ratingText}>
-              {product.rating.toFixed(1)} ({product.ratingCount})
+              {(product.rating ?? 0).toFixed(1)} ({product.ratingCount ?? 0})
             </Text>
           </View>
           

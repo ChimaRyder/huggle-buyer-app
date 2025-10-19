@@ -17,7 +17,7 @@ export default {
     android: {
       package: "com.huggle.buyerapp",
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
+        foregroundImage: "./assets/images/icon.png",
         backgroundColor: "#ffffff",
       },
       permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
@@ -25,14 +25,14 @@ export default {
     web: {
       bundler: "metro",
       output: "static",
-      favicon: "./assets/images/favicon.png",
+      favicon: "./assets/images/icon.png",
     },
     plugins: [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/images/icon.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",

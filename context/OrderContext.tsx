@@ -32,8 +32,10 @@ interface Order {
 interface CreateOrderRequest {
   storeId: string;
   items: Array<{
-    productId: string;
+    productId?: string;
+    bundleId?: string;
     quantity: number;
+    itemType: "product" | "bundle";
   }>;
   notes?: string;
 }

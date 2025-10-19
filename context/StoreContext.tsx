@@ -280,39 +280,59 @@ export function StoreProvider({ children }: StoreProviderProps) {
     
     try {
       console.log('🔍 StoreContext: Starting fetchStoreProducts for storeId:', storeId);
-      const response = await client.get<any>(API_ENDPOINTS.products.byStore(storeId));
-      console.log('🔍 StoreContext: Raw API response for store products:', response);
+      
+      // Fetch store products (which already includes bundles from backend)
+      const productsResponse = await client.get<any>(API_ENDPOINTS.products.byStore(storeId));
+      
+      console.log('🔍 StoreContext: Raw API response for store products (includes bundles):', productsResponse);
 
-      if (response.success && response.data) {
-        console.log('✅ StoreContext: Fetch store products response:', response.data);
+      let allItems: BackendProduct[] = [];
+
+      // Process products and bundles (already combined by backend)
+      if (productsResponse.success && productsResponse.data) {
+        console.log('✅ StoreContext: Fetch store products response:', productsResponse.data);
         
-        // Handle different response structures
         let productsArray: BackendProduct[] = [];
-        if (response.data.data && response.data.data.items && Array.isArray(response.data.data.items)) {
+        if (productsResponse.data.data && productsResponse.data.data.items && Array.isArray(productsResponse.data.data.items)) {
           console.log('🔍 StoreContext: Found paginated products in items array');
-          productsArray = response.data.data.items;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
+          productsArray = productsResponse.data.data.items;
+        } else if (productsResponse.data.data && Array.isArray(productsResponse.data.data)) {
           console.log('🔍 StoreContext: Found nested products array');
-          productsArray = response.data.data;
-        } else if (Array.isArray(response.data)) {
+          productsArray = productsResponse.data.data;
+        } else if (Array.isArray(productsResponse.data)) {
           console.log('🔍 StoreContext: Found direct products array');
-          productsArray = response.data;
-        } else if (response.data.products && Array.isArray(response.data.products)) {
+          productsArray = productsResponse.data;
+        } else if (productsResponse.data.products && Array.isArray(productsResponse.data.products)) {
           console.log('🔍 StoreContext: Found products in products property');
-          productsArray = response.data.products;
-        } else if (response.data.items && Array.isArray(response.data.items)) {
+          productsArray = productsResponse.data.products;
+        } else if (productsResponse.data.items && Array.isArray(productsResponse.data.items)) {
           console.log('🔍 StoreContext: Found products in items property');
-          productsArray = response.data.items;
+          productsArray = productsResponse.data.items;
         }
         
         console.log('🔍 StoreContext: Processed products array:', productsArray.length, 'items');
-        setStoreProducts(productsArray);
-        console.log('✅ StoreContext: Set storeProducts to:', productsArray.length, 'items');
-      } else {
-        console.warn('❌ StoreContext: Failed to fetch store products - success:', response.success, 'error:', response.error);
-        setProductsError(response.error || 'Failed to fetch store products');
-        setStoreProducts([]);
+        
+        // Debug: log each product to see which ones are bundles
+        productsArray.forEach((product, index) => {
+          console.log(`🔍 StoreContext: Product ${index + 1}:`, {
+            id: product.id,
+            name: product.name,
+            isBundle: product.isBundle,
+            coverImage: product.coverImage,
+            image: product.image,
+            imageLength: product.image?.length
+          });
+        });
+        
+        // All items (products and bundles) are already included from backend
+        console.log('🔍 StoreContext: All products and bundles (already combined by backend):', productsArray.length, 'items');
+        allItems = [...allItems, ...productsArray];
       }
+      
+      console.log('🔍 StoreContext: Total combined items:', allItems.length, 'items');
+      setStoreProducts(allItems);
+      console.log('✅ StoreContext: Set storeProducts to:', allItems.length, 'items');
+      
     } catch (error) {
       console.error('❌ StoreContext: Exception in fetchStoreProducts:', error);
       setProductsError(error instanceof Error ? error.message : 'Unknown error occurred');

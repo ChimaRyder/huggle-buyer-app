@@ -1,4 +1,5 @@
-import { CartItem, Product } from '@/data/food/models';
+import { CartItem, Product, BundleProduct } from '@/data/food/models';
+import type { BackendBundle } from '@/types/BackendModels';
 
 /**
  * Convert a Product to a CartItem for adding to cart
@@ -129,6 +130,57 @@ export function calculateCartTotal(items: CartItem[]): number {
  */
 export function calculateCartQuantity(items: CartItem[]): number {
   return items.reduce((total, item) => total + item.quantity, 0);
+}
+
+/**
+ * Convert a Bundle to a CartItem for adding to cart
+ */
+export function bundleToCartItem(
+  bundle: BackendBundle,
+  quantity: number = 1
+): CartItem {
+  // Handle image array - use coverImage first (provided by backend), then imageUrl, then images array, then fallback to product images
+  const image = bundle.coverImage || 
+    bundle.imageUrl || 
+    (Array.isArray(bundle.images) && bundle.images.length > 0 ? bundle.images[0] : '') ||
+    (Array.isArray(bundle.products) && bundle.products.length > 0 && bundle.products[0].image?.length > 0 ? bundle.products[0].image[0] : '');
+
+  console.log('🔄 cartHelpers: Converting bundle to cart item', {
+    bundleId: bundle.id,
+    bundleName: bundle.name,
+    price: bundle.price,
+    quantity,
+    storeId: bundle.storeId,
+    storeName: bundle.storeName,
+    productsCount: bundle.products.length
+  });
+
+  const bundleProducts: BundleProduct[] = bundle.products.map(product => ({
+    id: product.id,
+    name: product.name,
+    image: product.image,
+    tags: product.tags
+  }));
+
+  const cartItem: CartItem = {
+    id: bundle.id,
+    name: bundle.name,
+    description: bundle.description || '',
+    price: bundle.price,
+    image: image,
+    quantity: quantity,
+    storeId: bundle.storeId || '',
+    storeName: bundle.storeName || 'Unknown Store',
+    category: 'Bundle',
+    isActive: bundle.isActive !== false,
+    expiresAt: bundle.expiresOn,
+    selected: true,
+    isBundle: true,
+    bundleProducts: bundleProducts
+  };
+  
+  console.log('✅ cartHelpers: Created bundle cart item', cartItem);
+  return cartItem;
 }
 
 /**

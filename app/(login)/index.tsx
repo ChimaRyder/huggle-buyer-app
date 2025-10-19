@@ -69,7 +69,7 @@ export default function WelcomeScreen() {
         strategy: "oauth_facebook",
         redirectUrl: AuthSession.makeRedirectUri({
           scheme: "myapp",
-          path: "(app)",
+          path: "(auth)",
         }),
       });
       if (createdSessionId) {
@@ -99,7 +99,7 @@ export default function WelcomeScreen() {
         strategy: "oauth_google",
         redirectUrl: AuthSession.makeRedirectUri({
           scheme: "myapp",
-          path: "(app)",
+          path: "(auth)",
         }),
       });
       if (createdSessionId) {

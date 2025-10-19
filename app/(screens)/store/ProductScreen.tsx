@@ -21,11 +21,12 @@ import { ReviewCard } from "@/components/review";
 import { useProductContext } from "@/context/ProductContext";
 import { useCart } from '@/context/CartContext';
 import { CartItem } from '@/data/food/models';
-import { genericProductToCartItem } from '@/utils/cartHelpers';
+import { genericProductToCartItem, bundleToCartItem } from '@/utils/cartHelpers';
 import AddToCartModal from '@/components/cart/AddToCartModal';
 import { fetchReviews } from '@/utils/reviews';
 import { submitProductReport } from '@/utils/reports';
 import { BackendReview } from '@/types/BackendModels';
+import BundleProductCard from '@/components/bundle/BundleProductCard';
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -103,7 +104,7 @@ const ProductSkeleton = () => {
 
 export default function ProductScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams(); // Removed type parameter - we'll auto-detect
   const { getToken, userId } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
@@ -130,7 +131,15 @@ export default function ProductScreen() {
     isFetchingProduct,
     productError,
     fetchProductById,
-    clearCurrentProduct
+    clearCurrentProduct,
+    currentBundle,
+    isFetchingBundle,
+    bundleError,
+    fetchBundleById,
+    clearCurrentBundle,
+    isCurrentItemBundle,
+    currentItem,
+    fetchItemById
   } = useProductContext();
   
   const { addItem } = useCart();
@@ -164,31 +173,38 @@ export default function ProductScreen() {
   
   useEffect(() => {
     if (id && typeof id === 'string') {
-      console.log('🔍 ProductScreen: Fetching product with ID:', id);
-      fetchProductById(id);
-      fetchProductReviews(id); // Fetch reviews too
+      console.log('🔍 ProductScreen: Auto-detecting item type for ID:', id);
+      
+      // Use smart fetch that tries both product and bundle endpoints
+      fetchItemById(id);
+      fetchProductReviews(id); // Fetch reviews for both products and bundles
     }
     
     // Cleanup when component unmounts or ID changes
     return () => {
       clearCurrentProduct();
+      clearCurrentBundle();
       setReviews([]);
       setReviewsError(null);
     };
-  }, [id, fetchProductById, clearCurrentProduct]);
+  }, [id, fetchItemById, clearCurrentProduct, clearCurrentBundle]);
 
   // TODO: Fetch store details from API
   const store = null;
 
   // Loading and error states
-  if (isFetchingProduct) {
+  const isLoading = isFetchingProduct || isFetchingBundle;
+  const error = productError || bundleError;
+  const hasCurrentItem = currentProduct || currentBundle;
+
+  if (isLoading) {
     return <ProductSkeleton />;
   }
 
-  if (productError || !currentProduct) {
+  if (error || !hasCurrentItem) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>{productError || 'Product not found'}</Text>
+        <Text style={styles.errorText}>{error || `${isCurrentItemBundle ? 'Bundle' : 'Product'} not found`}</Text>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => router.back()}
@@ -200,19 +216,21 @@ export default function ProductScreen() {
   }
 
   // Debug logging for pricing and tags
-  console.log('💰 ProductScreen: Product pricing info:', {
-    price: currentProduct.price,
-    originalPrice: currentProduct.originalPrice,
-    hasDiscount: currentProduct.hasDiscount,
-    discountPercentage: currentProduct.discountPercentage,
-    shouldShowOriginal: currentProduct.hasDiscount || currentProduct.price < currentProduct.originalPrice
+  console.log('💰 ProductScreen: Item pricing info:', {
+    price: currentItem?.price,
+    originalPrice: currentItem?.originalPrice,
+    hasDiscount: currentItem?.hasDiscount,
+    discountPercentage: currentItem?.discountPercentage,
+    shouldShowOriginal: currentItem?.hasDiscount || (currentItem?.price && currentItem?.originalPrice && currentItem.price < currentItem.originalPrice),
+    isBundle: isCurrentItemBundle
   });
   
-  console.log('🏷️ ProductScreen: Product tags info:', {
-    tags: currentProduct.tags,
-    tagsLength: currentProduct.tags?.length,
-    tagsType: typeof currentProduct.tags,
-    hasTagsAndLength: currentProduct.tags && currentProduct.tags.length > 0
+  console.log('🏷️ ProductScreen: Item tags info:', {
+    tags: (currentItem as any)?.tags,
+    tagsLength: (currentItem as any)?.tags?.length,
+    tagsType: typeof (currentItem as any)?.tags,
+    hasTagsAndLength: (currentItem as any)?.tags && (currentItem as any)?.tags.length > 0,
+    isBundle: isCurrentItemBundle
   });
 
   // Calculate average rating
@@ -225,11 +243,12 @@ export default function ProductScreen() {
     
     setRefreshing(true);
     try {
-      await Promise.all([
-        fetchProductById(id),
+      const refreshPromises = [
+        fetchItemById(id),
         fetchProductReviews(id)
-      ]);
-      console.log('✅ ProductScreen: Successfully refreshed product and reviews data');
+      ];
+      await Promise.all(refreshPromises);
+      console.log('✅ ProductScreen: Successfully refreshed item and reviews data');
     } catch (error) {
       console.error('❌ ProductScreen: Error refreshing data:', error);
     } finally {
@@ -239,7 +258,8 @@ export default function ProductScreen() {
 
   const handleQuantityChange = (increment: boolean) => {
     const newQuantity = increment ? quantity + 1 : quantity - 1;
-    if (newQuantity >= 1 && newQuantity <= currentProduct.stock) {
+    const maxStock = currentItem?.stock || 0;
+    if (newQuantity >= 1 && newQuantity <= maxStock) {
       setQuantity(newQuantity);
     }
   };
@@ -275,28 +295,34 @@ export default function ProductScreen() {
   };
 
   const confirmAction = async () => {
+    if (!currentItem) return;
+    
     try {
       console.log('📦 ProductScreen: Starting confirmAction', {
         drawerAction,
-        productId: currentProduct.id,
-        productName: currentProduct.name,
+        itemId: currentItem.id,
+        itemName: currentItem.name,
         quantity,
-        storeId: currentProduct.storeId,
-        storeName: currentProduct.storeName
+        storeId: currentItem.storeId,
+        storeName: currentItem.storeName,
+        isBundle: isCurrentItemBundle
       });
       
       if (drawerAction === 'cart') {
-        // Create cart item from current product using helper
-        const cartItem = genericProductToCartItem(currentProduct, quantity);
+        // Create cart item from current item using appropriate helper
+        const cartItem = isCurrentItemBundle && currentBundle
+          ? bundleToCartItem(currentBundle, quantity)
+          : genericProductToCartItem(currentItem, quantity);
         
         console.log('🛒 ProductScreen: Created cart item for add to cart', {
           cartItem,
-          originalProduct: {
-            id: currentProduct.id,
-            name: currentProduct.name,
-            price: currentProduct.price,
-            storeId: currentProduct.storeId
-          }
+          originalItem: {
+            id: currentItem.id,
+            name: currentItem.name,
+            price: currentItem.price,
+            storeId: currentItem.storeId
+          },
+          isBundle: isCurrentItemBundle
         });
         
         console.log('📡 ProductScreen: Calling addItem...');
@@ -310,16 +336,23 @@ export default function ProductScreen() {
         
         // Close drawer first, then navigate
         closeDrawer();
+        
+        // Get the first image URL for display
+        const imageUrl = Array.isArray(currentItem.image) 
+          ? currentItem.image[0] 
+          : currentItem.image || '';
+          
         // Navigate directly to OrderReviewScreen for immediate checkout
         router.push({
           pathname: '/(screens)/cart/OrderReviewScreen',
           params: { 
-            storeId: currentProduct.storeId,
-            productId: currentProduct.id,
-            productName: currentProduct.name,
-            productPrice: currentProduct.price.toString(),
-            productImage: currentProduct.image,
-            quantity: quantity.toString()
+            storeId: currentItem.storeId,
+            productId: currentItem.id,
+            productName: currentItem.name,
+            productPrice: currentItem.price.toString(),
+            productImage: imageUrl,
+            quantity: quantity.toString(),
+            isBundle: isCurrentItemBundle.toString()
           },
         });
       }
@@ -330,8 +363,9 @@ export default function ProductScreen() {
         error: errorMessage,
         errorStack: error instanceof Error ? error.stack : undefined,
         drawerAction,
-        productId: currentProduct?.id,
-        quantity
+        itemId: currentItem?.id,
+        quantity,
+        isBundle: isCurrentItemBundle
       });
       alert(`Error: ${errorMessage}`);
     } finally {
@@ -342,13 +376,13 @@ export default function ProductScreen() {
   };
 
   const navigateToStore = () => {
-    if (currentProduct?.storeId) {
-      router.push(`/(screens)/store/StoreHomepageScreen?id=${currentProduct.storeId}`);
+    if (currentItem?.storeId) {
+      router.push(`/(screens)/store/StoreHomepageScreen?id=${currentItem.storeId}`);
     }
   };
 
   const handleViewAllReviews = () => {
-    router.push(`/(screens)/store/ReviewsScreen?id=${store?.id}&productId=${currentProduct.id}`);
+    router.push(`/(screens)/store/ReviewsScreen?id=${store?.id}&productId=${currentItem?.id}`);
   };
 
 
@@ -370,7 +404,7 @@ export default function ProductScreen() {
       return;
     }
     
-    if (!currentProduct || !userId) {
+    if (!currentItem || !userId) {
       alert("Unable to submit report. Please try again.");
       return;
     }
@@ -381,7 +415,7 @@ export default function ProductScreen() {
       
       await submitProductReport(
         userId,
-        currentProduct.id,
+        currentItem.id,
         reportReason,
         reportDescription,
         token
@@ -412,15 +446,87 @@ export default function ProductScreen() {
           }
       >
         <View style={styles.imageContainer}>
-          {/* Simple single image display */}
-          <SafeImage 
-            source={{ 
-              uri: currentProduct.image && currentProduct.image.length > 0 
-                ? currentProduct.image[0] 
-                : '' 
-            }} 
-            style={styles.image} 
-          />
+          {/* Image carousel for bundles with multiple images */}
+          {isCurrentItemBundle && currentBundle ? (
+            (() => {
+              // Collect all images: bundle images + product images
+              const allImages: string[] = [];
+              
+              // Add bundle main images (use coverImage first - provided by backend)
+              if (currentBundle.coverImage) allImages.push(currentBundle.coverImage);
+              if (currentBundle.imageUrl) allImages.push(currentBundle.imageUrl);
+              if (currentBundle.images && currentBundle.images.length > 0) {
+                allImages.push(...currentBundle.images);
+              }
+              
+              // Add product images
+              currentBundle.products.forEach(product => {
+                if (product.image && product.image.length > 0) {
+                  allImages.push(...product.image);
+                }
+              });
+              
+              // Remove duplicates
+              const uniqueImages = [...new Set(allImages)].filter(img => img && img.trim() !== '');
+              
+              if (uniqueImages.length <= 1) {
+                // Single image - no carousel needed
+                return (
+                  <SafeImage 
+                    source={{ uri: uniqueImages[0] || '' }} 
+                    style={styles.image} 
+                  />
+                );
+              }
+              
+              // Multiple images - show carousel
+              return (
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.imageCarousel}
+                >
+                  {uniqueImages.map((imageUri, index) => (
+                    <View key={index} style={styles.imageSlide}>
+                      <SafeImage 
+                        source={{ uri: imageUri }} 
+                        style={styles.image} 
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              );
+            })()
+          ) : (
+            // Regular product images
+            currentProduct && currentProduct.image && currentProduct.image.length > 1 ? (
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                style={styles.imageCarousel}
+              >
+                {currentProduct.image.map((imageUri, index) => (
+                  <View key={index} style={styles.imageSlide}>
+                    <SafeImage 
+                      source={{ uri: imageUri }} 
+                      style={styles.image} 
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <SafeImage 
+                source={{ 
+                  uri: currentProduct?.image && currentProduct.image.length > 0 
+                    ? currentProduct.image[0] 
+                    : '' 
+                }} 
+                style={styles.image} 
+              />
+            )
+          )}
           
           {/* Back button overlay */}
           <TouchableOpacity 
@@ -440,9 +546,9 @@ export default function ProductScreen() {
         </View>
 
         <View style={styles.content}>
-          {/* Product name */}
+          {/* Item name */}
           <View style={styles.nameRow}>
-            <Text style={styles.title}>{currentProduct.name}</Text>
+            <Text style={styles.title}>{currentItem?.name}</Text>
           </View>
 
           {/* Divider */}
@@ -450,39 +556,88 @@ export default function ProductScreen() {
 
           {/* Description without header */}
           <View style={styles.section}>
-            <Text style={styles.description}>{currentProduct.description}</Text>
+            <Text style={styles.description}>{currentItem?.description}</Text>
             
-            {/* Categories display */}
-            {currentProduct.tags && currentProduct.tags.length > 0 && (
-              <View style={styles.categoriesContainer}>
-                {currentProduct.tags.map((tag, index) => (
-                  <View key={index} style={styles.categoryBadge}>
-                    <Text style={styles.categoryText}>{tag}</Text>
+            {/* Bundle products list or categories display */}
+            {isCurrentItemBundle && currentBundle ? (
+              <View style={styles.bundleProductsContainer}>
+                <View style={styles.bundleHeaderContainer}>
+                  <Text style={styles.bundleProductsTitle}>
+                    Products in this bundle ({currentBundle.products.length})
+                  </Text>
+                </View>
+                
+                <View style={styles.bundleProductsList}>
+                  {currentBundle.products.map((product, index) => (
+                    <BundleProductCard
+                      key={index}
+                      product={product}
+                      compact={true}
+                      onPress={() => {
+                        // Optional: Navigate to individual product if needed
+                        console.log('Bundle product pressed:', product.name);
+                      }}
+                    />
+                  ))}
+                </View>
+                
+                {/* Bundle Summary */}
+                <View style={styles.bundleSummaryContainer}>
+                  <View style={styles.bundleSummaryRow}>
+                    <Text style={styles.bundleSummaryLabel}>Total Individual Price:</Text>
+                    <Text style={styles.bundleSummaryValue}>
+                      ${currentBundle.totalProductPrice?.toFixed(2) || 'N/A'}
+                    </Text>
                   </View>
-                ))}
+                  <View style={styles.bundleSummaryRow}>
+                    <Text style={styles.bundleSummaryLabel}>Bundle Price:</Text>
+                    <Text style={styles.bundlePriceValue}>
+                      ${currentBundle.price?.toFixed(2) || 'N/A'}
+                    </Text>
+                  </View>
+                  {currentBundle.hasDiscount && (
+                    <View style={styles.bundleSummaryRow}>
+                      <Text style={styles.bundleSavingsLabel}>Your Savings:</Text>
+                      <Text style={styles.bundleSavingsValue}>
+                        ${((currentBundle.totalProductPrice || 0) - (currentBundle.price || 0)).toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
+            ) : (
+              /* Categories display for regular products */
+              (currentProduct?.tags && currentProduct.tags.length > 0) && (
+                <View style={styles.categoriesContainer}>
+                  {currentProduct.tags.map((tag, index) => (
+                    <View key={index} style={styles.categoryBadge}>
+                      <Text style={styles.categoryText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
             )}
           </View>
           
 
           {/* Store info section */}
-          {currentProduct.storeName && (
+          {currentItem?.storeName && (
             <TouchableOpacity style={styles.storeSection} onPress={() => navigateToStore()}>
               <View style={styles.storeContent}>
-                {currentProduct.storeImageUrl && (
+                {currentItem.storeImageUrl && (
                   <SafeImage
-                    source={{ uri: currentProduct.storeImageUrl }}
+                    source={{ uri: currentItem.storeImageUrl }}
                     style={styles.storeImage}
                   />
                 )}
                 <View style={styles.storeInfo}>
                   <View style={styles.storeHeader}>
-                    <Text style={styles.storeName}>{currentProduct.storeName}</Text>
+                    <Text style={styles.storeName}>{currentItem.storeName}</Text>
                     <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
                   </View>
-                  {currentProduct.storeDescription && (
+                  {currentItem.storeDescription && (
                     <Text style={styles.storeDescription} numberOfLines={2}>
-                      {currentProduct.storeDescription}
+                      {currentItem.storeDescription}
                     </Text>
                   )}
                   <Text style={styles.visitStoreText}>Visit Store</Text>
@@ -584,11 +739,11 @@ export default function ProductScreen() {
         <View style={styles.bottomBar}>
           <View style={styles.priceSection}>
             <Text style={styles.price}>
-              ${currentProduct.price.toFixed(2)}
+              ${currentItem?.price?.toFixed(2)}
             </Text>
-            {currentProduct.originalPrice !== currentProduct.price && (
+            {currentItem?.originalPrice !== currentItem?.price && (
               <Text style={styles.originalPriceFooter}>
-                Was ${currentProduct.originalPrice.toFixed(2)}
+                Was ${currentItem?.originalPrice?.toFixed(2)}
               </Text>
             )}
           </View>
@@ -640,14 +795,14 @@ export default function ProductScreen() {
                 <Text style={styles.drawerTitle}>
                   {drawerAction === 'cart' ? 'Add to Cart' : 'Order Now'}
                 </Text>
-                <Text style={styles.productNameDrawer}>{currentProduct.name}</Text>
+                <Text style={styles.productNameDrawer}>{currentItem?.name}</Text>
               </View>
               
               {/* Stock info */}
               <View style={styles.stockInfo}>
                 <Text style={styles.stockText}>
-                  {currentProduct.stock > 0 
-                    ? `${currentProduct.stock} items available`
+                  {(currentItem?.stock || 0) > 0 
+                    ? `${currentItem?.stock} items available`
                     : 'Out of stock'
                   }
                 </Text>
@@ -666,9 +821,9 @@ export default function ProductScreen() {
                   </TouchableOpacity>
                   <Text style={styles.quantityText}>{quantity}</Text>
                   <TouchableOpacity 
-                    style={[styles.quantityButton, quantity >= currentProduct.stock && styles.quantityButtonDisabled]}
+                    style={[styles.quantityButton, quantity >= (currentItem?.stock || 0) && styles.quantityButtonDisabled]}
                     onPress={() => handleQuantityChange(true)}
-                    disabled={quantity >= currentProduct.stock}
+                    disabled={quantity >= (currentItem?.stock || 0)}
                   >
                     <Ionicons name="add" size={16} color="#fff" />
                   </TouchableOpacity>
@@ -679,14 +834,14 @@ export default function ProductScreen() {
               <View style={styles.totalSection}>
                 <View style={styles.totalLabelSection}>
                   <Text style={styles.totalLabel}>Total</Text>
-                  {currentProduct.originalPrice !== currentProduct.price && (
+                  {currentItem?.originalPrice !== currentItem?.price && (
                     <View style={styles.savingsInfo}>
                       <Text style={styles.savingsText}>
-                        You save ${((currentProduct.originalPrice - currentProduct.price) * quantity).toFixed(2)}
+                        You save ${(((currentItem?.originalPrice || 0) - (currentItem?.price || 0)) * quantity).toFixed(2)}
                       </Text>
-                      {currentProduct.discountPercentage > 0 && (
+                      {(currentItem?.discountPercentage || 0) > 0 && (
                         <Text style={styles.discountBadgeText}>
-                          {Math.round(currentProduct.discountPercentage)}% OFF
+                          {Math.round(currentItem?.discountPercentage || 0)}% OFF
                         </Text>
                       )}
                     </View>
@@ -694,11 +849,11 @@ export default function ProductScreen() {
                 </View>
                 <View style={styles.totalPriceContainer}>
                   <Text style={styles.totalPrice}>
-                    ${(currentProduct.price * quantity).toFixed(2)}
+                    ${((currentItem?.price || 0) * quantity).toFixed(2)}
                   </Text>
-                  {currentProduct.originalPrice !== currentProduct.price && (
+                  {currentItem?.originalPrice !== currentItem?.price && (
                     <Text style={styles.totalOriginalPrice}>
-                      ${(currentProduct.originalPrice * quantity).toFixed(2)}
+                      ${((currentItem?.originalPrice || 0) * quantity).toFixed(2)}
                     </Text>
                   )}
                 </View>
@@ -706,9 +861,9 @@ export default function ProductScreen() {
               
               {/* Confirm button */}
               <TouchableOpacity 
-                style={[styles.confirmButton, currentProduct.stock === 0 && styles.confirmButtonDisabled]}
+                style={[styles.confirmButton, (currentItem?.stock || 0) === 0 && styles.confirmButtonDisabled]}
                 onPress={confirmAction}
-                disabled={currentProduct.stock === 0}
+                disabled={(currentItem?.stock || 0) === 0}
               >
                 <Text style={styles.confirmButtonText}>
                   {drawerAction === 'cart' ? 'Add to Cart' : 'Order Now'}
@@ -722,7 +877,7 @@ export default function ProductScreen() {
       {/* Add To Cart Modal */}
       <AddToCartModal
         visible={showAddToCartModal}
-        productName={currentProduct.name}
+        productName={currentItem?.name || ''}
         quantity={quantity}
         onContinue={() => {
           setShowAddToCartModal(false);
@@ -844,6 +999,14 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 300,
+  },
+  imageCarousel: {
+    width: '100%',
+    height: '100%',
+  },
+  imageSlide: {
+    width: SCREEN_WIDTH,
+    height: '100%',
   },
   backButton: {
     position: "absolute",
@@ -1359,5 +1522,74 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.primary.main,
     fontWeight: '600',
+  },
+  // Enhanced Bundle Styles
+  bundleProductsContainer: {
+    marginTop: 20,
+  },
+  bundleHeaderContainer: {
+    marginBottom: 16,
+  },
+  bundleProductsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 8,
+  },
+  bundleSavingsContainer: {
+    backgroundColor: colors.primary.main + '10',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary.main,
+  },
+  bundleSavingsText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: 4,
+  },
+  bundleSavingsHighlight: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.success,
+  },
+  bundleProductsList: {
+    marginBottom: 16,
+  },
+  bundleSummaryContainer: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+  },
+  bundleSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  bundleSummaryLabel: {
+    fontSize: 14,
+    color: colors.text.secondary,
+  },
+  bundleSummaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  bundlePriceValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary.main,
+  },
+  bundleSavingsLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.success,
+  },
+  bundleSavingsValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.success,
   },
 });

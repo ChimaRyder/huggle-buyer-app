@@ -86,7 +86,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         case 'OrderReady':
         case 'OrderCancelled':
           if (relatedEntityId) {
-            router.push(`/(screens)/order/Orders`);
+            router.push({
+              pathname: '/(screens)/order/OrderDetails' as any,
+              params: { orderId: relatedEntityId },
+            });
           } else {
             router.push('/(screens)/order/Orders');
           }

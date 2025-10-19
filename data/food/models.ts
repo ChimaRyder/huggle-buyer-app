@@ -12,6 +12,15 @@ export interface CartItem {
   isActive?: boolean;
   expiresAt?: string;
   selected?: boolean; // For checkout selection
+  isBundle?: boolean; // Flag to identify if this is a bundle
+  bundleProducts?: BundleProduct[]; // List of products in the bundle (for display)
+}
+
+export interface BundleProduct {
+  id: string;
+  name: string;
+  image: string[];
+  tags: string[];
 }
 
 export interface Product {

@@ -45,8 +45,9 @@ const ProfileScreen = () => {
     } finally {
       // Always sign out, even if push token deactivation fails
       console.log('🚪 ProfileScreen: Completing sign out...');
-      signOut();
-      router.replace('/');
+      await signOut();
+      router.dismissAll();
+      router.replace('/(login)');
     }
   };
 

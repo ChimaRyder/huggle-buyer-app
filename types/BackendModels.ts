@@ -34,15 +34,20 @@ export interface BackendProduct {
   name: string;
   description?: string;
   image: string[]; // Array of image URLs
+  coverImage?: string; // Cover image URL for display
   tags: string[]; // Product tags/categories
   productType?: string;
   price: number;
   originalPrice: number;
+  discountedPrice?: number; // Used in frontend for pricing display
   stock: number;
   expiresOn: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  
+  // Bundle-specific fields for unified handling
+  isBundle?: boolean;
   
   // Dynamic pricing info for buyers (derived fields)
   discountPercentage: number;
@@ -56,6 +61,56 @@ export interface BackendProduct {
   // Legacy fields for compatibility (optional)
   rating?: number;
   ratingCount?: number;
+}
+
+// Bundle related interfaces
+export interface BackendBundleProduct {
+  id: string;
+  name: string;
+  tags: string[];
+  stock: number;
+  expiresOn?: string;
+  productType?: string;
+  // Additional product details for display
+  price: number;
+  originalPrice: number;
+  image: string[];
+  isActive: boolean;
+}
+
+export interface BackendBundle {
+  id: string;
+  storeId: string;
+  name: string;
+  description?: string;
+  products: BackendBundleProduct[];
+  images: string[];
+  coverImage?: string; // Cover image URL for display (unified with BackendProduct)
+  stock: number;
+  signature: string;
+  imageUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  
+  // Pricing properties
+  price: number;
+  originalPrice: number;
+  expiresOn: string;
+  isActive: boolean;
+  
+  // Dynamic pricing info for buyers
+  discountPercentage: number;
+  hasDiscount: boolean;
+  isDynamicPricingEnabled: boolean;
+  
+  // Store information for buyer context
+  storeName?: string;
+  storeImageUrl?: string;
+  storeDescription?: string;
+  
+  // Computed properties
+  totalProductPrice: number;
+  totalProductOriginalPrice: number;
 }
 
 export interface CreateProductRequest {
@@ -318,6 +373,8 @@ export interface UpdatePushTokenStatusRequest {
 // API Response types
 export type ProductsResponse = ApiResponse<BackendProduct[]>;
 export type ProductResponse = ApiResponse<BackendProduct>;
+export type BundlesResponse = ApiResponse<BackendBundle[]>;
+export type BundleResponse = ApiResponse<BackendBundle>;
 export type StoresResponse = ApiResponse<BackendStore[]>;
 export type StoreResponse = ApiResponse<BackendStore>;
 export type ReviewsResponse = ApiResponse<BackendReview[]>;

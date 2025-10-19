@@ -55,8 +55,12 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
       try {
         const token = await getToken({ template: "seller_app" });
         const res = await getUnreadNotificationCount(user.id, token);
-        if (mounted) setUnreadCount(Number(res.unreadCount) || 0);
-      } catch {
+        console.log('🔔 Buyer app received notification count response:', JSON.stringify(res));
+        const count = Number(res.data?.UnreadCount || res.data?.unreadCount || res.UnreadCount || res.unreadCount) || 0;
+        console.log('🔔 Buyer app parsed count:', count);
+        if (mounted) setUnreadCount(count);
+      } catch (error) {
+        console.error('🔔 Buyer app failed to fetch unread count:', error);
         if (mounted) setUnreadCount(0);
       }
     }

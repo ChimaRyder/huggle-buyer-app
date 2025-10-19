@@ -16,8 +16,40 @@ interface ProductGridProps {
   onProductPress: (productId: string) => void;
 }
 
+// Function to generate different colors for tags
+const getTagColor = (tag: string, index: number): string => {
+  const tagColors = [
+    colors.primary.main,
+    colors.success,
+    colors.warning,
+    '#FF6B6B', // Red
+    '#4ECDC4', // Teal
+    '#45B7D1', // Blue
+    '#96CEB4', // Green
+    '#FFEAA7', // Yellow
+    '#DDA0DD', // Plum
+    '#98D8C8', // Mint
+  ];
+  
+  // Use tag content to generate a consistent color
+  const tagHash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return tagColors[tagHash % tagColors.length];
+};
+
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPress }) => {
   const renderProduct = ({ item }: { item: BackendProduct }) => {
+    // Debug bundle image data
+    if (item.isBundle) {
+      console.log('🔍 ProductGrid: Bundle item data:', {
+        id: item.id,
+        name: item.name,
+        isBundle: item.isBundle,
+        coverImage: item.coverImage,
+        image: item.image,
+        imageLength: item.image?.length
+      });
+    }
+    
     // Calculate discounted price display from BuyerProductDto
     const hasDiscount = item.hasDiscount || (item.price < item.originalPrice);
     const displayPrice = item.price; // Current price from DTO
@@ -29,7 +61,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPre
       >
         <View style={styles.imageContainer}>
           <SafeImage 
-            source={{ uri: item.image && item.image.length > 0 ? item.image[0] : '' }} 
+            source={{ 
+              uri: item.coverImage || (item.image && item.image.length > 0 ? item.image[0] : '') 
+            }} 
             style={styles.productImage} 
           />
           {hasDiscount && (
@@ -49,9 +83,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPre
           </Text>
           <View style={styles.footer}>
             <View style={styles.priceContainer}>
-              <Text style={styles.price}>${displayPrice.toFixed(2)}</Text>
+              <Text style={styles.price}>₱{displayPrice.toFixed(2)}</Text>
               {hasDiscount && (
-                <Text style={styles.originalPrice}>${item.originalPrice.toFixed(2)}</Text>
+                <Text style={styles.originalPrice}>₱{item.originalPrice.toFixed(2)}</Text>
               )}
             </View>
             {item.rating && item.rating > 0 && (
@@ -65,10 +99,19 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPre
             )}
           </View>
           {item.tags && item.tags.length > 0 && (
-            <View style={styles.categoryContainer}>
-              <Text style={styles.categoryText} numberOfLines={1}>
-                {item.tags.join(', ')}
-              </Text>
+            <View style={styles.tagsContainer}>
+              {item.tags.slice(0, 3).map((tag, index) => (
+                <View key={index} style={[styles.tagBadge, { backgroundColor: getTagColor(tag, index) }]}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+              {item.tags.length > 3 && (
+                <View style={[styles.tagBadge, { backgroundColor: colors.background.secondary }]}>
+                  <Text style={[styles.tagText, { color: colors.text.primary }]}>
+                    +{item.tags.length - 3}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -181,13 +224,23 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontWeight: "400",
   },
-  categoryContainer: {
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: 4,
+    gap: 4,
   },
-  categoryText: {
-    fontSize: 10,
-    color: colors.primary,
-    fontWeight: "500",
+  tagBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 2,
+  },
+  tagText: {
+    fontSize: 8,
+    color: colors.text.inverse,
+    fontWeight: "600",
     textTransform: "uppercase",
   },
 });

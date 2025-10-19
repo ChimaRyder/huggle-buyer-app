@@ -6,17 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
-  Dimensions,
   RefreshControl,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, spacing } from "@/constants/theme";
 import ProductGrid from "@/components/product/ProductGrid";
-import FeaturedPostCard from "@/components/posts/FeaturedPostCard";
+import PostGrid from "@/components/posts/PostGrid";
 import SafeImage from "@/components/common/SafeImage";
 import { StoreSearchInput } from "@/components/store";
 import { useStoreContext } from "@/context/StoreContext";
+import { usePostContext } from "@/context/PostContext";
 import type { BackendProduct } from "@/types/BackendModels";
 // Get screen width for layout
 
@@ -104,14 +104,21 @@ export default function StoreHomepageScreen() {
     fetchStoreProducts,
     clearStoreProducts,
     isFollowingStore,
-    followerCount,
     isFetchingFollowStatus,
-    followError,
     followStore,
     unfollowStore,
     fetchFollowStatus,
     clearFollowStatus
   } = useStoreContext();
+  
+  // Post context
+  const {
+    storePosts,
+    isFetchingStorePosts,
+    storePostsError,
+    fetchPostsByStore,
+    clearStorePosts
+  } = usePostContext();
   
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -163,6 +170,7 @@ export default function StoreHomepageScreen() {
       fetchStoreById(id);
       fetchStoreProducts(id);
       fetchFollowStatus(id);
+      fetchPostsByStore(id);
     }
     
     // Cleanup when component unmounts or ID changes
@@ -170,8 +178,9 @@ export default function StoreHomepageScreen() {
       clearCurrentStore();
       clearStoreProducts();
       clearFollowStatus();
+      clearStorePosts();
     };
-  }, [id, fetchStoreById, clearCurrentStore, fetchStoreProducts, clearStoreProducts, fetchFollowStatus, clearFollowStatus]);
+  }, [id, fetchStoreById, clearCurrentStore, fetchStoreProducts, clearStoreProducts, fetchFollowStatus, clearFollowStatus, fetchPostsByStore, clearStorePosts]);
 
   // Pull to refresh handler
   const onRefresh = async () => {
@@ -182,7 +191,8 @@ export default function StoreHomepageScreen() {
       await Promise.all([
         fetchStoreById(id),
         fetchStoreProducts(id),
-        fetchFollowStatus(id)
+        fetchFollowStatus(id),
+        fetchPostsByStore(id)
       ]);
     } catch (error) {
       console.error('🔍 StoreHomepageScreen: Error during refresh:', error);
@@ -191,11 +201,6 @@ export default function StoreHomepageScreen() {
     }
   };
 
-  // TODO: Replace with API call to fetch featured products for this store
-  const featuredProducts: any[] = []; // Will be fetched from API
-
-  // TODO: Replace with API call to fetch store posts
-  const storePosts: any[] = []; // Will be fetched from API
 
   // TODO: Replace with API call to fetch store categories
   const storeCategories: any[] = []; // Will be fetched from API
@@ -408,25 +413,40 @@ export default function StoreHomepageScreen() {
   };
 
   // Render posts tab content
-  const renderPostsTab = () => (
-    <View style={styles.postsTabFullContent}>
-      {storePosts.length > 0 ? (
-        <View style={styles.postsTabContent}>
-          {storePosts.map((post) => (
-            <FeaturedPostCard 
-              key={post.id}
-              post={post}
-            />
-          ))}
+  const renderPostsTab = () => {
+    if (isFetchingStorePosts) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading posts...</Text>
         </View>
-      ) : (
-        <View style={styles.emptyPostsContainer}>
-          <Text style={styles.emptyPostsText}>No posts available</Text>
-          <Text style={styles.emptyContentSubtext}>Posts will appear here when available</Text>
+      );
+    }
+    
+    if (storePostsError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Ionicons name="warning-outline" size={48} color={colors.error} />
+          <Text style={styles.errorText}>Failed to load posts</Text>
+          <Text style={styles.errorSubtext}>{storePostsError}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => id && typeof id === 'string' && fetchPostsByStore(id)}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
         </View>
-      )}
-    </View>
-  );
+      );
+    }
+    
+    return (
+      <View style={styles.postsTabFullContent}>
+        <PostGrid 
+          posts={storePosts}
+          numColumns={2}
+        />
+      </View>
+    );
+  };
 
   // Render categories tab content
   const renderCategoriesTab = () => (

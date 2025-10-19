@@ -33,13 +33,14 @@ interface OrderItem {
 
 const OrderReviewScreen = () => {
   const router = useRouter();
-  const { storeId, productId, productName, productPrice, productImage, quantity } = useLocalSearchParams<{ 
+  const { storeId, productId, productName, productPrice, productImage, quantity, isBundle } = useLocalSearchParams<{ 
     storeId: string; 
     productId?: string;
     productName?: string;
     productPrice?: string;
     productImage?: string;
     quantity?: string;
+    isBundle?: string;
   }>();
   const { selectedItems, selectedTotal, clearCart, items } = useCart();
   const { currentStore, fetchStoreById, isFetchingStore } = useStoreContext();
@@ -110,10 +111,33 @@ const OrderReviewScreen = () => {
       // Create order request
       const orderRequest = {
         storeId: currentStore?.id || storeId || '',
-        items: orderItems.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
+        items: orderItems.map(item => {
+          // Check if this is a bundle item
+          // First check if we have direct bundle info from URL params
+          let itemIsBundle = false;
+          if (isBundle !== undefined) {
+            // When coming from product page, use the isBundle parameter
+            itemIsBundle = isBundle === 'true';
+          } else {
+            // When coming from cart, check cart item data
+            const cartItem = selectedItems.find(ci => ci.id === item.productId);
+            itemIsBundle = cartItem?.isBundle || false;
+          }
+          
+          if (itemIsBundle) {
+            return {
+              bundleId: item.productId,
+              quantity: item.quantity,
+              itemType: "bundle" as const,
+            };
+          } else {
+            return {
+              productId: item.productId,
+              quantity: item.quantity,
+              itemType: "product" as const,
+            };
+          }
+        }),
         notes: orderNotes || undefined,
       };
 

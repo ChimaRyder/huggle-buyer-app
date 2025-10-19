@@ -131,7 +131,10 @@ const NotificationScreen = () => {
     // Navigate based on notification type and related entity
     if (notif.type === "OrderReady" || notif.type === "OrderConfirmed" || notif.type === "OrderCancelled") {
       if (notif.relatedEntityId) {
-        router.push(`/(screens)/order/Orders`);
+        router.push({
+          pathname: "/(screens)/order/OrderDetails" as any,
+          params: { orderId: notif.relatedEntityId },
+        });
       } else {
         router.push("/(screens)/order/Orders");
       }

@@ -19,7 +19,9 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.imageContainer}>
         <SafeImage 
-          source={{ uri: item.image && item.image.length > 0 ? item.image[0] : '' }} 
+          source={{ 
+            uri: item.coverImage || (item.image && item.image.length > 0 ? item.image[0] : '') 
+          }} 
           style={styles.image} 
         />
         {hasDiscount && (
@@ -48,9 +50,9 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
         
         <View style={styles.footer}>
           <View style={styles.priceContainer}>
-            <Text style={styles.price}>${displayPrice.toFixed(2)}</Text>
+            <Text style={styles.price}>₱{displayPrice.toFixed(2)}</Text>
             {hasDiscount && (
-              <Text style={styles.originalPrice}>${item.originalPrice.toFixed(2)}</Text>
+              <Text style={styles.originalPrice}>₱{item.originalPrice.toFixed(2)}</Text>
             )}
           </View>
           <View style={styles.dietaryContainer}>
