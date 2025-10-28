@@ -116,9 +116,7 @@ import { validateImage } from '@/utils/firebaseStorage';
 
 try {
   await validateImage(imageUri, 5 * 1024 * 1024); // 5MB limit
-  console.log('Image is valid');
 } catch (error) {
-  console.log('Image validation failed:', error.message);
 }
 ```
 

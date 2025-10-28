@@ -51,7 +51,6 @@ const OrderReviewScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    console.log('OrderReviewScreen: Loading order data, storeId:', storeId);
     loadOrderData();
     if (storeId) {
       fetchStoreById(storeId);
@@ -59,8 +58,6 @@ const OrderReviewScreen = () => {
   }, [storeId]);
 
   useEffect(() => {
-    console.log('OrderReviewScreen: orderItems updated:', orderItems.length, 'items');
-    console.log('OrderReviewScreen: calculateTotal():', calculateTotal());
   }, [orderItems]);
 
   const loadOrderData = () => {
@@ -141,17 +138,9 @@ const OrderReviewScreen = () => {
         notes: orderNotes || undefined,
       };
 
-      console.log('🔍 OrderReviewScreen: Creating order with request:', orderRequest);
 
       // Create order via OrderContext
       const createdOrder = await createOrder(orderRequest);
-      
-      console.log('🔍 OrderReviewScreen: Order created successfully:', {
-        id: createdOrder.id,
-        totalAmount: createdOrder.totalAmount,
-        storeId: createdOrder.storeId,
-        status: createdOrder.status
-      });
       
       // Clear cart after successful order creation
       await clearCart();
@@ -163,7 +152,6 @@ const OrderReviewScreen = () => {
         totalAmount: createdOrder.totalAmount ? createdOrder.totalAmount.toString() : '0.00',
       };
       
-      console.log('🔍 OrderReviewScreen: Navigation params:', orderParams);
       
       router.replace({
         pathname: '/(screens)/cart/OrderConfirmationScreen',

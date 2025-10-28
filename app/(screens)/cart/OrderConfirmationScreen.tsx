@@ -26,11 +26,6 @@ const OrderConfirmationScreen = () => {
     remainingStores?: string;
   }>();
 
-  console.log('🔍 OrderConfirmationScreen: Received params:', {
-    orderId,
-    storeName,
-    totalAmount
-  });
 
   const handleBackToHome = () => {
     router.replace('/(tabs)');

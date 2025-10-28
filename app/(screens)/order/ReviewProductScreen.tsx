@@ -139,7 +139,6 @@ export default function ReviewProductScreen() {
           // Upload all images to Firebase Storage
           const urls = await uploadReviewImages(imageUris);
           uploadedImageUrls.push(...urls);
-          console.log(`Successfully uploaded ${uploadedImageUrls.length} images`);
         } catch (uploadError) {
           console.error("Image upload failed:", uploadError);
           Alert.alert(
@@ -163,44 +162,20 @@ export default function ReviewProductScreen() {
         rating: rating,
       };
       
-      console.log("Review data being sent:", {
-        ...reviewData,
-        imageUrls: `[${uploadedImageUrls.length} images]`
-      });
-
       let result;
       if (isEditMode && existingReviewId) {
         // Update existing review
-        console.log("Updating existing review with ID:", existingReviewId);
         result = await updateReview(token, existingReviewId as string, reviewData);
       } else {
         // Create new review
-        console.log("Creating new review");
         result = await createReview(token, reviewData);
       }
 
       if (result.success !== false) {
-        console.log("✅ Review creation/update succeeded!");
         
         // Test Firebase Storage URL accessibility
         if (uploadedImageUrls.length > 0) {
           await testFirebaseStorageUrls(uploadedImageUrls);
-        }
-        
-        // Inspect the created review to see what was actually saved
-        if (orderItemId) {
-          setTimeout(async () => {
-            try {
-              const savedReview = await inspectReviewResponse(token, orderItemId as string);
-              if (savedReview) {
-                console.log("🔍 Review was saved with these image fields:");
-                console.log("- ImageUrl:", savedReview.ImageUrl);
-                console.log("- ImageUrls:", savedReview.ImageUrls);
-              }
-            } catch (inspectError) {
-              console.log("Could not inspect saved review:", inspectError);
-            }
-          }, 1000); // Wait 1 second for database to update
         }
         
         Alert.alert(

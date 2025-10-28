@@ -31,15 +31,11 @@ interface OrderDetailsProps {
 }
 
 const OrderDetails: React.FC<OrderDetailsProps> = () => {
-  console.log('🚀 OrderDetails: Component rendering started');
   
   const router = useRouter();
   const params = useLocalSearchParams();
   const orderId = params.orderId as string;
-  const isReadOnly = params.isReadOnly === 'true';
-  const { getToken } = useAuth();
   
-  console.log('🔍 OrderDetails: orderId:', orderId, 'isReadOnly:', isReadOnly);
 
   const { 
     currentOrder, 
@@ -197,8 +193,6 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
 
   const statusInfo = getStatusInfo(currentOrder.status);
 
-  console.log('🎨 OrderDetails: Main render - currentOrder status:', currentOrder.status, 'statusInfo:', statusInfo);
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
@@ -285,8 +279,6 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
             {currentOrder.items.map((item, index) => {
               const showReviewButton = currentOrder.status === OrderStatus.Completed;
               const hasReviewed = item.hasReviewed || false; // Use the field from API response
-              
-              console.log(`🔍 OrderDetails: Rendering item ${item.id} - showReviewButton: ${showReviewButton}, hasReviewed: ${hasReviewed}`);
               
               return (
                 <View key={item.id} style={[styles.itemCard, index === currentOrder.items.length - 1 && styles.lastItemCard]}>

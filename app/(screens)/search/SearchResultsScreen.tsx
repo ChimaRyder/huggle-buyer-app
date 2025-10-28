@@ -44,10 +44,8 @@ const SearchResultsScreen = () => {
   
   // Test function for debugging
   const handleTestSearch = async () => {
-    console.log('🧪 Testing search without location for:', searchQuery);
     try {
       const testResults = await testSearchWithoutLocation(searchQuery);
-      console.log('🧪 Test results:', testResults);
     } catch (error) {
       console.error('🧪 Test search failed:', error);
     }
@@ -134,12 +132,6 @@ const SearchResultsScreen = () => {
         setProducts(filteredProducts);
         setStores(stores);
         
-        console.log('✅ Search completed:', {
-          originalProducts: allProducts.length,
-          filteredProducts: filteredProducts.length,
-          stores: stores.length,
-          appliedFilters: filters
-        });
       } catch (err) {
         console.error('Search error:', err);
         setError('Failed to search. Please try again.');
@@ -167,11 +159,6 @@ const SearchResultsScreen = () => {
     });
   };
 
-  const handleToggleFavorite = (id: string) => {
-    // In a real app, this would update the backend
-    console.log(`Toggled favorite for restaurant ${id}`);
-  };
-
   // Filter handlers
   const handleFiltersChange = (newFilters: SearchFiltersType) => {
     setFilters(newFilters);
@@ -179,7 +166,6 @@ const SearchResultsScreen = () => {
 
   const handleApplyFilters = () => {
     // Filters are automatically applied via useEffect
-    console.log('Applying filters:', filters);
   };
 
   const handleResetFilters = () => {

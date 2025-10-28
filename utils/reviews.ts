@@ -60,12 +60,6 @@ export const createReview = async (
       imageUrls: reviewData.imageUrls,
     };
     
-    console.log("Creating review with payload:", {
-      ...payload,
-      imageUrl: payload.imageUrl ? "[URL_PROVIDED]" : null,
-      imageUrls: `[${payload.imageUrls.length} URLs]`
-    });
-    
     const response = await fetch(`${API_BASE_URL}/api/reviews`, {
       method: "POST",
       headers: {
@@ -75,9 +69,6 @@ export const createReview = async (
       body: JSON.stringify(payload),
     });
     
-    console.log("Create review response status:", response.status);
-    console.log("Create review response ok:", response.ok);
-    
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Create review error response:", errorText);
@@ -85,7 +76,6 @@ export const createReview = async (
     }
     
     const result = await response.json();
-    console.log("Create review success response:", result);
     return result;
   } catch (error) {
     console.error("Error in createReview:", error);
@@ -189,12 +179,6 @@ export const updateReview = async (
       imageUrls: reviewData.imageUrls,
     };
     
-    console.log("Updating review with payload:", {
-      ...payload,
-      imageUrl: payload.imageUrl ? "[URL_PROVIDED]" : null,
-      imageUrls: `[${payload.imageUrls.length} URLs]`
-    });
-    
     const response = await fetch(`${API_BASE_URL}/api/reviews/${reviewId}`, {
       method: "PUT",
       headers: {
@@ -204,9 +188,6 @@ export const updateReview = async (
       body: JSON.stringify(payload),
     });
     
-    console.log("Update review response status:", response.status);
-    console.log("Update review response ok:", response.ok);
-    
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Update review error response:", errorText);
@@ -214,7 +195,6 @@ export const updateReview = async (
     }
     
     const result = await response.json();
-    console.log("Update review success response:", result);
     return result;
   } catch (error) {
     console.error("Error in updateReview:", error);

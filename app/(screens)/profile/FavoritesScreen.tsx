@@ -55,7 +55,6 @@ const FavoritesScreen = () => {
   
   // Fetch followed stores on component mount
   useEffect(() => {
-    console.log('🔍 FavoritesScreen: Component mounted, fetching followed stores');
     fetchFollowedStores();
     
     // Cleanup on unmount
@@ -86,7 +85,6 @@ const FavoritesScreen = () => {
   
   const handleToggleFavorite = async (id: string) => {
     try {
-      console.log('🔍 FavoritesScreen: Unfollowing store:', id);
       await unfollowStore(id);
       // Refresh the list to remove the unfollowed store
       await fetchFollowedStores();

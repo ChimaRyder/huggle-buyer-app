@@ -188,26 +188,9 @@ const CartScreen = () => {
     const groupedItems: { [storeId: string]: { storeName: string; items: typeof items } } = {};
     
     items.forEach(item => {
-      console.log('🛒 Cart Screen: Processing item for grouping:', {
-        itemId: item.id,
-        itemName: item.name,
-        storeId: item.storeId,
-        storeName: item.storeName,
-        storeProfileImage: item.storeProfileImage,
-        hasStoreProfileImage: !!item.storeProfileImage,
-        allItemKeys: Object.keys(item)
-      });
 
       const storeId = item.storeId || 'unknown';
       const storeName = item.storeName || 'Unknown Store';
-      
-      console.log('🏪 Cart Screen: Store processing result:', {
-        originalStoreId: item.storeId,
-        finalStoreId: storeId,
-        originalStoreName: item.storeName,
-        finalStoreName: storeName,
-        isUsingFallback: !item.storeName || !item.storeId
-      });
       
       if (!groupedItems[storeId]) {
         groupedItems[storeId] = {
@@ -218,13 +201,6 @@ const CartScreen = () => {
       
       groupedItems[storeId].items.push(item);
     });
-    
-    console.log('🛒 Cart Screen: Final grouped items:', Object.keys(groupedItems).map(storeId => ({
-      storeId,
-      storeName: groupedItems[storeId].storeName,
-      itemCount: groupedItems[storeId].items.length,
-      hasStoreImage: groupedItems[storeId].items[0]?.storeProfileImage
-    })));
     
     return groupedItems;
   };

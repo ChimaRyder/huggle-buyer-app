@@ -35,10 +35,8 @@ export default function TrendingProductsScreen() {
   // Memoize the fetch function to prevent unnecessary re-renders
   const fetchProducts = useCallback(() => {
     if (locationCoords) {
-      console.log('📍 TrendingProductsScreen: Using location-based trending products:', locationCoords);
       fetchTrendingProducts(locationCoords.latitude, locationCoords.longitude, 10);
     } else {
-      console.log('📍 TrendingProductsScreen: No location available, using general trending products');
       fetchTrendingProducts();
     }
   }, [locationCoords, fetchTrendingProducts]);

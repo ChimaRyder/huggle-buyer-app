@@ -90,7 +90,7 @@ export const storePushToken = async (
       "Content-Type": "application/json",
       Authorization: "Bearer " + token,
     },
-    body: JSON.stringify({ PushToken: pushToken }),
+    body: JSON.stringify({ token: pushToken }),
   });
   if (!response.ok) throw new Error("Failed to store push token");
   return response.json();

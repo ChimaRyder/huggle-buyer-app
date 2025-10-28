@@ -16,6 +16,10 @@ import { useCart } from '@/context/CartContext';
 import { useProductContext } from '@/context/ProductContext';
 import { useStoreContext } from '@/context/StoreContext';
 import { useLocationContext } from '@/context/LocationContext';
+import { registerForPushNotificationsAsync } from '@/utils/Notifications';
+import { addPushToken } from '@/utils/pushToken';
+import { useUser, useAuth } from '@clerk/clerk-expo';
+import { useApi } from '@/context/ApiContext';
 
 import { GreeterSection } from '@/components/layout';
 import { colors } from '@/constants/theme';
@@ -29,15 +33,8 @@ const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const { itemCount, items, isLoading, error } = useCart();
-  
-  // Debug logging for cart state
-  console.log('🏠 HomeScreen: Cart debug info:', {
-    itemCount,
-    totalItems: items.length,
-    isLoading,
-    error,
-    cartItems: items.map(item => ({ id: item.id, name: item.name, quantity: item.quantity }))
-  });
+  const { user } = useUser();
+  const { client: apiClient } = useApi();
   
   // Context hooks
   const { fetchTrendingProducts } = useProductContext();
@@ -48,16 +45,33 @@ const HomeScreen = () => {
   useEffect(() => {
     const initializeLocation = async () => {
       try {
-        console.log('🏠 HomeScreen: Initializing location on mount');
         await initializeLocationInBackground();
-        console.log('✅ HomeScreen: Location initialization completed');
       } catch (error) {
-        console.warn('⚠️ HomeScreen: Location initialization failed:', error);
       }
     };
 
     initializeLocation();
   }, [initializeLocationInBackground]);
+
+  // Periodic push token refresh (every 3 hours)
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    const refreshPushToken = async () => {
+      try {
+        const pToken = await registerForPushNotificationsAsync();
+        if (user && pToken) {
+          await addPushToken(apiClient, { token: pToken });
+        }
+      } catch (error) {
+        console.error('❌ HomeScreen: Error refreshing push token:', error);
+      }
+    };
+    // Initial refresh on mount
+    refreshPushToken();
+    // Set interval for periodic refresh
+    intervalId = setInterval(refreshPushToken, 3 * 60 * 60 * 1000); // 3 hours
+    return () => clearInterval(intervalId);
+  }, [user, apiClient]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -71,9 +85,7 @@ const HomeScreen = () => {
         ];
         
         await Promise.all(refreshPromises);
-        console.log('✅ HomeScreen: Successfully refreshed all data');
       } else {
-        console.log('📍 HomeScreen: No location available for refresh');
       }
     } catch (error) {
       console.error('❌ HomeScreen: Error refreshing data:', error);
@@ -88,7 +100,6 @@ const HomeScreen = () => {
 
   const handleToggleFavorite = (id: string) => {
     // In a real app, this would update the backend
-    console.log(`Toggled favorite for restaurant ${id}`);
   };
 
   const handleCategoryPress = (categoryId: string) => {

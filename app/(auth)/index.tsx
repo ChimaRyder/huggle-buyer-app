@@ -29,25 +29,20 @@ export default function AuthScreen() {
 
   const registerAndFetchToken = async () => {
     try {
-      console.log('📱 AuthScreen: Starting push token registration...');
       const pToken = await registerForPushNotificationsAsync();
       
       if (user && pToken) {
-        console.log('📱 AuthScreen: Got push token, registering with backend...');
         const response = await addPushToken(apiClient, { token: pToken });
         
         if (response.success) {
-          console.log('✅ AuthScreen: Push token registered successfully');
           // Store the token ID for later deactivation
-          if (response.data && response.data.Id) {
-            await AsyncStorage.setItem('pushTokenId', response.data.Id);
-            console.log('💾 AuthScreen: Stored push token ID for future use');
+          if (response.data && response.data.data && response.data.data.id) {
+            await AsyncStorage.setItem('pushTokenId', response.data.data.id);
           }
         } else {
           console.error('❌ AuthScreen: Failed to register push token:', response.error);
         }
       } else {
-        console.log('⚠️ AuthScreen: No push token or user available');
       }
     } catch (error) {
       console.error('❌ AuthScreen: Error in push token registration:', error);
@@ -83,6 +78,7 @@ export default function AuthScreen() {
               user.firstName + " " + user.lastName,
               user.emailAddresses[0].emailAddress
             );
+            await registerAndFetchToken();
             router.dismissTo("/(tabs)");
             // Create account here
           }

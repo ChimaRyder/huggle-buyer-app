@@ -58,22 +58,6 @@ export default function CategoryScreen() {
       return false;
     });
     
-    console.log(`🔍 CategoryScreen: Filtering products for category "${normalizedCategoryId}"`);
-    console.log(`🔍 CategoryScreen: Total products available: ${trendingProducts.length}`);
-    console.log(`🔍 CategoryScreen: Filtered products found: ${filtered.length}`);
-    
-    // Debug: Log some product details for troubleshooting
-    if (filtered.length === 0 && trendingProducts.length > 0) {
-      console.log('🔍 CategoryScreen: No matches found. Sample product data:');
-      trendingProducts.slice(0, 3).forEach((product, index) => {
-        console.log(`  Product ${index + 1}:`, {
-          name: product.name,
-          productType: product.productType,
-          tags: product.tags
-        });
-      });
-    }
-    
     // Generate display name (capitalize first letter)
     const displayName = normalizedCategoryId.charAt(0).toUpperCase() + normalizedCategoryId.slice(1);
     

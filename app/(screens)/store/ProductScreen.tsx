@@ -150,17 +150,14 @@ export default function ProductScreen() {
       setReviewsLoading(true);
       setReviewsError(null);
       const token = await getToken({template: "seller_app"});
-      console.log('🔍 ProductScreen: Fetching reviews for product:', productId);
       
       const response = await fetchReviews(token, { productId });
       
       if (response && response.data) {
         const reviewsData = Array.isArray(response.data) ? response.data : [];
         setReviews(reviewsData);
-        console.log('✅ ProductScreen: Successfully fetched', reviewsData.length, 'reviews');
       } else {
         setReviews([]);
-        console.log('📭 ProductScreen: No reviews found');
       }
     } catch (error) {
       console.error('❌ ProductScreen: Error fetching reviews:', error);
@@ -173,7 +170,6 @@ export default function ProductScreen() {
   
   useEffect(() => {
     if (id && typeof id === 'string') {
-      console.log('🔍 ProductScreen: Auto-detecting item type for ID:', id);
       
       // Use smart fetch that tries both product and bundle endpoints
       fetchItemById(id);
@@ -215,25 +211,6 @@ export default function ProductScreen() {
     );
   }
 
-  // Debug logging for pricing and tags
-  console.log('💰 ProductScreen: Item pricing info:', {
-    price: currentItem?.price,
-    originalPrice: currentItem?.originalPrice,
-    hasDiscount: currentItem?.hasDiscount,
-    discountPercentage: currentItem?.discountPercentage,
-    shouldShowOriginal: currentItem?.hasDiscount || (currentItem?.price && currentItem?.originalPrice && currentItem.price < currentItem.originalPrice),
-    isBundle: isCurrentItemBundle
-  });
-  
-  console.log('🏷️ ProductScreen: Item tags info:', {
-    tags: (currentItem as any)?.tags,
-    tagsLength: (currentItem as any)?.tags?.length,
-    tagsType: typeof (currentItem as any)?.tags,
-    hasTagsAndLength: (currentItem as any)?.tags && (currentItem as any)?.tags.length > 0,
-    isBundle: isCurrentItemBundle
-  });
-
-  // Calculate average rating
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
     : "0.0";
@@ -248,7 +225,6 @@ export default function ProductScreen() {
         fetchProductReviews(id)
       ];
       await Promise.all(refreshPromises);
-      console.log('✅ ProductScreen: Successfully refreshed item and reviews data');
     } catch (error) {
       console.error('❌ ProductScreen: Error refreshing data:', error);
     } finally {
@@ -298,43 +274,16 @@ export default function ProductScreen() {
     if (!currentItem) return;
     
     try {
-      console.log('📦 ProductScreen: Starting confirmAction', {
-        drawerAction,
-        itemId: currentItem.id,
-        itemName: currentItem.name,
-        quantity,
-        storeId: currentItem.storeId,
-        storeName: currentItem.storeName,
-        isBundle: isCurrentItemBundle
-      });
-      
       if (drawerAction === 'cart') {
         // Create cart item from current item using appropriate helper
         const cartItem = isCurrentItemBundle && currentBundle
           ? bundleToCartItem(currentBundle, quantity)
           : genericProductToCartItem(currentItem, quantity);
         
-        console.log('🛒 ProductScreen: Created cart item for add to cart', {
-          cartItem,
-          originalItem: {
-            id: currentItem.id,
-            name: currentItem.name,
-            price: currentItem.price,
-            storeId: currentItem.storeId
-          },
-          isBundle: isCurrentItemBundle
-        });
-        
-        console.log('📡 ProductScreen: Calling addItem...');
         await addItem(cartItem);
         
-        console.log('✅ ProductScreen: Successfully added to cart');
         setShowAddToCartModal(true);
       } else if (drawerAction === 'order') {
-        // Order now logic - navigate directly to checkout WITHOUT adding to cart
-        console.log('🚚 ProductScreen: Order now - bypassing cart, going directly to checkout');
-        
-        // Close drawer first, then navigate
         closeDrawer();
         
         // Get the first image URL for display
@@ -575,7 +524,6 @@ export default function ProductScreen() {
                       compact={true}
                       onPress={() => {
                         // Optional: Navigate to individual product if needed
-                        console.log('Bundle product pressed:', product.name);
                       }}
                     />
                   ))}
