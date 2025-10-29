@@ -21,6 +21,7 @@ export default {
         backgroundColor: "#ffffff",
       },
       permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
+      googleServicesFile: "./android/app/google-services.json",
     },
     web: {
       bundler: "metro",
@@ -41,6 +42,14 @@ export default {
       "expo-font",
       "expo-secure-store",
       "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/images/icon.png",
+          color: "#ffffff",
+          sounds: [],
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,
