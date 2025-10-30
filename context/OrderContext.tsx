@@ -9,6 +9,7 @@ interface OrderItem {
   productId: string;
   productName: string;
   productImage?: string;
+  productDescription?: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -20,6 +21,7 @@ interface Order {
   buyerId: string;
   storeId: string;
   storeName?: string;
+  storeAddress?: string;
   totalAmount: number;
   status: OrderStatus;
   notes?: string;
@@ -99,6 +101,7 @@ export function OrderProvider({ children }: OrderProviderProps) {
       buyerId: apiOrder.buyerId || existingOrder?.buyerId || '',
       storeId: apiOrder.storeId || existingOrder?.storeId || '',
       storeName: apiOrder.storeName || existingOrder?.storeName || '',
+      storeAddress: apiOrder.storeAddress || '',
       totalAmount: apiOrder.totalAmount ?? existingOrder?.totalAmount ?? 0,
       status: convertStatusStringToEnum(apiOrder.status),
       notes: apiOrder.notes ?? existingOrder?.notes,
@@ -108,6 +111,7 @@ export function OrderProvider({ children }: OrderProviderProps) {
         productId: item.productId,
         productName: item.productName,
         productImage: item.productImage,
+        productDescription: item.productDescription,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         totalPrice: item.totalPrice,

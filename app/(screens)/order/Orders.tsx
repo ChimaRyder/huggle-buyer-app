@@ -20,6 +20,7 @@ import {
   OrderStatus,
 } from "@/types/BackendModels";
 import { useOrderContext } from "@/context/OrderContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
   productName?: string;
@@ -47,6 +48,10 @@ const Orders = () => {
     cancelOrder: contextCancelOrder,
     canCancelOrder: contextCanCancelOrder,
   } = useOrderContext();
+
+  const handleBackPress = () => {
+    router.back();
+  };
 
   const [selectedTab, setSelectedTab] = useState<
     "Pending" | "Confirmed" | "Ready for Pickup" | "Completed" | "Cancelled"
@@ -128,16 +133,16 @@ const Orders = () => {
     // Compose product name for single/multi
     let productName = "Unknown Product";
     if (order.items?.length === 1) {
-      productName = order.items[0].productName || "Unknown Product";
+      productName = order.items[0]?.productName || "Unknown Product";
     } else if (order.items && order.items.length > 1) {
-      const firstName = order.items[0].productName || "Unknown Product";
+      const firstName = order.items[0]?.productName || "Unknown Product";
       productName = `${firstName} + ${order.items.length - 1} more`;
     }
 
     // Compose description for single/multi
     let description = "";
     if (order.items?.length === 1) {
-      description = `Quantity: ${order.items[0].quantity}`;
+      description = `Quantity: ${order.items[0]?.quantity}`;
     } else if (order.items) {
       description = `${order.items.length} items`;
     }
@@ -228,41 +233,63 @@ const Orders = () => {
 
   if (isFetching && contextOrders.length === 0) {
     return (
-      <Layout style={styles.container}>
-        <PageTitle title="Orders" />
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Orders</Text>
+          <View style={styles.headerPlaceholder} />
+        </View>
+        
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary.main} />
+          <ActivityIndicator size="large" color={colors.primary.light} />
           <Text style={styles.loadingText}>Loading your orders...</Text>
         </View>
-      </Layout>
+      </SafeAreaView>
     );
   }
 
   if (contextError && contextOrders.length === 0) {
     return (
-      <Layout style={styles.container}>
-        <PageTitle title="Orders" />
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Orders</Text>
+          <View style={styles.headerPlaceholder} />
+        </View>
+        
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{contextError}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refreshOrders}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      </Layout>
+      </SafeAreaView>
     );
   }
 
   return (
-    <Layout style={styles.container}>
-      <PageTitle title="Orders" />
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Orders</Text>
+        <View style={styles.headerPlaceholder} />
+      </View>
 
       {/* Tab Navigation */}
-      <View style={styles.tabsContainer}>
+      <View style={styles.tabContainer}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabsScrollContainer}
-          style={styles.tabsScroll}
         >
             {["Pending", "Confirmed", "Ready for Pickup", "Completed", "Cancelled"].map((tab) => (
               <TouchableOpacity
@@ -287,7 +314,6 @@ const Orders = () => {
       </View>
 
         <ScrollView
-          style={styles.contentScrollView}
           contentContainerStyle={styles.scrollContainer}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -361,7 +387,7 @@ const Orders = () => {
         }}
         loading={cancelling}
       />
-    </Layout>
+    </SafeAreaView>
   );
 };
 
@@ -370,100 +396,119 @@ export default Orders;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.background.tertiary,
   },
-  tabsContainer: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
   },
-  contentScrollView: {
-    flex: 1,
+  backButton: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerPlaceholder: {
+    width: 24, // Same width as icons for centering
+  },
+  headerTitle: {
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+  },
+  tabContainer: {
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
   },
   tabsScrollContainer: {
-    paddingHorizontal: 12,
-    alignItems: "center",
-  },
-  tabsScroll: {
-    marginBottom: 27,
-    minHeight: 56,
+    flexDirection: "row",
+    paddingHorizontal: spacing.sm,
   },
   tab: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#104911",
-    paddingBottom: 8,
-    marginHorizontal: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
-    minHeight: 48,
-    justifyContent: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     alignItems: "center",
+    minWidth: 80,
   },
   activeTab: {
-    borderBottomColor: "#F9A620",
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primary.light,
   },
   tabText: {
-    color: "#104911",
-    fontWeight: "bold",
+    fontSize: typography.fontSizes.sm,
+    color: colors.text.secondary,
+    fontWeight: typography.fontWeights.medium,
   },
   activeTabText: {
-    color: "#F9A620",
+    color: colors.primary.light,
+    fontWeight: typography.fontWeights.semibold,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: spacing.xl,
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#666",
+    marginTop: spacing.sm,
+    fontSize: typography.fontSizes.lg,
+    color: colors.text.secondary,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: spacing.xl,
   },
   errorText: {
-    fontSize: 16,
-    color: "#d32f2f",
+    fontSize: typography.fontSizes.lg,
+    color: colors.text.danger,
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   retryButton: {
-    backgroundColor: "#548C2F",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    backgroundColor: colors.primary.light,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: "white",
-    fontWeight: "bold",
+    color: colors.text.inverse,
+    fontWeight: typography.fontWeights.bold,
   },
   scrollContainer: {
+    paddingTop: spacing.lg,
     paddingBottom: 120,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background.tertiary,
   },
   orderCardContainer: {
-    marginBottom: 0,
+    marginBottom: spacing.md,
   },
   emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    paddingTop: 100,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingTop: spacing.xxxl,
+    paddingHorizontal: spacing.xl,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#666",
+    fontSize: typography.fontSizes.xl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.secondary,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: spacing.xs,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: "#999",
+    fontSize: typography.fontSizes.md,
+    color: colors.text.tertiary,
     textAlign: "center",
   },
 });

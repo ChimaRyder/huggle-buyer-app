@@ -65,7 +65,7 @@ export default function OrderItemsReviewScreen() {
             // Check if this item has been reviewed
             const reviewStatus = await checkOrderItemReviewStatus(token, item.id);
             const existingReview = await getReviewByOrderItemId(token, item.id);
-            
+
             return {
               id: item.id,
               productId: item.productId,
@@ -74,8 +74,8 @@ export default function OrderItemsReviewScreen() {
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               totalPrice: item.totalPrice,
-              hasReviewed: reviewStatus?.data?.HasReviewed || false,
-              reviewId: existingReview?.data?.Id,
+              hasReviewed: reviewStatus?.data?.hasReviewed || false,
+              reviewId: existingReview?.data?.id,
             };
           } catch (error) {
             console.error("Error checking review status for item:", item.id, error);
@@ -120,60 +120,68 @@ export default function OrderItemsReviewScreen() {
     if (item.reviewId) {
       // Navigate to view review screen or show review details
       // For now, we'll navigate to edit review
-      handleReviewItem(item);
+      router.push({
+        pathname: "/(screens)/store/ReviewsScreen" as any,
+        params: {
+          productId: item.productId,
+        },
+      });
     }
   };
 
   const renderOrderItem = (item: OrderItemWithReviewStatus) => (
-    <View key={item.id} style={styles.itemCard}>
-      <View style={styles.itemContent}>
-        <Image 
-          source={
-            item.productImage 
-              ? { uri: item.productImage }
-              : require("@/assets/images/sample-store.jpg")
-          }
-          style={styles.productImage}
-        />
-        
-        <View style={styles.itemDetails}>
-          <Text style={styles.productName} numberOfLines={2}>
-            {item.productName}
-          </Text>
-          <Text style={styles.itemMeta}>
-            Quantity: {item.quantity}
-          </Text>
-          <Text style={styles.itemPrice}>
-            ₱{item.totalPrice.toFixed(2)}
-          </Text>
-        </View>
-        
-        <View style={styles.reviewActions}>
-          {item.hasReviewed ? (
-            <View style={styles.reviewedContainer}>
-              <View style={styles.reviewedBadge}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                <Text style={styles.reviewedText}>Reviewed</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.viewReviewButton}
-                onPress={() => handleViewReview(item)}
-              >
-                <Text style={styles.viewReviewText}>View Review</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.reviewButton}
-              onPress={() => handleReviewItem(item)}
-            >
-              <Ionicons name="star-outline" size={20} color={colors.text.inverse} />
-              <Text style={styles.reviewButtonText}>Write Review</Text>
-            </TouchableOpacity>
-          )}
+    <React.Fragment key={item.id} >    
+      <View style={styles.itemCard}>
+        <View style={styles.itemContent}>
+          <Image 
+            source={
+              item.productImage 
+                ? { uri: item.productImage }
+                : require("@/assets/images/sample-store.jpg")
+            }
+            style={styles.productImage}
+          />
+          
+          <View style={styles.itemDetails}>
+            <Text style={styles.productName} numberOfLines={2}>
+              {item.productName}
+            </Text>
+            <Text style={styles.itemMeta}>
+              Quantity: {item.quantity}
+            </Text>
+            <Text style={styles.itemPrice}>
+              ₱{item.totalPrice.toFixed(2)}
+            </Text>
+          </View>
         </View>
       </View>
-    </View>
+
+      <View style={styles.reviewActions}>
+        {item.hasReviewed ? (
+          <View style={styles.reviewedContainer}>
+            <View style={styles.reviewedBadge}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              <Text style={styles.reviewedText}>Reviewed</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.viewReviewButton}
+              onPress={() => handleViewReview(item)}
+            >
+              <Text style={styles.viewReviewText}>View Review</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.reviewButton}
+            onPress={() => handleReviewItem(item)}
+          >
+            <Ionicons name="star-outline" size={20} color={colors.text.inverse} />
+            <Text style={styles.reviewButtonText}>Write Review</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+    </React.Fragment>
   );
 
   if (loading) {
@@ -189,7 +197,7 @@ export default function OrderItemsReviewScreen() {
           <Text style={styles.headerTitle}>Review Items</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={styles.loadingText}>Loading order items...</Text>
         </View>
       </SafeAreaView>
@@ -221,7 +229,7 @@ export default function OrderItemsReviewScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.instructionCard}>
-          <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
+          <Ionicons name="information-circle-outline" size={24} color={colors.primary.main} />
           <Text style={styles.instructionText}>
             Rate and review each item to help other customers make informed decisions.
           </Text>
@@ -317,7 +325,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     marginBottom: spacing.lg,
     borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
+    borderLeftColor: colors.primary.main,
   },
   instructionText: {
     flex: 1,
@@ -331,11 +339,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     marginBottom: spacing.md,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   itemContent: {
     flexDirection: "row",
@@ -366,13 +369,13 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: typography.fontSizes.md,
     fontWeight: typography.fontWeights.bold,
-    color: colors.primary,
+    color: colors.primary.main,
   },
   reviewActions: {
-    alignItems: "center",
   },
   reviewedContainer: {
-    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
   },
   reviewedBadge: {
     flexDirection: "row",
@@ -381,7 +384,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radii.sm,
-    marginBottom: spacing.sm,
   },
   reviewedText: {
     marginLeft: spacing.xs,
@@ -390,26 +392,31 @@ const styles = StyleSheet.create({
     color: colors.success,
   },
   viewReviewButton: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primary.main,
   },
   viewReviewText: {
     fontSize: typography.fontSizes.sm,
-    color: colors.primary,
+    color: colors.text.inverse,
     fontWeight: typography.fontWeights.medium,
   },
   reviewButton: {
+    flex: 1,
     flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.primary.main,
     paddingVertical: spacing.md,
     borderRadius: radii.md,
   },
   reviewButtonText: {
     marginLeft: spacing.sm,
     fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.inverse,
   },
   summaryCard: {

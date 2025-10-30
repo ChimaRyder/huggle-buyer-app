@@ -50,19 +50,9 @@ const OrderCard: React.FC<OrderCardProps> = ({
   if (order.items && order.items.length > 0) {
     return (
       <View style={styles.card}>
-        {/* Store info and status row - moved to top for multi-item */}
-        <View style={styles.topRow}>
-          <View style={styles.storeHeader}>
-            <View style={styles.storeIconBadge}>
-              <FontAwesome5 name="store" size={12} color={colors.primary} />
-            </View>
-            <Text style={styles.prominentStoreName}>{order.storeName}</Text>
-          </View>
-          <View style={[styles.statusBadge, getStatusStyle(order.status)]}>
-            <Text style={styles.statusText}>{order.status}</Text>
-          </View>
-        </View>
-        
+        <Text appearance="hint" style={styles.dateText}>
+          {order.date}
+        </Text>
         {order.items.map((item, idx) => (
           <View key={idx} style={styles.multiItemRow}>
             <View style={styles.productSection}>
@@ -78,13 +68,11 @@ const OrderCard: React.FC<OrderCardProps> = ({
             </View>
           </View>
         ))}
-        
-        <View style={styles.bottomRowMulti}>
-          <View style={styles.totalPriceContainer}>
-            <Text style={styles.totalLabel}>Total: </Text>
-            <Text style={styles.totalPriceText}>{order.totalPrice}</Text>
-          </View>
-          <View style={styles.actionButtonsContainer}>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalPriceText}>{order.totalPrice}</Text>
+        </View>
+          <View style={styles.bottomRowMulti}>
             {showReviewButton && onReviewItems && (
               <TouchableOpacity
                 style={styles.reviewButton}
@@ -93,7 +81,6 @@ const OrderCard: React.FC<OrderCardProps> = ({
                   onReviewItems && onReviewItems();
                 }}
               >
-                <Ionicons name="star-outline" size={16} color={colors.text.inverse} />
                 <Text style={styles.reviewButtonText}>Review Items</Text>
               </TouchableOpacity>
             )}
@@ -109,31 +96,15 @@ const OrderCard: React.FC<OrderCardProps> = ({
               </TouchableOpacity>
             )}
           </View>
-        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.card}>
-      {/* Store info and status row - moved to top */}
-      <View style={styles.topRow}>
-        <View style={styles.storeHeader}>
-          <View style={styles.storeIconBadge}>
-            <FontAwesome5 name="store" size={12} color={colors.primary} />
-          </View>
-          <View style={styles.storeDetails}>
-            <Text style={styles.prominentStoreName}>{order.storeName}</Text>
-            <View style={styles.locationInfo}>
-              <Ionicons name="location-sharp" size={12} color={colors.text.secondary} />
-              <Text style={styles.locationText}> {order.location}</Text>
-            </View>
-          </View>
-        </View>
-        <View style={[styles.statusBadge, getStatusStyle(order.status)]}>
-          <Text style={styles.statusText}>{order.status}</Text>
-        </View>
-      </View>
+      <Text appearance="hint" style={styles.dateText}>
+        {order.date}
+      </Text>
 
       <View style={styles.contentRow}>
         <View style={styles.productSection}>
@@ -157,45 +128,34 @@ const OrderCard: React.FC<OrderCardProps> = ({
         </Text>
       </View>
 
-      <View style={styles.bottomRow}>
-        <View style={styles.totalPriceContainer}>
-          <Text style={styles.totalLabel}>Total: </Text>
-          <Text style={styles.totalPrice}>{order.price}</Text>
-        </View>
-
-        <View style={styles.actionButtonsContainer}>
-          {showReviewButton && onReviewItems && (
-            <TouchableOpacity
-              style={styles.reviewButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                onReviewItems && onReviewItems();
-              }}
-            >
-              <Ionicons name="star-outline" size={16} color={colors.text.inverse} />
-              <Text style={styles.reviewButtonText}>Review Items</Text>
-            </TouchableOpacity>
-          )}
-          {canCancel && onCancel && (
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                onCancel();
-              }}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+      {/* Location row */}
+      <View style={styles.locationRow}>
+        <FontAwesome5 name="store" size={14} color={colors.primary} />
+        <Text style={styles.metaText}> {order.storeName} | </Text>
+        <Ionicons name="location-sharp" size={14} color={colors.primary.light} />
+        <Text style={styles.metaText}> {order.location}</Text>
       </View>
+
+      {canCancel && onCancel && (
+        <View style={styles.bottomRow}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              onCancel();
+            }}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
 
 export default OrderCard;
 
-const getStatusStyle = (status: string) => ({
+/* const getStatusStyle = (status: string) => ({
   backgroundColor:
     status === "Completed"
       ? colors.background.successSubtle
@@ -206,24 +166,23 @@ const getStatusStyle = (status: string) => ({
       : status === "Ready for Pickup"
       ? colors.background.warningSubtle
       : colors.background.warningSubtle, // Pending
-});
+}); */
 
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.background.primary,
     borderRadius: radii.lg,
-    marginHorizontal: spacing.md,
+    marginHorizontal: 0, // Remove horizontal margin since we handle it in the parent
     marginBottom: spacing.md,
-    padding: spacing.md,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    padding: spacing.lg,
+    // Remove shadows completely
+  },
+  dateText: {
+    marginBottom: spacing.md,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.primary.main,
   },
   contentRow: {
     flexDirection: "row",
@@ -238,9 +197,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   image: {
-    width: 70,
-    height: 70,
-    borderRadius: radii.lg,
+    width: 50,
+    height: 50,
+    borderRadius: radii.full,
   },
   productInfo: {
     flex: 1,
@@ -272,50 +231,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: spacing.xs,
-    paddingLeft: 70 + spacing.sm, // Align with product name (image width + gap)
+    paddingLeft: 50 + spacing.md, // Align with product name (image width + margin)
     paddingRight: spacing.sm + 60, // Account for price section width
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.primary,
-  },
-  storeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  storeDetails: {
-    flex: 1,
-  },
-  storeIconBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.background.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.xs,
-  },
-  prominentStoreName: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.primary,
-    flex: 1,
-  },
-  locationInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  locationText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.secondary,
   },
   metaText: {
     fontSize: typography.fontSizes.xs,
@@ -323,23 +240,9 @@ const styles = StyleSheet.create({
   },
   bottomRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
-    marginTop: spacing.sm,
-  },
-  statusBadge: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.lg,
-    alignSelf: "flex-start",
-    minWidth: 80,
-    alignItems: "center",
-  },
-  statusText: {
-    fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.text.primary,
-    textAlign: "center",
+    marginTop: spacing.md,
   },
   cancelButton: {
     backgroundColor: colors.danger,
@@ -352,10 +255,21 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.sm,
     fontWeight: typography.fontWeights.medium,
   },
+  reviewButton: {
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.sm,
+  },
+  reviewButtonText: {
+    color: colors.text.inverse,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.medium,
+  },
   extraDetailsRow: {
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
     marginBottom: spacing.xs,
-    paddingLeft: 70 + spacing.sm, // Align with product name (image width + gap)
+    paddingLeft: 50 + spacing.md, // Align with product name (image width + margin)
     paddingRight: spacing.sm + 60, // Account for price section width
   },
   extraDetailsText: {
@@ -367,61 +281,42 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   multiItemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: radii.lg,
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
   },
   quantityText: {
     fontSize: typography.fontSizes.xs,
     color: colors.text.secondary,
     marginTop: 2,
   },
-  totalPriceText: {
-    fontWeight: typography.fontWeights.bold,
-    color: colors.primary,
-    fontSize: typography.fontSizes.md,
-  },
-  totalPriceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  totalLabel: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.medium,
-    color: colors.text.secondary,
-  },
-  totalPrice: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.primary,
-  },
-  bottomRowMulti: {
+  totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: spacing.sm,
-    gap: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.primary,
   },
-  actionButtonsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  reviewButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.sm,
-  },
-  reviewButtonText: {
-    color: colors.text.inverse,
+  totalLabel: {
     fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.medium,
-    marginLeft: spacing.xs,
+    color: colors.text.primary,
+    fontWeight: typography.fontWeights.bold,
+  },
+  totalPriceText: {
+    fontWeight: typography.fontWeights.bold,
+    color: colors.primary.main,
+    fontSize: typography.fontSizes.md,
+  },
+  bottomRowMulti: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    marginTop: spacing.md,
   },
 });
