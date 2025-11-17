@@ -38,7 +38,13 @@ const HomeScreen = () => {
   
   // Context hooks
   const { fetchTrendingProducts } = useProductContext();
-  const { fetchPopularStores } = useStoreContext();
+  const { 
+    fetchPopularStores, 
+    followStore, 
+    unfollowStore, 
+    isStoreFollowed,
+    fetchFollowedStores 
+  } = useStoreContext();
   const { currentLocation, initializeLocationInBackground } = useLocationContext();
 
   // Initialize location on home screen mount to ensure products can load
@@ -98,8 +104,18 @@ const HomeScreen = () => {
     router.push(`/(screens)/store/StoreHomepageScreen?id=${id}`);
   };
 
-  const handleToggleFavorite = (id: string) => {
-    // In a real app, this would update the backend
+  const handleToggleFavorite = async (id: string) => {
+    try {
+      if (isStoreFollowed(id)) {
+        await unfollowStore(id);
+      } else {
+        await followStore(id);
+      }
+      // Refresh followed stores to update the UI
+      await fetchFollowedStores();
+    } catch (error) {
+      console.error('❌ HomeScreen: Error toggling favorite:', error);
+    }
   };
 
   const handleCategoryPress = (categoryId: string) => {

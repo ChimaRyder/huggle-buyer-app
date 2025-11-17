@@ -12,8 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import RestaurantCard from "@/components/restaurant/RestaurantCard";
-import FoodItemCard from "@/components/food/FoodItemCard";
 import SearchResults from "@/components/search/SearchResults";
 import SearchFilters from "@/components/search/SearchFilters";
 import SearchFilterIndicator from "@/components/search/SearchFilterIndicator";
@@ -22,6 +20,7 @@ import type { SearchFilters as SearchFiltersType } from "@/types/Search";
 import { colors } from "@/constants/theme";
 import { useSearch } from '@/utils/search';
 import { useLocationContext } from '@/context/LocationContext';
+import { useStoreContext } from '@/context/StoreContext';
 
 const SearchResultsScreen = () => {
   const route = useRoute();
@@ -41,7 +40,18 @@ const SearchResultsScreen = () => {
 
   const { searchAll, testSearchWithoutLocation, debugApiEndpoints } = useSearch();
   const { currentLocation } = useLocationContext();
+  const { 
+    followStore, 
+    unfollowStore, 
+    isStoreFollowed, 
+    fetchFollowedStores 
+  } = useStoreContext();
   
+  // Fetch followed stores on mount to determine favorite status
+  useEffect(() => {
+    fetchFollowedStores();
+  }, [fetchFollowedStores]);
+
   // Test function for debugging
   const handleTestSearch = async () => {
     try {
@@ -159,6 +169,20 @@ const SearchResultsScreen = () => {
     });
   };
 
+  const handleToggleFavorite = async (id: string) => {
+    try {
+      if (isStoreFollowed(id)) {
+        await unfollowStore(id);
+      } else {
+        await followStore(id);
+      }
+      // Refresh followed stores to update the UI
+      await fetchFollowedStores();
+    } catch (error) {
+      console.error('❌ SearchResultsScreen: Error toggling favorite:', error);
+    }
+  };
+
   // Filter handlers
   const handleFiltersChange = (newFilters: SearchFiltersType) => {
     setFilters(newFilters);
@@ -242,44 +266,6 @@ const SearchResultsScreen = () => {
       </TouchableOpacity>
     </View>
   );
-
-  // Render products section with 2-column grid (like home screen)
-  const renderProductsSection = () => {
-    if (products.length === 0) return null;
-    
-    return (
-      <View style={styles.section}>
-        <View style={styles.foodItemsContainer}>
-          {products.map((item) => (
-            <View key={item.id} style={styles.foodItemWrapper}>
-              <FoodItemCard 
-                item={item} 
-                onPress={() => handleProductPress(item.id)} 
-              />
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  // Render stores section
-  const renderStoresSection = () => {
-    if (stores.length === 0) return null;
-    
-    return (
-      <View style={styles.section}>
-        {stores.map((store) => (
-          <RestaurantCard
-            key={store.id}
-            restaurant={store}
-            onPress={() => handleStorePress(store.id)}
-            onToggleFavorite={handleToggleFavorite}
-          />
-        ))}
-      </View>
-    );
-  };
 
   return (
     <SafeAreaView style={styles.safeArea}>

@@ -62,6 +62,7 @@ interface StoreContextType {
   followedStoresError: string | null;
   fetchFollowedStores: () => Promise<void>;
   clearFollowedStores: () => void;
+  isStoreFollowed: (storeId: string) => boolean;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -469,6 +470,12 @@ export function StoreProvider({ children }: StoreProviderProps) {
     setFollowedStoresError(null);
   }, []);
 
+  const isStoreFollowed = useCallback((storeId: string): boolean => {
+    return followedStores.some(
+      (store) => (store.storeId || store.id) === storeId
+    );
+  }, [followedStores]);
+
   const contextValue: StoreContextType = {
     // Popular Stores
     popularStores,
@@ -506,6 +513,7 @@ export function StoreProvider({ children }: StoreProviderProps) {
     followedStoresError,
     fetchFollowedStores,
     clearFollowedStores,
+    isStoreFollowed,
   };
 
   return (

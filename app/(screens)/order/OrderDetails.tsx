@@ -302,7 +302,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
               </View>
               
               {/* Write Review Button for completed orders */}
-              {!product.hasReviewed && (
+              {(!product.hasReviewed && statusInfo.label === "Completed") && (
                 <TouchableOpacity
                   style={styles.reviewButton}
                   onPress={() => handleReviewItem(product.id)}

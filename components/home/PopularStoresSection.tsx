@@ -23,7 +23,14 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
   onToggleFavorite,
   onSeeAllPress
 }) => {
-  const { popularStores, isFetchingPopular, popularError, fetchPopularStores } = useStoreContext();
+  const { 
+    popularStores, 
+    isFetchingPopular, 
+    popularError, 
+    fetchPopularStores,
+    fetchFollowedStores,
+    isStoreFollowed 
+  } = useStoreContext();
   const { currentLocation } = useLocationContext();
 
   // Create stable location coordinates
@@ -34,6 +41,11 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
       longitude: currentLocation.longitude
     };
   }, [currentLocation?.latitude, currentLocation?.longitude]);
+
+  // Fetch followed stores on mount to determine favorite status
+  useEffect(() => {
+    fetchFollowedStores();
+  }, [fetchFollowedStores]);
 
   // Fetch popular stores when component mounts or location changes
   useEffect(() => {
@@ -89,7 +101,7 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
                 deliveryTime: '15-30 min', // Default delivery time
                 distance: store.distance ? `${store.distance.toFixed(1)}km` : '0.0km',
                 categories: store.tags || [],
-                isFavorite: false, // Default favorite status
+                isFavorite: isStoreFollowed(store.id),
                 promotion: store.isVerified ? 'Verified' : undefined,
                 address: store.address,
                 city: store.city,
