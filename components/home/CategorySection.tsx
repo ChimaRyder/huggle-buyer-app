@@ -32,7 +32,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({ onCategoryPress }) =>
       return [];
     }
     
-    // Extract all tags and productTypes from trending products
+    // Extract productTypes from trending products
     const categoryMap = new Map<string, number>();
     
     trendingProducts.forEach(product => {
@@ -40,16 +40,6 @@ const CategorySection: React.FC<CategorySectionProps> = ({ onCategoryPress }) =>
       if (product.productType) {
         const type = product.productType.toLowerCase().trim();
         categoryMap.set(type, (categoryMap.get(type) || 0) + 1);
-      }
-      
-      // Add tags as categories
-      if (product.tags && Array.isArray(product.tags)) {
-        product.tags.forEach(tag => {
-          const normalizedTag = tag.toLowerCase().trim();
-          if (normalizedTag) {
-            categoryMap.set(normalizedTag, (categoryMap.get(normalizedTag) || 0) + 1);
-          }
-        });
       }
     });
     

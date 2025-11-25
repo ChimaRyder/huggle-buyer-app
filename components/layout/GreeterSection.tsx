@@ -198,7 +198,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
 
 const styles = StyleSheet.create({
   container: {
-    margin: 16,
+    marginHorizontal: 16,
     marginBottom: 8,
   },
   headerRow: {

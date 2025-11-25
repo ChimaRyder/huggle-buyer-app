@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing } from "@/constants/theme";
+import { colors, spacing, typography, radii } from "@/constants/theme";
 import ProductGrid from "@/components/product/ProductGrid";
 import PostGrid from "@/components/posts/PostGrid";
 import SafeImage from "@/components/common/SafeImage";
@@ -90,6 +90,9 @@ export default function StoreHomepageScreen() {
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredProducts, setFilteredProducts] = useState<BackendProduct[]>([]);
+  
+  // Categories state
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   // Store context
   const {
@@ -202,8 +205,24 @@ export default function StoreHomepageScreen() {
   };
 
 
-  // TODO: Replace with API call to fetch store categories
-  const storeCategories: any[] = []; // Will be fetched from API
+  // Extract categories from product types
+  const extractCategories = () => {
+    const categoryMap = new Map<string, number>();
+    
+    storeProducts.forEach(product => {
+      if (product.productType) {
+        const count = categoryMap.get(product.productType) || 0;
+        categoryMap.set(product.productType, count + 1);
+      }
+    });
+    
+    // Convert to array and sort by product count (descending)
+    return Array.from(categoryMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  };
+  
+  const storeCategories = extractCategories();
 
   // Loading state
   if (isFetchingStore) {
@@ -267,17 +286,32 @@ export default function StoreHomepageScreen() {
   const handleProductPress = (productId: string) => {
     router.push(`/(screens)/store/ProductScreen?id=${productId}`);
   };
+  
+  // Get products for selected category
+  const getCategoryProducts = (categoryName: string): BackendProduct[] => {
+    return storeProducts.filter(product => 
+      product.productType === categoryName
+    );
+  };
 
-  // Render category item
-  const renderCategoryItem = ({ item }: { item: any }) => (
-    <TouchableOpacity 
-      style={[styles.categoryCard, { backgroundColor: item.color }]}
-      onPress={() => console.log("Category pressed:", item.id)}
-    >
-      <Text style={styles.categoryIcon}>{item.icon}</Text>
-      <Text style={styles.categoryName}>{item.name}</Text>
-    </TouchableOpacity>
-  );
+  // Color palette for category cards
+  const categoryColors = [
+    colors.primary.main,
+    colors.success,
+    '#FF6B6B', // Red
+    '#4ECDC4', // Teal
+    '#45B7D1', // Blue
+    '#96CEB4', // Green
+    '#FFD93D', // Yellow
+    '#DDA0DD', // Plum
+    '#FF8A5B', // Orange
+    '#98D8C8', // Mint
+  ];
+  
+  const getCategoryColor = (categoryName: string): string => {
+    const hash = categoryName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return categoryColors[hash % categoryColors.length];
+  };
 
 
   // Render featured tab content
@@ -449,26 +483,89 @@ export default function StoreHomepageScreen() {
   };
 
   // Render categories tab content
-  const renderCategoriesTab = () => (
-    <View style={styles.tabContent}>
-      {storeCategories.length > 0 ? (
-        <FlatList
-          data={storeCategories}
-          renderItem={renderCategoryItem}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.categoryRow}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.categoryContainer}
-        />
-      ) : (
-        <View style={styles.emptyContentContainer}>
-          <Text style={styles.emptyContentText}>No categories available</Text>
-          <Text style={styles.emptyContentSubtext}>Categories will appear here when available</Text>
+  const renderCategoriesTab = () => {
+    if (isFetchingProducts) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading categories...</Text>
         </View>
-      )}
-    </View>
-  );
+      );
+    }
+    
+    if (storeCategories.length === 0) {
+      return (
+        <View style={styles.emptyContentContainer}>
+          <Ionicons name="pricetags-outline" size={spacing.xxl} color={colors.text.tertiary} />
+          <Text style={styles.emptyContentText}>No categories available</Text>
+          <Text style={styles.emptyContentSubtext}>Categories will appear when products are added</Text>
+        </View>
+      );
+    }
+    
+    // If a category is selected, show its products
+    if (selectedCategory) {
+      const categoryProducts = getCategoryProducts(selectedCategory);
+      
+      return (
+        <View style={styles.categoryProductsContainer}>
+          {/* Back to categories with category title */}
+          <TouchableOpacity 
+            style={styles.backToCategoriesButton}
+            onPress={() => setSelectedCategory(null)}
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.primary.main} />
+            <Text style={styles.backToCategoriesText}>
+              {selectedCategory} ({categoryProducts.length} product{categoryProducts.length !== 1 ? 's' : ''})
+            </Text>
+          </TouchableOpacity>
+          
+          {/* Products grid */}
+          <View style={styles.categoryProductsGrid}>
+            <ProductGrid 
+              products={categoryProducts}
+              onProductPress={handleProductPress}
+            />
+          </View>
+        </View>
+      );
+    }
+    
+    // Show category list
+    return (
+      <View style={styles.categoriesListContainer}>
+        
+        <ScrollView 
+          style={styles.categoriesScroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.categoriesGrid}>
+            {storeCategories.map((category, index) => {
+              const color = getCategoryColor(category.name);
+              return (
+                <TouchableOpacity
+                  key={category.name}
+                  style={[styles.categoryCard, { backgroundColor: color }]}
+                  onPress={() => setSelectedCategory(category.name)}
+                >
+                  <View style={styles.categoryCardContent}>
+                    <Ionicons name="pricetag" size={24} color={colors.text.inverse} />
+                    <Text style={styles.categoryCardName} numberOfLines={2}>
+                      {category.name}
+                    </Text>
+                    <View style={styles.categoryCardBadge}>
+                      <Text style={styles.categoryCardCount}>
+                        {category.count} item{category.count !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  };
 
 
   // Tab configuration
@@ -478,6 +575,14 @@ export default function StoreHomepageScreen() {
     { key: "Posts", label: "Posts" },
     { key: "Categories", label: "Categories" },
   ];
+  
+  // Handle tab change and reset category selection
+  const handleTabChange = (tabKey: string) => {
+    setActiveTab(tabKey);
+    if (tabKey !== "Categories") {
+      setSelectedCategory(null);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -618,7 +723,7 @@ export default function StoreHomepageScreen() {
                 styles.tab,
                 activeTab === tab.key && styles.activeTab,
               ]}
-              onPress={() => setActiveTab(tab.key)}
+              onPress={() => handleTabChange(tab.key)}
             >
               <Text
                 style={[
@@ -1043,6 +1148,82 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.tertiary,
   },
   bottomSpacing: {
-    height: 60, // Extra bottom space for better scrolling
+  },
+  // Categories tab styles
+  categoriesListContainer: {
+    flex: 1,
+    backgroundColor: colors.background.tertiary,
+  },
+  categoriesHeader: {
+    padding: spacing.lg,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
+  },
+  categoriesHeaderTitle: {
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  categoriesHeaderSubtext: {
+    fontSize: typography.fontSizes.md,
+    color: colors.text.secondary,
+  },
+  categoriesScroll: {
+    flex: 1,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: spacing.md,
+    justifyContent: 'space-between',
+  },
+  categoryCardContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+  },
+  categoryCardName: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.inverse,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  categoryCardBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.xl,
+  },
+  categoryCardCount: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.inverse,
+  },
+  // Category products view styles
+  categoryProductsContainer: {
+    flex: 1,
+    backgroundColor: colors.background.tertiary,
+  },
+  backToCategoriesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
+  },
+  backToCategoriesText: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+    marginLeft: spacing.sm,
+  },
+  categoryProductsGrid: {
+    padding: spacing.lg,
+    flex: 1,
   },
 });

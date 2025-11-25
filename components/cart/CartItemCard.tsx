@@ -169,12 +169,12 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
                     <TouchableOpacity 
                       style={[styles.quantityButton, (item.quantity <= 1 || isUnavailable) && styles.disabledButton]} 
                       onPress={onDecrease}
-                      disabled={item.quantity <= 1 || isUnavailable}
+                      disabled={isUnavailable}
                     >
                       <Ionicons 
                         name="remove" 
                         size={16} 
-                        color={item.quantity > 1 && !isUnavailable ? colors.primary.main : "#C7C7CC"}
+                        color={item.quantity > 0 && !isUnavailable ? colors.primary.main : "#C7C7CC"}
                       />
                     </TouchableOpacity>
                     

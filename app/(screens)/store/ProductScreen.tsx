@@ -16,9 +16,11 @@ import SafeImage from "@/components/common/SafeImage";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@/constants/theme";
+import { colors, spacing } from "@/constants/theme";
 import { ReviewCard } from "@/components/review";
+import ProductGrid from "@/components/product/ProductGrid";
 import { useProductContext } from "@/context/ProductContext";
+import { useStoreContext } from "@/context/StoreContext";
 import { useCart } from '@/context/CartContext';
 import { CartItem } from '@/data/food/models';
 import { genericProductToCartItem, bundleToCartItem } from '@/utils/cartHelpers';
@@ -144,6 +146,14 @@ export default function ProductScreen() {
   
   const { addItem } = useCart();
   
+  // Store context for fetching more products
+  const {
+    storeProducts,
+    isFetchingProducts,
+    fetchStoreProducts,
+    clearStoreProducts
+  } = useStoreContext();
+  
   // Function to fetch reviews
   const fetchProductReviews = async (productId: string) => {
     try {
@@ -182,8 +192,16 @@ export default function ProductScreen() {
       clearCurrentBundle();
       setReviews([]);
       setReviewsError(null);
+      clearStoreProducts();
     };
-  }, [id, fetchItemById, clearCurrentProduct, clearCurrentBundle]);
+  }, [id, fetchItemById, clearCurrentProduct, clearCurrentBundle, clearStoreProducts]);
+  
+  // Fetch store products when currentItem is available
+  useEffect(() => {
+    if (currentItem?.storeId) {
+      fetchStoreProducts(currentItem.storeId);
+    }
+  }, [currentItem?.storeId, fetchStoreProducts]);
 
   // TODO: Fetch store details from API
   const store = null;
@@ -224,6 +242,12 @@ export default function ProductScreen() {
         fetchItemById(id),
         fetchProductReviews(id)
       ];
+      
+      // Also refresh store products if we have a storeId
+      if (currentItem?.storeId) {
+        refreshPromises.push(fetchStoreProducts(currentItem.storeId));
+      }
+      
       await Promise.all(refreshPromises);
     } catch (error) {
       console.error('❌ ProductScreen: Error refreshing data:', error);
@@ -333,6 +357,13 @@ export default function ProductScreen() {
   const handleViewAllReviews = () => {
     router.push(`/(screens)/store/ReviewsScreen?id=${store?.id}&productId=${currentItem?.id}`);
   };
+  
+  const handleMoreProductPress = (productId: string) => {
+    router.push(`/(screens)/store/ProductScreen?id=${productId}`);
+  };
+  
+  // Filter out the current product from store products
+  const otherStoreProducts = storeProducts.filter(product => product.id !== currentItem?.id);
 
 
   const handleReviewScroll = (event) => {
@@ -677,6 +708,40 @@ export default function ProductScreen() {
                   </View>
                 )}
               </>
+            )}
+          </View>
+          
+          {/* More Products Section */}
+          <View style={styles.divider} />
+          
+          <View style={styles.moreProductsSection}>
+            <View style={styles.moreProductsHeader}>
+              <Text style={styles.sectionTitle}>More from this store</Text>
+              {currentItem?.storeName && (
+                <TouchableOpacity onPress={() => navigateToStore()}>
+                  <Text style={styles.viewAllText}>View Store</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {isFetchingProducts ? (
+              <View style={styles.moreProductsLoadingContainer}>
+                <ActivityIndicator size="small" color={colors.primary.main} />
+                <Text style={styles.moreProductsLoadingText}>Loading products...</Text>
+              </View>
+            ) : otherStoreProducts.length === 0 ? (
+              <View style={styles.noMoreProductsContainer}>
+                <Ionicons name="cube-outline" size={32} color={colors.text.tertiary} />
+                <Text style={styles.noMoreProductsText}>No other products</Text>
+                <Text style={styles.noMoreProductsSubtext}>This store doesn't have other products available</Text>
+              </View>
+            ) : (
+              <View style={styles.moreProductsGrid}>
+                <ProductGrid 
+                  products={otherStoreProducts.slice(0, 4)}
+                  onProductPress={handleMoreProductPress}
+                />
+              </View>
             )}
           </View>
         </View>
@@ -1539,5 +1604,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.success,
+  },
+  // More Products Section styles
+  moreProductsSection: {
+    marginTop: spacing.md,
+  },
+  moreProductsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  moreProductsGrid: {
+    marginTop: spacing.sm,
+  },
+  moreProductsLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+  },
+  moreProductsLoadingText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    fontWeight: '500',
+  },
+  noMoreProductsContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+  },
+  noMoreProductsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  noMoreProductsSubtext: {
+    fontSize: 14,
+    color: colors.text.tertiary,
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
 });

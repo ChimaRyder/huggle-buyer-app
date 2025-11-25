@@ -52,8 +52,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 10,
     zIndex: 1000,
-    borderWidth: 2,
-    borderColor: colors.background.primary,
   },
   iconContainer: {
     flex: 1,
@@ -72,7 +70,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
-    borderWidth: 2,
     borderColor: colors.background.primary,
   },
   badgeText: {

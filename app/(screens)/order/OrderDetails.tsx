@@ -474,7 +474,6 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Order Notes</Text>
             <View style={styles.notesCard}>
-              <Ionicons name="document-text-outline" size={20} color={colors.text.secondary} />
               <Text style={styles.notesText}>{currentOrder.notes}</Text>
             </View>
           </View>

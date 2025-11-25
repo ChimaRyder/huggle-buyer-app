@@ -2,13 +2,14 @@ import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import {Home, LayoutGrid, MessageCircle, User } from 'lucide-react-native';
 
 import { colors } from "@/constants/theme";
 import FloatingCartButton from "@/components/cart/FloatingCartButton";
 
 export default function TabLayout() {
   // Use produce-themed colors for the tab bar
-  const activeTintColor = colors.primary; // Green color for produce theme
+  const activeTintColor = colors.primary.main; // Green color for produce theme
   const inactiveTintColor = colors.text.tertiary; // Light gray for inactive
 
   return (
@@ -43,11 +44,7 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "home" : "home-outline"} 
-              size={28} 
-              color={color} 
-            />
+            <Home color={color} size={25}/>          
           ),
         }}
       />
@@ -56,11 +53,7 @@ export default function TabLayout() {
         options={{
           title: "Discover",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "grid" : "grid-outline"} 
-              size={28} 
-              color={color} 
-            />
+            <LayoutGrid color={color} size={25}/>
           ),
         }}
       />
@@ -69,11 +62,7 @@ export default function TabLayout() {
         options={{
           title: "Chat",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "chatbubbles" : "chatbubbles-outline"} 
-              size={28} 
-              color={color} 
-            />
+            <MessageCircle color={color} size={25}/>
           ),
         }}
       />
@@ -82,11 +71,7 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "person" : "person-outline"} 
-              size={28} 
-              color={color} 
-            />
+            <User color={color} size={25}/>
           ),
         }}
       />
