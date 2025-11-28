@@ -7,17 +7,18 @@ export default {
     slug: "huggle-buyer-app",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/logo.png",
     scheme: "myapp",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
+      bundleIdentifier: "com.huggle.buyerapp",
       supportsTablet: true,
     },
     android: {
       package: "com.huggle.buyerapp",
       adaptiveIcon: {
-        foregroundImage: "./assets/images/icon.png",
+        foregroundImage: "./assets/images/logo.png",
         backgroundColor: "#ffffff",
       },
       permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
@@ -26,15 +27,15 @@ export default {
     web: {
       bundler: "metro",
       output: "static",
-      favicon: "./assets/images/icon.png",
+      favicon: "./assets/images/logo.png",
     },
     plugins: [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/icon.png",
-          imageWidth: 200,
+          image: "./assets/images/logo.png",
+          imageWidth: 1024,
           resizeMode: "contain",
           backgroundColor: "#ffffff",
         },
@@ -45,7 +46,7 @@ export default {
       [
         "expo-notifications",
         {
-          icon: "./assets/images/icon.png",
+          icon: "./assets/images/logo.png",
           color: "#ffffff",
           sounds: [],
         },

@@ -18,7 +18,6 @@ const getApiBaseUrl = (): string => {
   // return 'https://rpbwh9rd-5132.asse.devtunnels.ms'
   // return "http://192.168.254.115:5132"
   return "https://huggle-backend-jh2l.onrender.com"
-  // return "http://192.168.254.116:5132"
 };
 
 

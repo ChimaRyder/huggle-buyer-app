@@ -52,6 +52,10 @@ export interface BackendProduct {
   // Dynamic pricing info for buyers (derived fields)
   discountPercentage: number;
   hasDiscount: boolean;
+
+  isDynamicPricingEnabled : boolean;
+  dynamicPricingStartDays : number;
+  lastPriceUpdate : string;
   
   // Store information for buyer context
   storeName?: string;
