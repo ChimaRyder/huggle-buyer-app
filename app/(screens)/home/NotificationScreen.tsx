@@ -82,7 +82,7 @@ const getColorForType = (type: string) => {
     case "NewProduct":
       return colors.secondary; // Blue-Green
     case "NewPost":
-      return colors.primary; // Primary Green
+      return colors.primary.main; // Primary Green
     default:
       return colors.gray500; // Gray
   }
@@ -272,8 +272,8 @@ const NotificationScreen = () => {
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  colors={[colors.primary]}
-                  tintColor={colors.primary}
+                  colors={[colors.primary.main]}
+                  tintColor={colors.primary.main}
                 />
               }
               contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 }}
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     alignItems: "center",
     borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
+    borderLeftColor: colors.primary.main,
   },
   readCard: {
     opacity: 0.7,

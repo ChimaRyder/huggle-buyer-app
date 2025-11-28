@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   timeOfDayText: {
     fontSize: 18,
     fontFamily: "Poppins-SemiBold",
-    color: colors.primary, // Regular primary green for the time of day
+    color: colors.primary.main, // Regular primary green for the time of day
   },
   searchBar: {
     flexDirection: 'row',

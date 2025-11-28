@@ -81,7 +81,7 @@ export default function TrendingProductsScreen() {
         <View style={styles.content}>
           {isFetchingTrending ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
+              <ActivityIndicator size="large" color={colors.primary.main} />
               <Text style={styles.loadingText}>
                 {locationCoords 
                   ? `Loading trending products near ${locationCoords.address || 'you'}...`
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: spacing.lg,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: 8,

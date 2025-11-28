@@ -46,13 +46,13 @@ const TrendingItemsSection: React.FC<TrendingItemsSectionProps> = ({ onFoodItemP
         <Text style={styles.sectionTitle}>Trending Items</Text>
         <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
           <Text style={styles.seeAllText}>See All</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+          <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
         </TouchableOpacity>
       </View>
       <View style={styles.foodItemsContainer}>
         {isFetchingTrending ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary.main} />
             <Text style={styles.loadingText}>Loading trending items...</Text>
           </View>
         ) : trendingError ? (
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: colors.primary,
+    color: colors.primary.main,
     marginRight: 4,
   },
   foodItemsContainer: {

@@ -63,13 +63,13 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
         <Text style={styles.sectionTitle}>Popular Stores</Text>
         <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
           <Text style={styles.seeAllText}>See All</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+          <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
         </TouchableOpacity>
       </View>
       <View style={styles.restaurantsContainer}>
         {isFetchingPopular ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary.main} />
             <Text style={styles.loadingText}>Loading popular stores...</Text>
           </View>
         ) : popularError ? (
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: colors.primary,
+    color: colors.primary.main,
     marginRight: 4,
   },
   restaurantsContainer: {

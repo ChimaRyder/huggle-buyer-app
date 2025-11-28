@@ -92,7 +92,7 @@ const MasonryFeed: React.FC<MasonryFeedProps> = ({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary.main} />
         <Text style={styles.loadingText}>Loading content...</Text>
       </View>
     );
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   productIndicator: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
   },
   postIndicator: {
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.md,
     fontWeight: typography.fontWeights.bold,
     color: colors.white,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radii.md,
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
   },
   emptyAction: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: radii.xl,

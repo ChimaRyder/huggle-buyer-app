@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.primary.main,
   },
   container: {
     flex: 1,
@@ -465,8 +465,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   selectAllCheckboxSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.primary.main,
+    borderColor: colors.primary.main,
   },
   selectAllText: {
     fontSize: 16,

@@ -199,7 +199,7 @@ export const colors = {
 // Gradient definitions
 export const gradients = {
   primary: [colors.primaryLight, '#FFFFFF'],
-  secondary: [colors.secondary, colors.primary],
+  secondary: [colors.secondary, colors.primary.main],
   info: [colors.info, '#21CBF3'],
   warning: [colors.warning, '#FFB300'],
   danger: [colors.danger, '#FF7043'],

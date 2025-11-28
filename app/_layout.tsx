@@ -58,7 +58,7 @@ export default function RootLayout() {
                   value={DefaultTheme}
                 >
                   <Slot />
-                  <StatusBar style="light" backgroundColor="#4CAF50" />
+                  <StatusBar translucent backgroundColor="transparent" style="light"/>
                 </ThemeProvider>
               </ApplicationProvider>
             </CartProvider>

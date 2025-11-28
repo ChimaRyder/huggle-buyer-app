@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   accentLine: {
     width: 4,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     borderTopLeftRadius: radii.md,
     borderBottomLeftRadius: radii.md,
   },

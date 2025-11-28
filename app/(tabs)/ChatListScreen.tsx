@@ -112,7 +112,7 @@ export default function ChatListScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Ionicons name="chatbubbles-outline" size={24} color={colors.primary} style={styles.headerIcon} />
+          <Ionicons name="chatbubbles-outline" size={24} color={colors.primary.main} style={styles.headerIcon} />
           <Text style={styles.headerTitle}>Messages</Text>
         </View>
       </View>
@@ -139,7 +139,7 @@ export default function ChatListScreen() {
       {/* Chat List */}
       {isLoading && !isRefreshing ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={styles.loadingText}>Loading conversations...</Text>
         </View>
       ) : error ? (
@@ -172,8 +172,8 @@ export default function ChatListScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
+              colors={[colors.primary.main]}
+              tintColor={colors.primary.main}
             />
           }
           ListEmptyComponent={() => (

@@ -130,7 +130,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
       {/* Location row */}
       <View style={styles.locationRow}>
-        <FontAwesome5 name="store" size={14} color={colors.primary} />
+        <FontAwesome5 name="store" size={14} color={colors.primary.main} />
         <Text style={styles.metaText}> {order.storeName} | </Text>
         <Ionicons name="location-sharp" size={14} color={colors.primary.light} />
         <Text style={styles.metaText}> {order.location}</Text>

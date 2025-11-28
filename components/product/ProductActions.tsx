@@ -249,7 +249,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={[colors.primary, colors.primary + 'DD']}
+                  colors={[colors.primary.main, colors.primary.main + 'DD']}
                   style={styles.confirmButtonGradient}
                 >
                   <Ionicons 
@@ -279,7 +279,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={[colors.primary, colors.primary + 'DD']}
+              colors={[colors.primary.main, colors.primary.main + 'DD']}
               style={styles.buttonGradient}
             >
               <Ionicons name="bag-add-outline" size={20} color={colors.white} />
@@ -296,7 +296,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({
               colors={[colors.white, 'rgba(255, 255, 255, 0.9)']}
               style={styles.buttonGradient}
             >
-              <Ionicons name="flash" size={18} color={colors.primary} />
+              <Ionicons name="flash" size={18} color={colors.primary.main} />
               <Text style={styles.orderNowText}>Order Now</Text>
             </LinearGradient>
           </AnimatedTouchableOpacity>
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error,
   },
   inStock: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
   },
   stockText: {
     fontSize: typography.fontSizes.md,
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   quantityDisplay: {
-    backgroundColor: colors.primary + '15',
+    backgroundColor: colors.primary.main + '15',
     borderRadius: radii.lg,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   quantityText: {
     fontSize: typography.fontSizes.xxl,
     fontWeight: typography.fontWeights.bold,
-    color: colors.primary,
+    color: colors.primary.main,
     fontFamily: 'Poppins-Bold',
     textAlign: 'center',
   },
@@ -469,10 +469,10 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: radii.xl,
     borderWidth: 2,
-    borderColor: colors.primary,
+    borderColor: colors.primary.main,
   },
   orderNowText: {
-    color: colors.primary,
+    color: colors.primary.main,
     fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.medium,
     fontFamily: 'Poppins-Medium',

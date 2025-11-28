@@ -286,7 +286,7 @@ const OrderReviewScreen = () => {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={styles.loadingText}>Loading order details...</Text>
         </View>
       </SafeAreaView>
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.bold,
-    color: colors.primary,
+    color: colors.primary.main,
   },
   bottomContainer: {
     backgroundColor: colors.background.primary,

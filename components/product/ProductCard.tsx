@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   discountedPrice: {
     fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.bold,
-    color: colors.primary,
+    color: colors.primary.main,
     marginRight: spacing.xs,
   },
   originalPrice: {

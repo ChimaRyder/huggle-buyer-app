@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     maxWidth: 200,
   },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

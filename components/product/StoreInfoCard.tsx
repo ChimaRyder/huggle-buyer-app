@@ -45,10 +45,10 @@ const StoreInfoCard: React.FC<StoreInfoCardProps> = ({
                 />
               ) : (
                 <LinearGradient
-                  colors={[colors.primary + '20', colors.primary + '10']}
+                  colors={[colors.primary.main + '20', colors.primary.main + '10']}
                   style={[styles.avatar, styles.avatarPlaceholder]}
                 >
-                  <Ionicons name="storefront" size={28} color={colors.primary} />
+                  <Ionicons name="storefront" size={28} color={colors.primary.main} />
                 </LinearGradient>
               )}
               <View style={styles.storeBadge}>
@@ -70,10 +70,10 @@ const StoreInfoCard: React.FC<StoreInfoCardProps> = ({
             {location && (
               <View style={styles.locationRow}>
                 <LinearGradient
-                  colors={[colors.primary + '20', colors.primary + '10']}
+                  colors={[colors.primary.main + '20', colors.primary.main + '10']}
                   style={styles.locationIconContainer}
                 >
-                  <Ionicons name="location" size={12} color={colors.primary} />
+                  <Ionicons name="location" size={12} color={colors.primary.main} />
                 </LinearGradient>
                 <Text style={styles.location} numberOfLines={1}>
                   {location}
@@ -86,10 +86,10 @@ const StoreInfoCard: React.FC<StoreInfoCardProps> = ({
           {/* Enhanced Arrow Icon */}
           {onPress && (
             <LinearGradient
-              colors={[colors.primary + '15', colors.primary + '05']}
+              colors={[colors.primary.main + '15', colors.primary.main + '05']}
               style={styles.arrowContainer}
             >
-              <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+              <Ionicons name="chevron-forward" size={20} color={colors.primary.main} />
             </LinearGradient>
           )}
         </View>
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   },
   visitStoreText: {
     fontSize: typography.fontSizes.xs,
-    color: colors.primary,
+    color: colors.primary.main,
     fontFamily: 'Poppins-Medium',
     fontWeight: typography.fontWeights.medium,
   },

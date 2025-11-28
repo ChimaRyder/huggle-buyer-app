@@ -107,7 +107,7 @@ const SettingsScreen = () => {
             <View key={item.id} style={styles.settingItem}>
               <View style={styles.settingItemLeft}>
                 <View style={styles.iconContainer}>
-                  <Ionicons name={item.icon as any} size={20} color={colors.primary} />
+                  <Ionicons name={item.icon as any} size={20} color={colors.primary.main} />
                 </View>
                 <View style={styles.settingTextContainer}>
                   <Text style={styles.settingTitle}>{item.title}</Text>
@@ -120,7 +120,7 @@ const SettingsScreen = () => {
                 disabled={item.isLoading || false}
                 trackColor={{
                   false: colors.border.secondary,
-                  true: colors.primary,
+                  true: colors.primary.main,
                 }}
                 thumbColor={colors.background.primary}
                 style={{
@@ -142,7 +142,7 @@ const SettingsScreen = () => {
             >
               <View style={styles.settingItemLeft}>
                 <View style={styles.iconContainer}>
-                  <Ionicons name={item.icon as any} size={20} color={colors.primary} />
+                  <Ionicons name={item.icon as any} size={20} color={colors.primary.main} />
                 </View>
                 <Text style={styles.settingTitle}>{item.title}</Text>
               </View>

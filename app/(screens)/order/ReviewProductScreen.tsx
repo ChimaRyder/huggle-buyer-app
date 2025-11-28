@@ -211,7 +211,7 @@ export default function ReviewProductScreen() {
           </View>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={styles.loadingText}>Loading review data...</Text>
         </View>
       </SafeAreaView>

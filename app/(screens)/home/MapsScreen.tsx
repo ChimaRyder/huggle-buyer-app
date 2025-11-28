@@ -468,7 +468,7 @@ const MapsScreen = ({ route }: any) => {
                   <Ionicons 
                     name="location" 
                     size={28} 
-                    color={colors.primary} 
+                    color={colors.primary.main} 
                   />
                   <View style={styles.loadingSpinner} />
                 </View>
@@ -498,7 +498,7 @@ const MapsScreen = ({ route }: any) => {
               <Ionicons 
                 name="location-outline" 
                 size={24} 
-                color={colors.primary} 
+                color={colors.primary.main} 
                 style={styles.permissionIcon}
               />
               <Text style={styles.permissionButtonTextLarge}>
@@ -589,7 +589,7 @@ const MapsScreen = ({ route }: any) => {
             <Ionicons 
               name="location" 
               size={24} 
-              color={colors.primary} 
+              color={colors.primary.main} 
               style={styles.locationIcon}
             />
             <Text style={styles.locationText}>
@@ -613,7 +613,7 @@ const MapsScreen = ({ route }: any) => {
             <Ionicons 
               name="location-outline" 
               size={20} 
-              color={colors.primary} 
+              color={colors.primary.main} 
               style={styles.permissionIcon}
             />
             <Text style={styles.permissionButtonText}>
@@ -642,7 +642,7 @@ const MapsScreen = ({ route }: any) => {
                     style={styles.savedLocationMain}
                     onPress={() => handleSavedLocationSelect(location)}
                   >
-                    <Ionicons name="location" size={18} color={colors.primary} />
+                    <Ionicons name="location" size={18} color={colors.primary.main} />
                     <View style={styles.savedLocationInfo}>
                       <Text style={styles.savedLocationLabel}>{location.label}</Text>
                       <Text style={styles.savedLocationAddress}>
@@ -680,7 +680,7 @@ const MapsScreen = ({ route }: any) => {
               style={styles.saveLocationBtn} 
               onPress={() => setShowSaveModal(true)}
             >
-              <Ionicons name="bookmark-outline" size={20} color={colors.primary} />
+              <Ionicons name="bookmark-outline" size={20} color={colors.primary.main} />
               <Text style={styles.saveLocationBtnText}>Save Location</Text>
             </TouchableOpacity>
           )}
@@ -864,20 +864,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary + '10',
+    backgroundColor: colors.primary.main + '10',
     marginHorizontal: 24,
     marginBottom: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: colors.primary.main + '30',
   },
   permissionIcon: {
     marginRight: 8,
   },
   permissionButtonText: {
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -950,10 +950,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: colors.primary.main + '30',
   },
   saveLocationBtnText: {
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: '600',
     fontSize: 14,
     marginLeft: 8,
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     alignItems: 'center',
   },
   modalSaveBtnDisabled: {
@@ -1118,8 +1118,8 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.primary + '30',
-    borderTopColor: colors.primary,
+    borderColor: colors.primary.main + '30',
+    borderTopColor: colors.primary.main,
   },
   loadingIcon: {
     marginBottom: 16,
@@ -1138,8 +1138,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   permissionButtonLarge: {
-    backgroundColor: colors.primary + '10',
-    borderColor: colors.primary + '30',
+    backgroundColor: colors.primary.main + '10',
+    borderColor: colors.primary.main + '30',
     borderWidth: 1,
     borderRadius: 16,
     paddingVertical: 20,
@@ -1148,7 +1148,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   permissionButtonTextLarge: {
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: '600',
     fontSize: 16,
     marginTop: 8,

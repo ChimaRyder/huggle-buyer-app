@@ -38,10 +38,10 @@ const ReviewsPreview: React.FC<ReviewsPreviewProps> = ({
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <LinearGradient
-            colors={[colors.primary + '20', colors.primary + '10']}
+            colors={[colors.primary.main + '20', colors.primary.main + '10']}
             style={styles.titleIconContainer}
           >
-            <Ionicons name="chatbubbles" size={20} color={colors.primary} />
+            <Ionicons name="chatbubbles" size={20} color={colors.primary.main} />
           </LinearGradient>
           <View style={styles.titleTextContainer}>
             <Text style={styles.sectionTitle}>
@@ -64,11 +64,11 @@ const ReviewsPreview: React.FC<ReviewsPreviewProps> = ({
         {reviews.length > 2 && onViewAll && (
           <TouchableOpacity onPress={onViewAll} activeOpacity={0.7}>
             <LinearGradient
-              colors={[colors.primary + '15', colors.primary + '05']}
+              colors={[colors.primary.main + '15', colors.primary.main + '05']}
               style={styles.viewAllContainer}
             >
               <Text style={styles.viewAllButton}>View all</Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+              <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -77,10 +77,10 @@ const ReviewsPreview: React.FC<ReviewsPreviewProps> = ({
       {/* Enhanced Content */}
       {loading ? (
         <LinearGradient
-          colors={[colors.primary + '10', colors.primary + '05']}
+          colors={[colors.primary.main + '10', colors.primary.main + '05']}
           style={styles.loadingContainer}
         >
-          <ActivityIndicator size="small" color={colors.primary} />
+          <ActivityIndicator size="small" color={colors.primary.main} />
           <Text style={styles.loadingText}>Loading reviews...</Text>
         </LinearGradient>
       ) : reviews.length === 0 ? (
@@ -89,10 +89,10 @@ const ReviewsPreview: React.FC<ReviewsPreviewProps> = ({
           style={styles.emptyContainer}
         >
           <LinearGradient
-            colors={[colors.primary + '20', colors.primary + '10']}
+            colors={[colors.primary.main + '20', colors.primary.main + '10']}
             style={styles.emptyIconContainer}
           >
-            <Ionicons name="chatbubbles-outline" size={32} color={colors.primary} />
+            <Ionicons name="chatbubbles-outline" size={32} color={colors.primary.main} />
           </LinearGradient>
           <Text style={styles.emptyTitle}>No reviews yet</Text>
           <Text style={styles.emptySubtext}>
@@ -128,7 +128,7 @@ const ReviewsPreview: React.FC<ReviewsPreviewProps> = ({
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={[colors.primary, colors.primary + 'DD']}
+            colors={[colors.primary.main, colors.primary.main + 'DD']}
             style={styles.writeReviewGradient}
           >
             <Ionicons name="create-outline" size={20} color={colors.white} />
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   viewAllButton: {
     fontSize: typography.fontSizes.sm,
-    color: colors.primary,
+    color: colors.primary.main,
     fontWeight: typography.fontWeights.medium,
     fontFamily: 'Poppins-Medium',
     marginRight: spacing.xs,

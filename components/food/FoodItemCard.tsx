@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   categoryBadge: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
   },
   dietaryText: {
     color: colors.text.inverse,

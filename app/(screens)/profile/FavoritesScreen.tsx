@@ -117,7 +117,7 @@ const FavoritesScreen = () => {
       >
         {isFetchingFollowedStores && followedStores.length === 0 ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
+            <ActivityIndicator size="large" color={colors.primary.main} />
             <Text style={styles.loadingText}>Loading your favorite stores...</Text>
           </View>
         ) : followedStoresError ? (
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.normal * typography.fontSizes.md,
   },
   retryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: 8,
