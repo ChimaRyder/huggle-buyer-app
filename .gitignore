@@ -42,3 +42,6 @@ app-example
 .env
 huggle-goofy-aah-firebase-adminsdk-fbsvc-0b57a382dc.json
 # android/app/google-services.json
+
+android/
+ios/
