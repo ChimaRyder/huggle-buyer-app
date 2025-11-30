@@ -13,12 +13,23 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '@/constants/theme';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { ContentModal } from '@/components/common';
+
+// Import markdown content
+import privacyPolicyContent from '../../../about/privacy-policy';
+import termsOfServiceContent from '../../../about/terms-of-service';
+import aboutHuggleContent from '../../../about/about-huggle';
 
 const SettingsScreen = () => {
   const router = useRouter();
   const { preferences: pushNotificationPrefs, updatePreferences: updatePushNotifications } = usePushNotifications();
   const [locationEnabled, setLocationEnabled] = React.useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
+  
+  // Modal state
+  const [modalVisible, setModalVisible] = React.useState(false);
+  const [modalTitle, setModalTitle] = React.useState('');
+  const [modalContent, setModalContent] = React.useState('');
 
   const handleBackPress = () => {
     router.back();
@@ -34,6 +45,16 @@ const SettingsScreen = () => {
         [{ text: 'OK' }]
       );
     }
+  };
+
+  const openModal = (title: string, content: string) => {
+    setModalTitle(title);
+    setModalContent(content);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
   };
 
   const settingsItems = [
@@ -72,19 +93,19 @@ const SettingsScreen = () => {
       id: 'privacy',
       title: 'Privacy Policy',
       icon: 'shield-outline',
-      onPress: () => alert('Privacy Policy - Not implemented in this prototype'),
+      onPress: () => openModal('Privacy Policy', privacyPolicyContent),
     },
     {
       id: 'terms',
       title: 'Terms of Service',
       icon: 'document-text-outline',
-      onPress: () => alert('Terms of Service - Not implemented in this prototype'),
+      onPress: () => openModal('Terms of Service', termsOfServiceContent),
     },
     {
       id: 'about',
       title: 'About Huggle',
       icon: 'information-circle-outline',
-      onPress: () => alert('About Huggle - Not implemented in this prototype'),
+      onPress: () => openModal('About Huggle', aboutHuggleContent),
     },
   ];
 
@@ -156,6 +177,14 @@ const SettingsScreen = () => {
           <Text style={styles.versionText}>Huggle Buyer App v1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* Content Modal */}
+      <ContentModal
+        visible={modalVisible}
+        title={modalTitle}
+        content={modalContent}
+        onClose={closeModal}
+      />
     </SafeAreaView>
   );
 };
