@@ -1,7 +1,5 @@
 export default `
 
-# Huggle Privacy Policy
-
 *Last Updated: December 2025*
 
 Your privacy is important to us. This Privacy Policy explains how Huggle collects, uses, and protects your information.
