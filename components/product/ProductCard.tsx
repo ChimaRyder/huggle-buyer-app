@@ -3,7 +3,7 @@
  * A reusable card component for displaying product information
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -13,9 +13,13 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@clerk/clerk-expo';
 
 import { colors, spacing, typography, radii, shadows } from '@/constants/theme';
 import type { BackendProduct } from '@/types/BackendModels';
+import type { DynamicPricingInfo } from '@/types/DynamicPricing';
+import { fetchDynamicPricingInfo } from '@/services/pricingService';
+import { PriceCountdown } from './PriceCountdown';
 
 interface ProductCardProps {
   product: BackendProduct;
@@ -35,13 +39,50 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isFavorite = false,
   testID,
 }) => {
+  const { getToken } = useAuth();
+  const [pricingInfo, setPricingInfo] = useState<DynamicPricingInfo | null>(null);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+
   const handlePress = () => {
     onPress?.(product);
   };
 
-  const handleFavoritePress = () => {
+const handleFavoritePress = () => {
     onFavoritePress?.(product);
   };
+
+  // Fetch dynamic pricing info if enabled
+  useEffect(() => {
+    const loadPricingInfo = async () => {
+      console.log('🔍 ProductCard: Checking dynamic pricing', {
+        productId: product.id,
+        productName: product.name
+      });
+      
+      if (product.id) {
+        try {
+          setLoadingPricing(true);
+          console.log('📡 ProductCard: Fetching pricing info for', product.id);
+          const token = await getToken({ template: 'seller_app' });
+          const response = await fetchDynamicPricingInfo(product.id, token);
+          console.log('✅ ProductCard: Pricing response:', {
+            success: response.success,
+            hasData: !!response.data,
+            trajectoryLength: response.data?.priceTrajectory?.length
+          });
+          if (response.success && response.data) {
+            setPricingInfo(response.data);
+          }
+        } catch (error) {
+          console.error('❌ ProductCard: Error fetching pricing info:', error);
+        } finally {
+          setLoadingPricing(false);
+        }
+      }
+    };
+
+    loadPricingInfo();
+  }, [product.id]);
 
   // Handle pricing for both products and bundles
   const discountedPrice = product.discountedPrice ?? product.price ?? 0;
@@ -86,6 +127,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <Text style={styles.discountText}>-{discountPercentage}%</Text>
           </View>
         )}
+        
+        {/* Dynamic Pricing Countdown Badge */}
+        {pricingInfo && pricingInfo.priceTrajectory && pricingInfo.priceTrajectory.length > 1 && pricingInfo.priceTrajectory[1]?.timestamp && (
+          <View style={styles.countdownBadge}>
+            <PriceCountdown 
+              targetTimestamp={pricingInfo.priceTrajectory[1].timestamp}
+              compact={true}
+              showIcon={true}
+            />
+          </View>
+        )}
       </View>
 
       <View style={styles.contentContainer}>
@@ -95,11 +147,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         
         <View style={styles.priceContainer}>
           <Text style={styles.discountedPrice}>
-            �{discountedPrice.toFixed(2)}
+            £{discountedPrice.toFixed(2)}
           </Text>
           {hasDiscount && (
             <Text style={styles.originalPrice}>
-              �{originalPrice.toFixed(2)}
+              £{originalPrice.toFixed(2)}
             </Text>
           )}
         </View>
@@ -166,6 +218,11 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
     color: colors.text.inverse,
+  },
+  countdownBadge: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    left: spacing.sm,
   },
   contentContainer: {
     padding: spacing.sm,

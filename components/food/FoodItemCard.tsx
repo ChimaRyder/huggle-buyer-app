@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BackendProduct } from '@/types/BackendModels';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/constants/theme';
+import { useAuth } from '@clerk/clerk-expo';
+import { colors, spacing } from '@/constants/theme';
 import SafeImage from '@/components/common/SafeImage';
+import type { DynamicPricingInfo } from '@/types/DynamicPricing';
+import { fetchDynamicPricingInfo } from '@/services/pricingService';
+import { PriceCountdown } from '@/components/product/PriceCountdown';
 
 interface FoodItemCardProps {
   item: BackendProduct;
@@ -11,6 +15,43 @@ interface FoodItemCardProps {
 }
 
 const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
+  const { getToken } = useAuth();
+  const [pricingInfo, setPricingInfo] = useState<DynamicPricingInfo | null>(null);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+
+  // Fetch dynamic pricing info if enabled
+  useEffect(() => {
+    const loadPricingInfo = async () => {
+      console.log('🔍 FoodItemCard: Checking dynamic pricing', {
+        productId: item.id,
+        productName: item.name
+      });
+      
+      if (item.id) {
+        try {
+          setLoadingPricing(true);
+          console.log('📡 FoodItemCard: Fetching pricing info for', item.id);
+          const token = await getToken({ template: 'seller_app' });
+          const response = await fetchDynamicPricingInfo(item.id, token);
+          console.log('✅ FoodItemCard: Pricing response:', {
+            success: response.success,
+            hasData: !!response.data,
+            trajectoryLength: response.data?.priceTrajectory?.length
+          });
+          if (response.success && response.data) {
+            setPricingInfo(response.data);
+          }
+        } catch (error) {
+          console.error('❌ FoodItemCard: Error fetching pricing info:', error);
+        } finally {
+          setLoadingPricing(false);
+        }
+      }
+    };
+
+    loadPricingInfo();
+  }, []);
+
   // Calculate display price and discount info from DTO
   const hasDiscount = item.hasDiscount || (item.price < item.originalPrice);
   const displayPrice = item.price; // Current price from DTO
@@ -31,6 +72,17 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
             </Text>
           </View>
         )}
+        
+        {/* Dynamic Pricing Countdown Badge */}
+        {pricingInfo && pricingInfo?.priceTrajectory[1] && (
+          <View style={styles.countdownBadge}>
+            <PriceCountdown 
+              targetTimestamp={pricingInfo.priceTrajectory[1].timestamp}
+              compact={true}
+              showIcon={true}
+            />
+          </View>
+        )}
       </View>
       
       <View style={styles.content}>
@@ -47,7 +99,7 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
         <Text style={styles.description} numberOfLines={2}>
           {item.description}
         </Text>
-        
+
         <View style={styles.footer}>
           <View style={styles.priceContainer}>
             <Text style={styles.price}>₱{displayPrice.toFixed(2)}</Text>
@@ -97,6 +149,11 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     fontSize: 10,
     fontWeight: '600',
+  },
+  countdownBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
   },
   content: {
     padding: 12,

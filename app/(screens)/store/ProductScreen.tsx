@@ -29,6 +29,9 @@ import { fetchReviews } from '@/utils/reviews';
 import { submitProductReport } from '@/utils/reports';
 import { BackendReview } from '@/types/BackendModels';
 import BundleProductCard from '@/components/bundle/BundleProductCard';
+import type { DynamicPricingInfo } from '@/types/DynamicPricing';
+import { fetchDynamicPricingInfo } from '@/services/pricingService';
+import { PriceCountdown } from '@/components/product/PriceCountdown';
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -128,6 +131,10 @@ export default function ProductScreen() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
   
+  // Dynamic pricing state
+  const [pricingInfo, setPricingInfo] = useState<DynamicPricingInfo | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  
   const {
     currentProduct,
     isFetchingProduct,
@@ -178,12 +185,44 @@ export default function ProductScreen() {
     }
   };
   
+  // Function to fetch dynamic pricing info
+  const fetchProductPricingInfo = async (productId: string) => {
+    try {
+      setPricingLoading(true);
+      console.log('📡 ProductScreen: Fetching pricing info for', productId);
+      const token = await getToken({template: "seller_app"});
+      
+      const response = await fetchDynamicPricingInfo(productId, token);
+      console.log('✅ ProductScreen: Pricing response:', {
+        success: response?.success,
+        hasData: !!response?.data,
+        isDynamicEnabled: response?.data?.isDynamicPricingEnabled,
+        trajectoryLength: response?.data?.priceTrajectory?.length,
+        firstTimestamp: response?.data?.priceTrajectory?.[0]?.timestamp
+      });
+      
+      if (response && response.success && response.data) {
+        console.log("AAAAAAAAAAAAAAA")
+        console.log(response.data);
+        setPricingInfo(response.data);
+      } else {
+        setPricingInfo(null);
+      }
+    } catch (error) {
+      console.error('❌ ProductScreen: Error fetching pricing info:', error);
+      setPricingInfo(null);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+  
   useEffect(() => {
     if (id && typeof id === 'string') {
       
       // Use smart fetch that tries both product and bundle endpoints
       fetchItemById(id);
       fetchProductReviews(id); // Fetch reviews for both products and bundles
+      fetchProductPricingInfo(id); // Fetch dynamic pricing info
     }
     
     // Cleanup when component unmounts or ID changes
@@ -192,6 +231,7 @@ export default function ProductScreen() {
       clearCurrentBundle();
       setReviews([]);
       setReviewsError(null);
+      setPricingInfo(null);
       clearStoreProducts();
     };
   }, [id, fetchItemById, clearCurrentProduct, clearCurrentBundle, clearStoreProducts]);
@@ -240,7 +280,8 @@ export default function ProductScreen() {
     try {
       const refreshPromises = [
         fetchItemById(id),
-        fetchProductReviews(id)
+        fetchProductReviews(id),
+        fetchProductPricingInfo(id)
       ];
       
       // Also refresh store products if we have a storeId
@@ -530,6 +571,11 @@ export default function ProductScreen() {
           <View style={styles.nameRow}>
             <Text style={styles.title}>{currentItem?.name}</Text>
           </View>
+
+          {/* Dynamic Pricing Countdown */}
+          {pricingInfo && pricingInfo.isDynamicPricingEnabled && pricingInfo.priceTrajectory.length > 0 && pricingInfo.priceTrajectory[0]?.timestamp && (
+           <PriceCountdown targetTimestamp={pricingInfo.priceTrajectory[1].timestamp}/>
+          )}
 
           {/* Divider */}
           <View style={styles.divider} />
@@ -1647,5 +1693,17 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
     marginTop: spacing.xs,
     textAlign: 'center',
+  },
+  pricingInfoContainer: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  pricingLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text.secondary,
   },
 });
