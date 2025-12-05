@@ -310,13 +310,13 @@ export default function StoreHomepageScreen() {
   
   const getCategoryColor = (categoryName: string): string => {
     const hash = categoryName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return categoryColors[hash % categoryColors.length];
+    return categoryColors[hash % categoryColors.length] as string;
   };
 
 
   // Render featured tab content
   const renderFeaturedTab = () => {
-    const productsToShow = searchQuery.trim() ? filteredProducts : storeProducts;
+    const productsToShow = searchQuery.trim() ? filteredProducts : storeProducts.filter((p) => {return p.isDynamicPricingEnabled});
     
     return (
       <View style={styles.featuredTabContent}>

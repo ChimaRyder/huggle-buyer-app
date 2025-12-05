@@ -107,13 +107,22 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
               <Text style={styles.originalPrice}>₱{item.originalPrice.toFixed(2)}</Text>
             )}
           </View>
-          <View style={styles.dietaryContainer}>
-            {item.tags && item.tags.length > 0 && (
-              <View style={[styles.dietaryBadge, styles.categoryBadge]}>
-                <Text style={styles.dietaryText}>{item.tags[0]?.substring(0, 2).toUpperCase()}</Text>
-              </View>
-            )}
-          </View>
+          {item.tags && item.tags.length > 0 && (
+            <View style={styles.tagsContainer}>
+              {item.tags.slice(0, 3).map((tag, index) => (
+                <View key={index} style={[styles.tagBadge]}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+              {item.tags.length > 3 && (
+                <View style={[styles.tagBadge, { backgroundColor: colors.background.secondary }]}>
+                  <Text style={[styles.tagText, { color: colors.text.primary }]}>
+                    +{item.tags.length - 3}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -125,9 +134,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderRadius: 12,
     marginBottom: 16,
+    width: 170,
   },
   imageContainer: {
-    height: 120,
+    height: 130,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     overflow: 'hidden',
@@ -188,9 +198,8 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
   priceContainer: {
     flexDirection: 'row',
@@ -226,6 +235,26 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     fontSize: 8,
     fontWeight: '600',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 4,
+    gap: 4,
+  },
+  tagBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 2,
+    backgroundColor: colors.primary.main,
+  },
+  tagText: {
+    fontSize: 8,
+    color: colors.text.inverse,
+    fontWeight: "600",
+    textTransform: "uppercase",
   },
 });
 
