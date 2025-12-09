@@ -196,6 +196,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xl * 2,
     paddingHorizontal: spacing.lg,
+    minHeight: 200,
   },
   emptyTitle: {
     fontSize: typography.fontSizes.lg,
@@ -208,7 +209,8 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSizes.md,
     color: colors.text.secondary,
     textAlign: 'center',
-    lineHeight: typography.lineHeights.relaxed,
+    lineHeight: 22,
+    maxWidth: '90%',
   },
 });
 

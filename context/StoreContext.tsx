@@ -26,11 +26,17 @@ interface Store {
 }
 
 interface StoreContextType {
-  // Popular Stores
+  // Nearby Stores (location-based)
+  nearbyStores: Store[];
+  isFetchingNearby: boolean;
+  nearbyError: string | null;
+  fetchNearbyStores: (latitude: number, longitude: number, radius?: number) => Promise<void>;
+  
+  // Popular Stores (all areas)
   popularStores: Store[];
   isFetchingPopular: boolean;
   popularError: string | null;
-  fetchPopularStores: (latitude?: number, longitude?: number, radius?: number) => Promise<void>;
+  fetchPopularStores: () => Promise<void>;
   
   // Store by ID
   currentStore: Store | null;
@@ -72,7 +78,12 @@ interface StoreProviderProps {
 }
 
 export function StoreProvider({ children }: StoreProviderProps) {
-  // Popular Stores state
+  // Nearby Stores state (location-based)
+  const [nearbyStores, setNearbyStores] = useState<Store[]>([]);
+  const [isFetchingNearby, setIsFetchingNearby] = useState(false);
+  const [nearbyError, setNearbyError] = useState<string | null>(null);
+  
+  // Popular Stores state (all areas)
   const [popularStores, setPopularStores] = useState<Store[]>([]);
   const [isFetchingPopular, setIsFetchingPopular] = useState(false);
   const [popularError, setPopularError] = useState<string | null>(null);
@@ -100,91 +111,120 @@ export function StoreProvider({ children }: StoreProviderProps) {
   
   const { client } = useApi();
 
-  const fetchPopularStores = useCallback(async (latitude?: number, longitude?: number, radius: number = 5): Promise<void> => {
+  // Helper function to map store response
+  const mapStoreResponse = (store: any): Store => ({
+    id: store.id,
+    sellerId: store.sellerId,
+    name: store.name,
+    storeType: store.storeType,
+    description: store.description,
+    tags: store.tags || [],
+    profileImageUrl: Array.isArray(store.profileImageUrl) ? store.profileImageUrl[0] : store.profileImageUrl,
+    coverImageUrl: Array.isArray(store.coverImageUrl) ? store.coverImageUrl[0] : store.coverImageUrl,
+    address: store.address,
+    city: store.city,
+    province: store.province,
+    isOpen: store.isOpen,
+    isVerified: store.isVerified,
+    location: store.location ? {
+      latitude: store.location.latitude,
+      longitude: store.location.longitude
+    } : null,
+    distance: store.distance,
+    createdAt: store.createdAt
+  });
+
+  // Helper function to extract stores array from response
+  const extractStoresFromResponse = (data: any): Store[] => {
+    console.log('🔍 StoreContext: extractStoresFromResponse - input data structure:', {
+      hasData: !!data,
+      hasDataData: !!data?.data,
+      hasDataDataStores: !!data?.data?.stores,
+      hasDataStores: !!data?.stores,
+      isDataArray: Array.isArray(data),
+      keys: data ? Object.keys(data) : []
+    });
+    
+    let storesArray: Store[] = [];
+    
+    // Try different response structures
+    if (data?.data?.stores && Array.isArray(data.data.stores)) {
+      console.log('🔍 StoreContext: Found stores in data.data.stores');
+      storesArray = data.data.stores.map(mapStoreResponse);
+    } else if (data?.stores && Array.isArray(data.stores)) {
+      console.log('🔍 StoreContext: Found stores in data.stores');
+      storesArray = data.stores.map(mapStoreResponse);
+    } else if (data?.data && Array.isArray(data.data)) {
+      console.log('🔍 StoreContext: Found stores in data.data (direct array)');
+      storesArray = data.data.map(mapStoreResponse);
+    } else if (Array.isArray(data)) {
+      console.log('🔍 StoreContext: Found stores in direct array');
+      storesArray = data.map(mapStoreResponse);
+    }
+    
+    console.log('🔍 StoreContext: Extracted', storesArray.length, 'stores');
+    return storesArray;
+  };
+
+  // Fetch nearby stores (location-based with specific radius)
+  const fetchNearbyStores = useCallback(async (latitude: number, longitude: number, radius: number = 5): Promise<void> => {
+    setIsFetchingNearby(true);
+    setNearbyError(null);
+    
+    try {
+      console.log('🔍 StoreContext: Starting fetchNearbyStores with:', { latitude, longitude, radius });
+      
+      const endpoint = API_ENDPOINTS.stores.popular(latitude, longitude, radius, 20);
+      console.log('🔍 StoreContext: Using nearby stores endpoint:', endpoint);
+      
+      const response = await client.get<any>(endpoint);
+      console.log('🔍 StoreContext: Raw API response for nearby:', response);
+
+      if (response.success && response.data) {
+        const storesArray = extractStoresFromResponse(response.data);
+        console.log('🔍 StoreContext: Processed nearby stores:', storesArray.length, 'items');
+        setNearbyStores(storesArray);
+        console.log('✅ StoreContext: Set nearbyStores to:', storesArray.length, 'items');
+      } else {
+        console.warn('❌ StoreContext: Failed to fetch nearby stores:', response.error);
+        setNearbyError(response.error || 'Failed to fetch nearby stores');
+      }
+    } catch (error) {
+      console.error('❌ StoreContext: Exception in fetchNearbyStores:', error);
+      setNearbyError(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsFetchingNearby(false);
+      console.log('🔍 StoreContext: fetchNearbyStores finished');
+    }
+  }, [client]);
+
+  // Fetch all popular stores (no location filter - large radius)
+  const fetchPopularStores = useCallback(async (): Promise<void> => {
     setIsFetchingPopular(true);
     setPopularError(null);
     
     try {
-      console.log('🔍 StoreContext: Starting fetchPopularStores with location:', { latitude, longitude, radius });
+      console.log('🔍 StoreContext: Starting fetchPopularStores (all areas)');
       
-      // Use location-based endpoint if coordinates are provided
-      if (latitude !== undefined && longitude !== undefined) {
-        const endpoint = API_ENDPOINTS.stores.popular(latitude, longitude, radius, 10);
-        console.log('🔍 StoreContext: Using popular stores endpoint:', endpoint);
-        
-        const response = await client.get<any>(endpoint);
-        console.log('🔍 StoreContext: Raw API response:', response);
+      // Use 0,0 with very large radius to fetch all stores
+      const endpoint = API_ENDPOINTS.stores.popular(0, 0, 10000, 20);
+      console.log('🔍 StoreContext: Using popular stores endpoint:', endpoint);
+      
+      const response = await client.get<any>(endpoint);
+      console.log('🔍 StoreContext: Raw API response for popular:', response);
 
-        if (response.success && response.data) {
-          console.log('✅ StoreContext: Fetch popular stores response:', response.data);
-          
-          // Handle nested response structure
-          let storesArray: Store[] = [];
-          if (response.data.data && Array.isArray(response.data.data.stores)) {
-            console.log('🔍 StoreContext: Found nested stores structure');
-            storesArray = response.data.data.stores.map((store: any) => ({
-              id: store.id,
-              sellerId: store.sellerId,
-              name: store.name,
-              storeType: store.storeType,
-              description: store.description,
-              tags: store.tags || [],
-              profileImageUrl: store.profileImageUrl,
-              coverImageUrl: store.coverImageUrl,
-              address: store.address,
-              city: store.city,
-              province: store.province,
-              isOpen: store.isOpen,
-              isVerified: store.isVerified,
-              location: store.location ? {
-                latitude: store.location.latitude,
-                longitude: store.location.longitude
-              } : null,
-              distance: store.distance,
-              createdAt: store.createdAt
-            }));
-          } else if (Array.isArray(response.data.stores)) {
-            console.log('🔍 StoreContext: Found direct stores array');
-            storesArray = response.data.stores.map((store: any) => ({
-              id: store.id,
-              sellerId: store.sellerId,
-              name: store.name,
-              storeType: store.storeType,
-              description: store.description,
-              tags: store.tags || [],
-              profileImageUrl: Array.isArray(store.profileImageUrl) ? store.profileImageUrl[0] : store.profileImageUrl,
-              coverImageUrl: Array.isArray(store.coverImageUrl) ? store.coverImageUrl[0] : store.coverImageUrl,
-              address: store.address,
-              city: store.city,
-              province: store.province,
-              isOpen: store.isOpen,
-              isVerified: store.isVerified,
-              location: store.location ? {
-                latitude: store.location.latitude,
-                longitude: store.location.longitude
-              } : null,
-              distance: store.distance,
-              createdAt: store.createdAt
-            }));
-          }
-          
-          console.log('🔍 StoreContext: Processed stores array:', storesArray.length, 'items');
-          setPopularStores(storesArray);
-          console.log('✅ StoreContext: Set popularStores to:', storesArray.length, 'items');
-        } else {
-          console.warn('❌ StoreContext: Failed to fetch popular stores - success:', response.success, 'error:', response.error);
-          setPopularError(response.error || 'Failed to fetch popular stores');
-          setPopularStores([]);
-        }
+      if (response.success && response.data) {
+        const storesArray = extractStoresFromResponse(response.data);
+        console.log('🔍 StoreContext: Processed popular stores:', storesArray.length, 'items');
+        setPopularStores(storesArray);
+        console.log('✅ StoreContext: Set popularStores to:', storesArray.length, 'items');
       } else {
-        console.log('📍 StoreContext: No location provided, cannot fetch popular stores');
-        setPopularError('Location required to fetch popular stores');
-        setPopularStores([]);
+        console.warn('❌ StoreContext: Failed to fetch popular stores:', response.error);
+        setPopularError(response.error || 'Failed to fetch popular stores');
       }
     } catch (error) {
       console.error('❌ StoreContext: Exception in fetchPopularStores:', error);
       setPopularError(error instanceof Error ? error.message : 'Unknown error occurred');
-      setPopularStores([]);
     } finally {
       setIsFetchingPopular(false);
       console.log('🔍 StoreContext: fetchPopularStores finished');
@@ -477,7 +517,13 @@ export function StoreProvider({ children }: StoreProviderProps) {
   }, [followedStores]);
 
   const contextValue: StoreContextType = {
-    // Popular Stores
+    // Nearby Stores (location-based)
+    nearbyStores,
+    isFetchingNearby,
+    nearbyError,
+    fetchNearbyStores,
+    
+    // Popular Stores (all areas)
     popularStores,
     isFetchingPopular,
     popularError,

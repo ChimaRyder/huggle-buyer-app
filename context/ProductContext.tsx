@@ -69,12 +69,17 @@ export function ProductProvider({ children }: ProductProviderProps) {
     setTrendingError(null);
     
     try {
-      console.log('🔍 ProductContext: Starting fetchTrendingProducts with location:', { latitude, longitude, radiusKm });
+      // Default to large radius if no location or 0,0 coordinates (fetches all products)
+      const useAllProducts = latitude === undefined || longitude === undefined || 
+        (latitude === 0 && longitude === 0);
+      const searchRadius = useAllProducts ? 10000 : radiusKm;
       
-      // Use location-based endpoint if coordinates are provided, otherwise fallback to general endpoint
+      console.log('🔍 ProductContext: Starting fetchTrendingProducts with:', { latitude, longitude, searchRadius, useAllProducts });
+      
+      // Use location-based endpoint - with 0,0 and large radius as fallback for "all products"
       let endpoint: string;
       if (latitude !== undefined && longitude !== undefined) {
-        endpoint = API_ENDPOINTS.products.trendingByLocation(latitude, longitude, radiusKm, 20);
+        endpoint = API_ENDPOINTS.products.trendingByLocation(latitude, longitude, searchRadius, 20);
         console.log('🔍 ProductContext: Using location-based endpoint:', endpoint);
       } else {
         endpoint = API_ENDPOINTS.products.trending;
@@ -106,19 +111,24 @@ export function ProductProvider({ children }: ProductProviderProps) {
         }
         
         console.log('🔍 ProductContext: Processed products array:', productsArray.length, 'items');
-        setTrendingProducts(productsArray);
-        console.log('✅ ProductContext: Set trendingProducts to:', productsArray.length, 'items');
+        // Only update if we got results, otherwise keep existing data
+        if (productsArray.length > 0) {
+          setTrendingProducts(productsArray);
+          console.log('✅ ProductContext: Set trendingProducts to:', productsArray.length, 'items');
+        } else {
+          console.log('⚠️ ProductContext: No products returned, keeping existing data');
+        }
       } else {
         console.warn('❌ ProductContext: Failed to fetch trending products - success:', response.success, 'error:', response.error);
         setTrendingError(response.error || 'Failed to fetch trending products');
-        setTrendingProducts([]);
+        // DON'T clear products on error - keep existing data
       }
     } catch (error) {
       console.error('❌ ProductContext: Exception in fetchTrendingProducts:', error);
       console.error('❌ ProductContext: Exception type:', typeof error);
       console.error('❌ ProductContext: Exception details:', error instanceof Error ? error.message : String(error));
       setTrendingError(error instanceof Error ? error.message : 'Unknown error occurred');
-      setTrendingProducts([]);
+      // DON'T clear products on error - keep existing data
     } finally {
       setIsFetchingTrending(false);
       console.log('🔍 ProductContext: fetchTrendingProducts finished, isFetchingTrending set to false');

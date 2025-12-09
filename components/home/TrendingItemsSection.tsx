@@ -1,16 +1,16 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import FoodItemCard from '@/components/food/FoodItemCard';
 import { colors } from '@/constants/theme';
 import { useProductContext } from '@/context/ProductContext';
-import { useLocationContext } from '@/context/LocationContext';
+import FoodItemCard from '@/components/food/FoodItemCard';
 
 interface TrendingItemsSectionProps {
   onFoodItemPress: (itemId: string) => void;
@@ -19,76 +19,82 @@ interface TrendingItemsSectionProps {
 
 const TrendingItemsSection: React.FC<TrendingItemsSectionProps> = ({ onFoodItemPress, onSeeAllPress }) => {
   const { trendingProducts, isFetchingTrending, trendingError, fetchTrendingProducts } = useProductContext();
-  const { currentLocation } = useLocationContext();
+  
+  // Track if we've done initial fetch
+  const hasFetchedRef = useRef(false);
 
-  // Create stable location coordinates
-  const locationCoords = useMemo(() => {
-    if (!currentLocation) return null;
-    return {
-      latitude: currentLocation.latitude,
-      longitude: currentLocation.longitude
-    };
-  }, [currentLocation?.latitude, currentLocation?.longitude]);
-
-  // Fetch trending products when component mounts or location changes
+  // Fetch all trending products on mount (no location filter)
   useEffect(() => {
-    if (locationCoords) {
-      fetchTrendingProducts(locationCoords.latitude, locationCoords.longitude, 10);
-    }
-  }, [locationCoords, fetchTrendingProducts]);
+    const fetchProducts = async () => {
+      if (!hasFetchedRef.current) {
+        hasFetchedRef.current = true;
+        console.log('🔍 TrendingItemsSection: Fetching all trending products');
+        await fetchTrendingProducts();
+      }
+    };
 
-  // Show only first 4 items for home screen
-  const displayItems = trendingProducts.slice(0, 4);
+    fetchProducts();
+  }, [fetchTrendingProducts]);
+
+  // Show up to 10 items for horizontal scroll
+  const displayItems = trendingProducts.slice(0, 10);
 
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>Trending Items</Text>
-        <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
-          <Text style={styles.seeAllText}>See All</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.foodItemsContainer}>
-        {isFetchingTrending ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={colors.primary.main} />
-            <Text style={styles.loadingText}>Loading trending items...</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.sectionTitle}>Trending Items</Text>
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>All areas</Text>
           </View>
-        ) : trendingError ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Failed to load trending items</Text>
-            <Text style={styles.errorText}>{trendingError}</Text>
-          </View>
-        ) : !locationCoords ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="location-outline" size={32} color={colors.text.secondary} />
-            <Text style={styles.emptyText}>Location required</Text>
-            <Text style={styles.emptySubtext}>Please set your location to see trending items nearby</Text>
-          </View>
-        ) : displayItems.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No trending items available</Text>
-            <Text style={styles.emptySubtext}>Check back later for new trending products</Text>
-          </View>
-        ) : (
-          displayItems.map((item) => (
-            <View key={item.id} style={styles.foodItemWrapper}>
-              <FoodItemCard 
-                item={item} 
-                onPress={() => onFoodItemPress(item.id)} 
-              />
-            </View>
-          ))
+        </View>
+        {displayItems.length > 0 && (
+          <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
+            <Text style={styles.seeAllText}>See All</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
+          </TouchableOpacity>
         )}
       </View>
+      
+      {isFetchingTrending && trendingProducts.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={colors.primary.main} />
+          <Text style={styles.loadingText}>Loading trending items...</Text>
+        </View>
+      ) : trendingError && trendingProducts.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={32} color={colors.text.tertiary} />
+          <Text style={styles.emptyText}>Couldn't load trending items</Text>
+          <Text style={styles.emptySubtext}>Pull down to refresh</Text>
+        </View>
+      ) : displayItems.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="flame-outline" size={32} color={colors.text.tertiary} />
+          <Text style={styles.emptyText}>No trending items yet</Text>
+          <Text style={styles.emptySubtext}>Check back later for new products</Text>
+        </View>
+      ) : (
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {displayItems.map((item) => (
+            <View key={item.id} style={styles.cardWrapper}>
+              <FoodItemCard
+                item={item}
+                onPress={() => onFoodItemPress(item.id)}
+              />
+            </View>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   section: {
-    marginHorizontal: 16,
     marginBottom: 24,
   },
   header: {
@@ -96,11 +102,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    marginHorizontal: 16,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.text.primary,
+    lineHeight: 24,
+  },
+  badgeContainer: {
+    backgroundColor: colors.info + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 10,
+  },
+  badgeText: {
+    fontSize: 12,
+    color: colors.info,
+    fontWeight: '600',
+    lineHeight: 16,
   },
   seeAllButton: {
     flexDirection: 'row',
@@ -111,48 +136,43 @@ const styles = StyleSheet.create({
     color: colors.primary.main,
     marginRight: 4,
   },
-  foodItemsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  scrollContent: {
+    paddingLeft: 16,
+    paddingRight: 8,
+    paddingVertical: 4,
   },
-  foodItemWrapper: {
-    width: '48%',
-    marginBottom: 16,
+  cardWrapper: {
+    marginRight: 12,
   },
+  // Empty/Loading states
   emptyContainer: {
     paddingVertical: 32,
     alignItems: 'center',
-    width: '100%',
+    marginHorizontal: 16,
   },
   emptyText: {
     fontSize: 16,
     color: colors.text.tertiary,
     textAlign: 'center',
+    marginTop: 8,
   },
   emptySubtext: {
     fontSize: 14,
     color: colors.text.secondary,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 32,
-    width: '100%',
+    marginHorizontal: 16,
   },
   loadingText: {
     marginLeft: 12,
     fontSize: 14,
     color: colors.text.secondary,
-  },
-  errorText: {
-    fontSize: 12,
-    color: colors.error,
-    textAlign: 'center',
-    marginTop: 4,
   },
 });
 

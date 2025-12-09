@@ -12,9 +12,10 @@ import { PriceCountdown } from '@/components/product/PriceCountdown';
 interface FoodItemCardProps {
   item: BackendProduct;
   onPress: () => void;
+  fullWidth?: boolean;
 }
 
-const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
+const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress, fullWidth = false }) => {
   const { getToken } = useAuth();
   const [pricingInfo, setPricingInfo] = useState<DynamicPricingInfo | null>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
@@ -57,7 +58,7 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
   const displayPrice = item.price; // Current price from DTO
   
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity style={[styles.container, fullWidth && styles.fullWidthContainer]} onPress={onPress}>
       <View style={styles.imageContainer}>
         <SafeImage 
           source={{ 
@@ -135,6 +136,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     width: 170,
+  },
+  fullWidthContainer: {
+    width: '100%',
+    marginBottom: 0,
   },
   imageContainer: {
     height: 130,

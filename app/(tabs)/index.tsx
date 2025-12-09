@@ -32,7 +32,8 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   CategorySection,
   TrendingItemsSection,
-  PopularStoresSection
+  PopularStoresSection,
+  NearbyStoresSection
 } from '@/components/home';
 
 const PRICING_DRAWER_KEY = '@huggle_pricing_drawer_shown';
@@ -49,7 +50,8 @@ const HomeScreen = () => {
   // Context hooks
   const { fetchTrendingProducts } = useProductContext();
   const { 
-    fetchPopularStores, 
+    fetchPopularStores,
+    fetchNearbyStores,
     followStore, 
     unfollowStore, 
     isStoreFollowed,
@@ -118,16 +120,23 @@ const HomeScreen = () => {
     setRefreshing(true);
     
     try {
-      // Refresh all data if location is available
+      console.log('🔄 HomeScreen: Refreshing data');
+      
+      // Build refresh promises
+      const refreshPromises: Promise<void>[] = [
+        // Always fetch trending products and popular stores (all areas)
+        fetchTrendingProducts(),
+        fetchPopularStores()
+      ];
+      
+      // If we have location, also refresh nearby stores
       if (currentLocation) {
-        const refreshPromises = [
-          fetchTrendingProducts(currentLocation.latitude, currentLocation.longitude, 10),
-          fetchPopularStores(currentLocation.latitude, currentLocation.longitude, 5)
-        ];
-        
-        await Promise.all(refreshPromises);
-      } else {
+        refreshPromises.push(
+          fetchNearbyStores(currentLocation.latitude, currentLocation.longitude, 5)
+        );
       }
+      
+      await Promise.all(refreshPromises);
     } catch (error) {
       console.error('❌ HomeScreen: Error refreshing data:', error);
     } finally {
@@ -225,6 +234,12 @@ const HomeScreen = () => {
         <TrendingItemsSection 
           onFoodItemPress={handleFoodItemPress} 
           onSeeAllPress={handleSeeAllTrendingItems}
+        />
+        
+        <NearbyStoresSection 
+          onRestaurantPress={handleRestaurantPress} 
+          onToggleFavorite={handleToggleFavorite} 
+          onSeeAllPress={handleSeeAllPopularStores}
         />
         
         <PopularStoresSection 
