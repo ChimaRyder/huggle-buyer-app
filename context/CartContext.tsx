@@ -166,6 +166,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_LOADING', loading: true });
       const token = await getToken();
       
+      // Check if token exists
+      if (!token) {
+        console.log('⚠️ CartContext: No auth token available, skipping cart refresh');
+        dispatch({ type: 'SET_CART', items: [] });
+        return;
+      }
+      
       console.log('🔑 CartContext: Got token for refresh', {
         hasToken: !!token,
         tokenLength: token?.length || 0
@@ -280,6 +287,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         errorStack: error instanceof Error ? error.stack : undefined
       });
       dispatch({ type: 'SET_ERROR', error: errorMessage });
+      dispatch({ type: 'SET_CART', items: [] }); // Clear cart on error
+    } finally {
+      dispatch({ type: 'SET_LOADING', loading: false });
     }
   };
   
@@ -295,6 +305,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
       dispatch({ type: 'SET_LOADING', loading: true });
       const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required to add items to cart');
+      }
       
       console.log('🔑 CartContext: Got auth token', {
         hasToken: !!token,
@@ -326,6 +340,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         itemName: item.name
       });
       dispatch({ type: 'SET_ERROR', error: errorMessage });
+    } finally {
+      dispatch({ type: 'SET_LOADING', loading: false });
     }
   };
   
@@ -333,10 +349,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', loading: true });
       const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required to remove items from cart');
+      }
+      
       await cartApi.removeFromCart(id, token);
       await refreshCart();
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: error instanceof Error ? error.message : 'Failed to remove item' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', loading: false });
     }
   };
   
@@ -344,10 +367,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', loading: true });
       const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required to update cart');
+      }
+      
       await cartApi.updateCartItem(id, quantity, token);
       await refreshCart();
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: error instanceof Error ? error.message : 'Failed to update quantity' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', loading: false });
     }
   };
   
@@ -356,10 +386,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', loading: true });
       const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required to clear cart');
+      }
+      
       await cartApi.clearCart(token);
       dispatch({ type: 'SET_CART', items: [] });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', error: error instanceof Error ? error.message : 'Failed to clear cart' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', loading: false });
     }
   };
   
@@ -373,10 +410,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
   
   
   
-  // Load cart on mount and refresh periodically  
+  // Load cart only when user is authenticated
   useEffect(() => {
-    refreshCart();
-  }, []);
+    let isMounted = true;
+    let hasLoaded = false;
+    
+    const loadCart = async () => {
+      // Prevent multiple loads
+      if (hasLoaded) return;
+      
+      try {
+        const token = await getToken();
+        if (token && isMounted) {
+          hasLoaded = true;
+          console.log('🛒 CartContext: User authenticated, loading cart');
+          await refreshCart();
+        } else {
+          console.log('⏭️ CartContext: User not authenticated, skipping cart load');
+        }
+      } catch (error) {
+        console.error('❌ CartContext: Error checking authentication:', error);
+      }
+    };
+
+    // Small delay to ensure authentication is fully initialized
+    const timer = setTimeout(loadCart, 300);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, []); // Empty dependency array - only run once on mount
   
   // Helper to force refresh (for testing)
   const forceRefresh = async () => {

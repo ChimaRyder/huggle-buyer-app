@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
-import { colors } from '@/constants/theme';
+import { colors, spacing, typography } from '@/constants/theme';
 import { useStoreContext } from '@/context/StoreContext';
 import { useLocationContext } from '@/context/LocationContext';
 
@@ -32,6 +32,14 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
     isStoreFollowed 
   } = useStoreContext();
   const { currentLocation } = useLocationContext();
+  
+  // Local state to track if stores are from expanded search
+  const [showingExpandedResults, setShowingExpandedResults] = useState(false);
+  
+  // Refs to track fetch state without causing re-renders
+  const hasFetchedInitially = useRef(false);
+  const lastFetchedLocation = useRef<{lat: number, lng: number} | null>(null);
+  const isExpandedSearchInProgress = useRef(false);
 
   // Create stable location coordinates
   const locationCoords = useMemo(() => {
@@ -47,12 +55,76 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
     fetchFollowedStores();
   }, [fetchFollowedStores]);
 
-  // Fetch popular stores when component mounts or location changes
+  // Main fetch function that handles both initial load and refresh
+  const fetchStoresForLocation = useCallback(async (lat: number, lng: number, isInitialFetch: boolean) => {
+    // First, try nearby stores (5km radius)
+    await fetchPopularStores(lat, lng, 5);
+    
+    // Store the location we fetched for
+    lastFetchedLocation.current = { lat, lng };
+    
+    // If this is the initial fetch and we got no results, expand search
+    // We check popularStores AFTER the fetch completes
+  }, [fetchPopularStores]);
+
+  // Effect to handle initial fetch and location changes
   useEffect(() => {
-    if (locationCoords) {
-      fetchPopularStores(locationCoords.latitude, locationCoords.longitude, 5);
+    if (!locationCoords) {
+      // No location - fetch with wide radius
+      if (!hasFetchedInitially.current) {
+        hasFetchedInitially.current = true;
+        setShowingExpandedResults(true);
+        fetchPopularStores(0, 0, 1000);
+      }
+      return;
     }
-  }, [locationCoords, fetchPopularStores]);
+
+    // Check if location has changed significantly
+    const locationChanged = !lastFetchedLocation.current || 
+      Math.abs(lastFetchedLocation.current.lat - locationCoords.latitude) > 0.001 ||
+      Math.abs(lastFetchedLocation.current.lng - locationCoords.longitude) > 0.001;
+
+    if (locationChanged) {
+      // Reset state for new location
+      setShowingExpandedResults(false);
+      isExpandedSearchInProgress.current = false;
+      hasFetchedInitially.current = true;
+      fetchStoresForLocation(locationCoords.latitude, locationCoords.longitude, true);
+    }
+  }, [locationCoords, fetchStoresForLocation, fetchPopularStores]);
+
+  // Effect to handle expanded search after initial fetch returns empty
+  useEffect(() => {
+    // Only expand if:
+    // 1. We have a location
+    // 2. We're not currently fetching
+    // 3. We got no results
+    // 4. We haven't already tried expanding
+    // 5. The initial fetch has completed
+    if (
+      locationCoords && 
+      !isFetchingPopular && 
+      popularStores.length === 0 && 
+      !isExpandedSearchInProgress.current &&
+      hasFetchedInitially.current &&
+      lastFetchedLocation.current
+    ) {
+      console.log('⚠️ PopularStoresSection: No stores found nearby, expanding search');
+      isExpandedSearchInProgress.current = true;
+      setShowingExpandedResults(true);
+      fetchPopularStores(locationCoords.latitude, locationCoords.longitude, 50);
+    }
+  }, [locationCoords, isFetchingPopular, popularStores.length, fetchPopularStores]);
+
+  // Reset expanded search flag when we get results
+  useEffect(() => {
+    if (popularStores.length > 0 && !isFetchingPopular) {
+      // If we got results with the normal radius, we're not showing expanded
+      if (!isExpandedSearchInProgress.current) {
+        setShowingExpandedResults(false);
+      }
+    }
+  }, [popularStores.length, isFetchingPopular]);
 
   // Show only first 3 stores for home screen
   const displayStores = popularStores.slice(0, 3);
@@ -66,6 +138,20 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
           <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
         </TouchableOpacity>
       </View>
+      
+      {/* No Nearby Stores Banner */}
+      {showingExpandedResults && !isFetchingPopular && displayStores.length > 0 && (
+        <View style={styles.noNearbyBanner}>
+          <Ionicons name="location-outline" size={24} color={colors.warning} />
+          <View style={styles.noNearbyTextContainer}>
+            <Text style={styles.noNearbyTitle}>No stores nearby</Text>
+            <Text style={styles.noNearbySubtitle}>
+              Showing stores from a wider area. Distance may vary.
+            </Text>
+          </View>
+        </View>
+      )}
+      
       <View style={styles.restaurantsContainer}>
         {isFetchingPopular ? (
           <View style={styles.loadingContainer}>
@@ -74,19 +160,20 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
           </View>
         ) : popularError ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Failed to load popular stores</Text>
+            <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+            <Text style={styles.emptyText}>Failed to load stores</Text>
             <Text style={styles.errorText}>{popularError}</Text>
-          </View>
-        ) : !locationCoords ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="location-outline" size={32} color={colors.text.secondary} />
-            <Text style={styles.emptyText}>Location required</Text>
-            <Text style={styles.emptySubtext}>Please set your location to see popular stores nearby</Text>
           </View>
         ) : displayStores.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No popular stores available</Text>
-            <Text style={styles.emptySubtext}>Check back later for popular stores in your area</Text>
+            <Ionicons name="storefront-outline" size={48} color={colors.text.tertiary} />
+            <Text style={styles.emptyText}>No stores available</Text>
+            <Text style={styles.emptySubtext}>
+              {!locationCoords 
+                ? 'Please enable location to discover stores near you' 
+                : 'Check back later for stores in your area'
+              }
+            </Text>
           </View>
         ) : (
           displayStores.map((store) => (
@@ -144,23 +231,55 @@ const styles = StyleSheet.create({
     color: colors.primary.main,
     marginRight: 4,
   },
+  noNearbyBanner: {
+    backgroundColor: colors.warning + '15', // 15% opacity
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.warning + '30',
+  },
+  noNearbyTextContainer: {
+    flex: 1,
+    marginLeft: spacing.sm,
+  },
+  noNearbyTitle: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+    marginBottom: 2,
+  },
+  noNearbySubtitle: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.regular,
+    color: colors.text.secondary,
+    lineHeight: typography.fontSizes.sm * 1.4,
+  },
   restaurantsContainer: {
     paddingHorizontal: 0,
   },
   emptyContainer: {
-    paddingVertical: 32,
+    paddingVertical: 48,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
     color: colors.text.tertiary,
     textAlign: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.regular,
     color: colors.text.secondary,
     textAlign: 'center',
-    marginTop: 8,
+    lineHeight: typography.fontSizes.md * 1.5,
+    maxWidth: '85%',
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -174,10 +293,12 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   errorText: {
-    fontSize: 12,
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.regular,
     color: colors.error,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
+    maxWidth: '90%',
   },
 });
 

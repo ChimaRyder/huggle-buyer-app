@@ -53,9 +53,9 @@ const Orders = () => {
     router.back();
   };
 
-  const [selectedTab, setSelectedTab] = useState<
-    "Pending" | "Confirmed" | "Ready for Pickup" | "Completed" | "Cancelled"
-  >("Pending");
+  type OrderTab = "Pending" | "Confirmed" | "Ready for Pickup" | "Completed" | "Cancelled";
+  const orderTabs: OrderTab[] = ["Pending", "Confirmed", "Ready for Pickup", "Completed", "Cancelled"];
+  const [selectedTab, setSelectedTab] = useState<OrderTab>("Pending");
   const [refreshing, setRefreshing] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<any>(null);
@@ -286,12 +286,12 @@ const Orders = () => {
 
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
-        <ScrollView
+          <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabsScrollContainer}
         >
-            {["Pending", "Confirmed", "Ready for Pickup", "Completed", "Cancelled"].map((tab) => (
+            {orderTabs.map((tab) => (
               <TouchableOpacity
                 key={tab}
                 style={[

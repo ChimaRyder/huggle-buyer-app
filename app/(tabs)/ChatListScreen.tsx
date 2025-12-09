@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing, typography, radii } from '@/constants/theme';
 import { useChat } from '@/context/ChatContext';
+import { EmptyState } from '@/components/common/EmptyState';
 import {
   channelToChatConversation,
   filterChannelsByQuery,
@@ -144,18 +145,24 @@ export default function ChatListScreen() {
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
-          <Ionicons name="warning-outline" size={64} color={colors.error} />
-          <Text style={styles.errorTitle}>Unable to load chats</Text>
-          <Text style={styles.errorSubtitle}>{error}</Text>
+          <EmptyState
+            icon="warning-outline"
+            title="Unable to load chats"
+            subtitle={error}
+            iconColor={colors.error}
+          />
           <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : !isConnected ? (
         <View style={styles.errorContainer}>
-          <Ionicons name="cloud-offline-outline" size={64} color={colors.text.tertiary} />
-          <Text style={styles.errorTitle}>Not connected</Text>
-          <Text style={styles.errorSubtitle}>Please check your connection and try again</Text>
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Not connected"
+            subtitle="Please check your connection and try again"
+            iconColor={colors.text.tertiary}
+          />
           <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
@@ -177,16 +184,16 @@ export default function ChatListScreen() {
             />
           }
           ListEmptyComponent={() => (
-            <>
-              <Ionicons name="chatbubbles-outline" size={64} color={colors.text.tertiary} />
-              <Text style={styles.emptyTitle}>No conversations found</Text>
-              <Text style={styles.emptySubtitle}>
-                {searchQuery.length > 0
+            <EmptyState
+              icon="chatbubbles-outline"
+              title="No conversations found"
+              subtitle={
+                searchQuery.length > 0
                   ? "Try searching for a different store"
                   : "Start shopping to chat with stores!"
-                }
-              </Text>
-            </>
+              }
+              containerStyle={styles.emptyContainer}
+            />
           )}
         />
       )}
