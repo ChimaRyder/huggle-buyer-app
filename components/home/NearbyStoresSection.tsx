@@ -39,15 +39,22 @@ const NearbyStoresSection: React.FC<NearbyStoresSectionProps> = ({
       currentLocation.longitude !== 0;
   }, [currentLocation]);
   
-  // Track if we've done initial fetch
-  const hasFetchedRef = useRef(false);
+  // Track previous location to detect changes
+  const prevLocationRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
-  // Main fetch logic - only fetch if we have location
+  // Main fetch logic - fetch when location changes
   useEffect(() => {
     const fetchStores = async () => {
-      if (hasLocation && currentLocation && !hasFetchedRef.current) {
-        hasFetchedRef.current = true;
-        console.log('🔍 NearbyStoresSection: Fetching nearby stores:', currentLocation.latitude, currentLocation.longitude);
+      if (!hasLocation || !currentLocation) return;
+      
+      // Check if location actually changed (significant change > 100m)
+      const locationChanged = !prevLocationRef.current || 
+        Math.abs(currentLocation.latitude - prevLocationRef.current.latitude) > 0.001 ||
+        Math.abs(currentLocation.longitude - prevLocationRef.current.longitude) > 0.001;
+      
+      if (locationChanged) {
+        console.log('🔍 NearbyStoresSection: Location changed, fetching nearby stores:', currentLocation.latitude, currentLocation.longitude);
+        prevLocationRef.current = { latitude: currentLocation.latitude, longitude: currentLocation.longitude };
         await fetchNearbyStores(currentLocation.latitude, currentLocation.longitude, 5);
       }
     };

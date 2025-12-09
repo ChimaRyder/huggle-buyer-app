@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
 import { colors, spacing, typography } from '@/constants/theme';
 import { useStoreContext } from '@/context/StoreContext';
+import { useLocationContext } from '@/context/LocationContext';
 
 interface PopularStoresSectionProps {
   onRestaurantPress: (id: string) => void;
@@ -30,6 +31,7 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
     fetchFollowedStores,
     isStoreFollowed 
   } = useStoreContext();
+  const { currentLocation } = useLocationContext();
   
   // Track if we've done initial fetch
   const hasFetchedRef = useRef(false);
@@ -39,19 +41,19 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
     fetchFollowedStores();
   }, [fetchFollowedStores]);
 
-  // Fetch all popular stores (no location filter - shows stores from everywhere)
+  // Fetch all popular stores (using user location for distance calculation, but massive radius for all stores)
   useEffect(() => {
     const fetchStores = async () => {
       if (!hasFetchedRef.current) {
         hasFetchedRef.current = true;
         console.log('🔍 PopularStoresSection: Fetching all popular stores');
-        // Fetch with no location (context will use large radius)
-        await fetchPopularStores();
+        // Pass user location if available for better distance calculations
+        await fetchPopularStores(currentLocation?.latitude, currentLocation?.longitude);
       }
     };
 
     fetchStores();
-  }, [fetchPopularStores]);
+  }, [fetchPopularStores, currentLocation]);
 
   // Log current state for debugging
   useEffect(() => {

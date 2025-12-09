@@ -36,7 +36,7 @@ interface StoreContextType {
   popularStores: Store[];
   isFetchingPopular: boolean;
   popularError: string | null;
-  fetchPopularStores: () => Promise<void>;
+  fetchPopularStores: (userLat?: number, userLng?: number) => Promise<void>;
   
   // Store by ID
   currentStore: Store | null;
@@ -198,16 +198,21 @@ export function StoreProvider({ children }: StoreProviderProps) {
     }
   }, [client]);
 
-  // Fetch all popular stores (no location filter - large radius)
-  const fetchPopularStores = useCallback(async (): Promise<void> => {
+  // Fetch all popular stores (uses a center point in Philippines with massive radius)
+  const fetchPopularStores = useCallback(async (userLat?: number, userLng?: number): Promise<void> => {
     setIsFetchingPopular(true);
     setPopularError(null);
     
     try {
       console.log('🔍 StoreContext: Starting fetchPopularStores (all areas)');
       
-      // Use 0,0 with very large radius to fetch all stores
-      const endpoint = API_ENDPOINTS.stores.popular(0, 0, 10000, 20);
+      // Use user's location if available, otherwise use Philippines center
+      // With a massive radius (20,000km) to include all stores globally
+      const latitude = userLat ?? 12.8797; // Philippines center
+      const longitude = userLng ?? 121.7740;
+      const radius = 20000; // 20,000km radius covers entire globe from any point
+      
+      const endpoint = API_ENDPOINTS.stores.popular(latitude, longitude, radius, 20);
       console.log('🔍 StoreContext: Using popular stores endpoint:', endpoint);
       
       const response = await client.get<any>(endpoint);

@@ -124,9 +124,10 @@ const HomeScreen = () => {
       
       // Build refresh promises
       const refreshPromises: Promise<void>[] = [
-        // Always fetch trending products and popular stores (all areas)
+        // Always fetch trending products
         fetchTrendingProducts(),
-        fetchPopularStores()
+        // Fetch popular stores - pass user location if available for better distance calculations
+        fetchPopularStores(currentLocation?.latitude, currentLocation?.longitude)
       ];
       
       // If we have location, also refresh nearby stores
