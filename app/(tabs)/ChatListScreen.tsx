@@ -257,6 +257,7 @@ const styles = StyleSheet.create({
   },
   chatListContent: {
     paddingVertical: spacing.xs,
+    paddingBottom: 100, // Account for tab bar height
   },
   chatItem: {
     flexDirection: 'row',

@@ -98,7 +98,7 @@ const DiscoverScreen = () => {
 
   if (isFetchingPosts && allPosts.length === 0) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         {renderHeader()}
         <View style={styles.loadingContainer}>
           {Array.from({ length: 9 }).map((_, index) => (
@@ -122,7 +122,7 @@ const DiscoverScreen = () => {
 
   if (allPosts.length === 0 && !isFetchingPosts) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         {renderHeader()}
         <ScrollView
           contentContainerStyle={styles.emptyContainer}
@@ -148,7 +148,7 @@ const DiscoverScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       {renderHeader()}
       
       <FlatList
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   gridContainer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingBottom: 100, // Account for tab bar height
   },
   gridItem: {
     borderRadius: radii.lg,

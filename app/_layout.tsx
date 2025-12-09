@@ -6,7 +6,7 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import * as eva from "@eva-design/eva";
 import { ApplicationProvider } from "@ui-kitten/components";
 import { StatusBar } from "expo-status-bar";
@@ -57,7 +57,23 @@ export default function RootLayout() {
                 <ThemeProvider
                   value={DefaultTheme}
                 >
-                  <Slot />
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      animation: 'fade',
+                    }}
+                  >
+                    <Stack.Screen name="index" />
+                    <Stack.Screen name="(login)" />
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+                    <Stack.Screen 
+                      name="(screens)" 
+                      options={{ 
+                        animation: 'slide_from_right',
+                      }} 
+                    />
+                  </Stack>
                   <StatusBar translucent backgroundColor="transparent" style="light"/>
                 </ThemeProvider>
               </ApplicationProvider>
