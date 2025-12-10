@@ -47,7 +47,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     onPress?.(product);
   };
 
-const handleFavoritePress = () => {
+  const handleFavoritePress = () => {
     onFavoritePress?.(product);
   };
 
@@ -58,7 +58,7 @@ const handleFavoritePress = () => {
         productId: product.id,
         productName: product.name
       });
-      
+
       if (product.id) {
         try {
           setLoadingPricing(true);
@@ -88,7 +88,7 @@ const handleFavoritePress = () => {
   const discountedPrice = product.discountedPrice ?? product.price ?? 0;
   const originalPrice = product.originalPrice ?? discountedPrice;
   const hasDiscount = discountedPrice < originalPrice;
-  const discountPercentage = hasDiscount 
+  const discountPercentage = hasDiscount
     ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
     : 0;
 
@@ -101,13 +101,13 @@ const handleFavoritePress = () => {
     >
       <View style={styles.imageContainer}>
         <Image
-          source={{ 
-            uri: product.coverImage || (product.image && product.image.length > 0 ? product.image[0] : '') 
+          source={{
+            uri: product.coverImage || (product.image && product.image.length > 0 ? product.image[0] : '')
           }}
           style={styles.image}
           resizeMode="cover"
         />
-        
+
         {/* Favorite Button */}
         <TouchableOpacity
           style={styles.favoriteButton}
@@ -127,11 +127,11 @@ const handleFavoritePress = () => {
             <Text style={styles.discountText}>-{discountPercentage}%</Text>
           </View>
         )}
-        
+
         {/* Dynamic Pricing Countdown Badge */}
         {pricingInfo && pricingInfo.priceTrajectory && pricingInfo.priceTrajectory.length > 1 && pricingInfo.priceTrajectory[1]?.timestamp && (
           <View style={styles.countdownBadge}>
-            <PriceCountdown 
+            <PriceCountdown
               targetTimestamp={pricingInfo.priceTrajectory[1].timestamp}
               compact={true}
               showIcon={true}
@@ -144,14 +144,14 @@ const handleFavoritePress = () => {
         <Text style={styles.productName} numberOfLines={2}>
           {product.name}
         </Text>
-        
+
         <View style={styles.priceContainer}>
           <Text style={styles.discountedPrice}>
-            £{discountedPrice.toFixed(2)}
+            ₱{discountedPrice.toFixed(2)}
           </Text>
           {hasDiscount && (
             <Text style={styles.originalPrice}>
-              £{originalPrice.toFixed(2)}
+              ₱{originalPrice.toFixed(2)}
             </Text>
           )}
         </View>
@@ -163,7 +163,7 @@ const handleFavoritePress = () => {
               {(product.rating ?? 0).toFixed(1)} ({product.ratingCount ?? 0})
             </Text>
           </View>
-          
+
           <Text style={styles.stockText}>
             {product.stock > 0 ? `${product.stock} left` : 'Out of stock'}
           </Text>

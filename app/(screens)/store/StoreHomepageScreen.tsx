@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
   RefreshControl,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -32,12 +31,12 @@ const StoreHomepageSkeleton = () => {
       borderRadius: 4,
     },
   };
-  
+
   return (
     <View style={skeletonStyles.container}>
       {/* Banner skeleton */}
       <View style={[{ height: 200, position: 'relative' }, skeletonStyles.skeletonBox]} />
-      
+
       {/* Store info skeleton */}
       <View style={{ padding: 20, paddingTop: 60, backgroundColor: colors.background.primary, borderBottomWidth: 1, borderBottomColor: colors.border.primary }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -53,7 +52,7 @@ const StoreHomepageSkeleton = () => {
           <View style={[skeletonStyles.skeletonBox, { width: 100, height: 28, borderRadius: 14, marginRight: 10 }]} />
         </View>
       </View>
-      
+
       {/* Tab navigation skeleton */}
       <View style={{ flexDirection: 'row', backgroundColor: colors.background.primary, borderBottomWidth: 1, borderBottomColor: colors.border.primary }}>
         {[1, 2, 3, 4].map((index) => (
@@ -62,7 +61,7 @@ const StoreHomepageSkeleton = () => {
           </View>
         ))}
       </View>
-      
+
       {/* Content skeleton */}
       <ScrollView style={{ flex: 1, backgroundColor: colors.background.tertiary }}>
         <View style={{ padding: 20 }}>
@@ -86,14 +85,14 @@ export default function StoreHomepageScreen() {
   const { id } = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState("Featured");
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  
+
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredProducts, setFilteredProducts] = useState<BackendProduct[]>([]);
-  
+
   // Categories state
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  
+
   // Store context
   const {
     currentStore,
@@ -113,7 +112,7 @@ export default function StoreHomepageScreen() {
     fetchFollowStatus,
     clearFollowStatus
   } = useStoreContext();
-  
+
   // Post context
   const {
     storePosts,
@@ -122,50 +121,50 @@ export default function StoreHomepageScreen() {
     fetchPostsByStore,
     clearStorePosts
   } = usePostContext();
-  
+
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // Filter products based on search query
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredProducts(storeProducts);
       return;
     }
-    
+
     const query = searchQuery.toLowerCase().trim();
     const filtered = storeProducts.filter((product) => {
       // Search in product name
       if (product.name.toLowerCase().includes(query)) {
         return true;
       }
-      
+
       // Search in product description
       if (product.description && product.description.toLowerCase().includes(query)) {
         return true;
       }
-      
+
       // Search in product type
       if (product.productType && product.productType.toLowerCase().includes(query)) {
         return true;
       }
-      
+
       // Search in tags
       if (product.tags && Array.isArray(product.tags)) {
         return product.tags.some(tag => tag.toLowerCase().includes(query));
       }
-      
+
       return false;
     });
-    
+
     setFilteredProducts(filtered);
   }, [searchQuery, storeProducts]);
-  
+
   // Handle search input change
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
   };
-  
+
   // Fetch store data when component mounts
   useEffect(() => {
     if (id && typeof id === 'string') {
@@ -175,7 +174,7 @@ export default function StoreHomepageScreen() {
       fetchFollowStatus(id);
       fetchPostsByStore(id);
     }
-    
+
     // Cleanup when component unmounts or ID changes
     return () => {
       clearCurrentStore();
@@ -188,7 +187,7 @@ export default function StoreHomepageScreen() {
   // Pull to refresh handler
   const onRefresh = async () => {
     if (!id || typeof id !== 'string') return;
-    
+
     setIsRefreshing(true);
     try {
       await Promise.all([
@@ -208,27 +207,27 @@ export default function StoreHomepageScreen() {
   // Extract categories from product types
   const extractCategories = () => {
     const categoryMap = new Map<string, number>();
-    
+
     storeProducts.forEach(product => {
       if (product.productType) {
         const count = categoryMap.get(product.productType) || 0;
         categoryMap.set(product.productType, count + 1);
       }
     });
-    
+
     // Convert to array and sort by product count (descending)
     return Array.from(categoryMap.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
   };
-  
+
   const storeCategories = extractCategories();
 
   // Loading state
   if (isFetchingStore) {
     return <StoreHomepageSkeleton />;
   }
-  
+
   // Error state
   if (storeError || !currentStore) {
     return (
@@ -237,7 +236,7 @@ export default function StoreHomepageScreen() {
           <Ionicons name="warning-outline" size={64} color={colors.error} />
           <Text style={styles.errorTitle}>Store not found</Text>
           <Text style={styles.errorText}>{storeError || 'The store you\'re looking for could not be found.'}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.retryButton}
             onPress={() => router.back()}
           >
@@ -250,7 +249,7 @@ export default function StoreHomepageScreen() {
 
   const toggleFavorite = async () => {
     if (!id || typeof id !== 'string') return;
-    
+
     try {
       if (isFollowingStore) {
         await unfollowStore(id);
@@ -286,10 +285,10 @@ export default function StoreHomepageScreen() {
   const handleProductPress = (productId: string) => {
     router.push(`/(screens)/store/ProductScreen?id=${productId}`);
   };
-  
+
   // Get products for selected category
   const getCategoryProducts = (categoryName: string): BackendProduct[] => {
-    return storeProducts.filter(product => 
+    return storeProducts.filter(product =>
       product.productType === categoryName
     );
   };
@@ -307,17 +306,45 @@ export default function StoreHomepageScreen() {
     '#FF8A5B', // Orange
     '#98D8C8', // Mint
   ];
-  
+
   const getCategoryColor = (categoryName: string): string => {
     const hash = categoryName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return categoryColors[hash % categoryColors.length] as string;
   };
 
-
   // Render featured tab content
   const renderFeaturedTab = () => {
-    const productsToShow = searchQuery.trim() ? filteredProducts : storeProducts.filter((p) => {return p.isDynamicPricingEnabled});
-    
+    // Featured products: products with discounts (dynamic pricing) first, then sorted by newest
+    const getFeaturedProducts = () => {
+      if (searchQuery.trim()) {
+        return filteredProducts;
+      }
+
+      // Separate products with discounts from others
+      const discountedProducts = storeProducts.filter(p => p.isDynamicPricingEnabled && p.price < (p.originalPrice || p.price));
+      const otherProducts = storeProducts.filter(p => !p.isDynamicPricingEnabled || p.price >= (p.originalPrice || p.price));
+
+      // If there are discounted products, show them first
+      if (discountedProducts.length > 0) {
+        // Sort discounted products by discount percentage (highest first)
+        const sortedDiscounted = [...discountedProducts].sort((a, b) => {
+          const discountA = ((a.originalPrice || a.price) - a.price) / (a.originalPrice || a.price);
+          const discountB = ((b.originalPrice || b.price) - b.price) / (b.originalPrice || b.price);
+          return discountB - discountA;
+        });
+        // Add some regular products after discounted ones (up to 4)
+        return [...sortedDiscounted, ...otherProducts.slice(0, 4)];
+      }
+
+      // If no discounted products, show newest products (up to 8)
+      return [...storeProducts]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 8);
+    };
+
+    const productsToShow = getFeaturedProducts();
+    const hasDiscountedProducts = storeProducts.some(p => p.isDynamicPricingEnabled && p.price < (p.originalPrice || p.price));
+
     return (
       <View style={styles.featuredTabContent}>
         {/* Search Input - only show if there are products */}
@@ -327,7 +354,7 @@ export default function StoreHomepageScreen() {
             placeholder={`Search ${storeProducts.length} products...`}
           />
         )}
-        
+
         {/* Search Results Info */}
         {searchQuery.trim() && (
           <View style={styles.searchResultsInfo}>
@@ -337,19 +364,32 @@ export default function StoreHomepageScreen() {
             </Text>
           </View>
         )}
-        
+
+        {/* Featured Section Header */}
+        {!searchQuery.trim() && productsToShow.length > 0 && (
+          <View style={styles.featuredHeaderContainer}>
+            <Ionicons name="star" size={18} color={colors.warning} />
+            <Text style={styles.featuredHeaderText}>
+              {hasDiscountedProducts ? 'Deals & Featured Products' : 'Newest Products'}
+            </Text>
+          </View>
+        )}
+
         {/* Products Section */}
         {productsToShow.length > 0 ? (
           <View style={styles.productsSection}>
-            <ProductGrid 
+            <ProductGrid
               products={productsToShow}
               onProductPress={handleProductPress}
             />
           </View>
         ) : storeProducts.length === 0 ? (
           <View style={styles.emptyContentContainer}>
-            <Text style={styles.emptyContentText}>No featured products available</Text>
-            <Text style={styles.emptyContentSubtext}>Featured products will appear here when available</Text>
+            <Ionicons name="storefront-outline" size={64} color={colors.text.tertiary} />
+            <Text style={styles.emptyContentText}>No products yet</Text>
+            <Text style={styles.emptyContentSubtext}>
+              This store hasn't added any products yet. Check back later!
+            </Text>
           </View>
         ) : searchQuery.trim() && filteredProducts.length === 0 ? (
           <View style={styles.emptyContentContainer}>
@@ -375,14 +415,14 @@ export default function StoreHomepageScreen() {
         </View>
       );
     }
-    
+
     if (productsError) {
       return (
         <View style={styles.tabContentWithSearch}>
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>Failed to load products</Text>
             <Text style={styles.errorSubtext}>{productsError}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.retryButton}
               onPress={() => id && typeof id === 'string' && fetchStoreProducts(id)}
             >
@@ -392,9 +432,9 @@ export default function StoreHomepageScreen() {
         </View>
       );
     }
-    
+
     const productsToShow = searchQuery.trim() ? filteredProducts : storeProducts;
-    
+
     return (
       <View style={styles.tabContentWithSearch}>
         {/* Search Input - only show if there are products */}
@@ -404,7 +444,7 @@ export default function StoreHomepageScreen() {
             placeholder={`Search ${storeProducts.length} products...`}
           />
         )}
-        
+
         {/* Search Results Info */}
         {searchQuery.trim() && (
           <View style={styles.searchResultsInfo}>
@@ -419,11 +459,11 @@ export default function StoreHomepageScreen() {
             )}
           </View>
         )}
-        
+
         {/* Products Grid or Empty State */}
         {productsToShow.length > 0 ? (
           <View style={styles.productsGridContainer}>
-            <ProductGrid 
+            <ProductGrid
               products={productsToShow}
               onProductPress={handleProductPress}
             />
@@ -455,14 +495,14 @@ export default function StoreHomepageScreen() {
         </View>
       );
     }
-    
+
     if (storePostsError) {
       return (
         <View style={styles.errorContainer}>
           <Ionicons name="warning-outline" size={48} color={colors.error} />
           <Text style={styles.errorText}>Failed to load posts</Text>
           <Text style={styles.errorSubtext}>{storePostsError}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.retryButton}
             onPress={() => id && typeof id === 'string' && fetchPostsByStore(id)}
           >
@@ -471,10 +511,10 @@ export default function StoreHomepageScreen() {
         </View>
       );
     }
-    
+
     return (
       <View style={styles.postsTabFullContent}>
-        <PostGrid 
+        <PostGrid
           posts={storePosts}
           numColumns={2}
         />
@@ -491,7 +531,7 @@ export default function StoreHomepageScreen() {
         </View>
       );
     }
-    
+
     if (storeCategories.length === 0) {
       return (
         <View style={styles.emptyContentContainer}>
@@ -501,15 +541,15 @@ export default function StoreHomepageScreen() {
         </View>
       );
     }
-    
+
     // If a category is selected, show its products
     if (selectedCategory) {
       const categoryProducts = getCategoryProducts(selectedCategory);
-      
+
       return (
         <View style={styles.categoryProductsContainer}>
           {/* Back to categories with category title */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backToCategoriesButton}
             onPress={() => setSelectedCategory(null)}
           >
@@ -518,10 +558,10 @@ export default function StoreHomepageScreen() {
               {selectedCategory} ({categoryProducts.length} product{categoryProducts.length !== 1 ? 's' : ''})
             </Text>
           </TouchableOpacity>
-          
+
           {/* Products grid */}
           <View style={styles.categoryProductsGrid}>
-            <ProductGrid 
+            <ProductGrid
               products={categoryProducts}
               onProductPress={handleProductPress}
             />
@@ -529,12 +569,12 @@ export default function StoreHomepageScreen() {
         </View>
       );
     }
-    
+
     // Show category list
     return (
       <View style={styles.categoriesListContainer}>
-        
-        <ScrollView 
+
+        <ScrollView
           style={styles.categoriesScroll}
           showsVerticalScrollIndicator={false}
         >
@@ -575,7 +615,7 @@ export default function StoreHomepageScreen() {
     { key: "Posts", label: "Posts" },
     { key: "Categories", label: "Categories" },
   ];
-  
+
   // Handle tab change and reset category selection
   const handleTabChange = (tabKey: string) => {
     setActiveTab(tabKey);
@@ -587,15 +627,15 @@ export default function StoreHomepageScreen() {
   return (
     <View style={styles.container}>
       {/* Fixed Back Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.fixedBackButton}
         onPress={() => router.back()}
       >
         <Ionicons name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
-      
+
       {/* Main Scrollable Content */}
-      <ScrollView 
+      <ScrollView
         style={styles.mainScrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -610,22 +650,22 @@ export default function StoreHomepageScreen() {
         {/* Store Banner */}
         <View style={styles.bannerContainer}>
           {currentStore.coverImageUrl ? (
-            <SafeImage 
-              source={{ uri: currentStore.coverImageUrl }} 
-              style={styles.bannerImage} 
+            <SafeImage
+              source={{ uri: currentStore.coverImageUrl }}
+              style={styles.bannerImage}
             />
           ) : (
             <View style={styles.placeholderBanner}>
               <Text style={styles.placeholderText}>Store Image</Text>
             </View>
           )}
-          
+
           {/* Overlapping Profile Image */}
           <View style={styles.overlappingProfileContainer}>
             {currentStore.profileImageUrl ? (
-              <SafeImage 
-                source={{ uri: currentStore.profileImageUrl }} 
-                style={styles.overlappingProfileImage} 
+              <SafeImage
+                source={{ uri: currentStore.profileImageUrl }}
+                style={styles.overlappingProfileImage}
               />
             ) : (
               <View style={styles.overlappingPlaceholderProfile}>
@@ -643,15 +683,15 @@ export default function StoreHomepageScreen() {
               <TouchableOpacity style={styles.chatIconButton} onPress={handleChatWithSeller}>
                 <Ionicons name="chatbubble-outline" size={20} color={colors.text.inverse} />
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.favoriteButton}
                 onPress={toggleFavorite}
                 disabled={isFetchingFollowStatus}
               >
-                <Ionicons 
-                  name={isFollowingStore ? "heart" : "heart-outline"} 
-                  size={24} 
-                  color={isFollowingStore ? colors.danger : colors.text.primary} 
+                <Ionicons
+                  name={isFollowingStore ? "heart" : "heart-outline"}
+                  size={24}
+                  color={isFollowingStore ? colors.danger : colors.text.primary}
                 />
               </TouchableOpacity>
             </View>
@@ -681,8 +721,8 @@ export default function StoreHomepageScreen() {
           {/* Expandable Description */}
           {currentStore.description && (
             <View style={styles.descriptionContainer}>
-              <Text 
-                style={styles.storeDescription} 
+              <Text
+                style={styles.storeDescription}
                 numberOfLines={isDescriptionExpanded ? undefined : 2}
               >
                 {currentStore.description}
@@ -744,7 +784,7 @@ export default function StoreHomepageScreen() {
           {activeTab === "Posts" && renderPostsTab()}
           {activeTab === "Categories" && renderCategoriesTab()}
         </View>
-        
+
         {/* Bottom spacing for better scrolling */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -941,6 +981,21 @@ const styles = StyleSheet.create({
   },
   featuredTabContent: {
     flex: 1,
+  },
+  featuredHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.primary,
+  },
+  featuredHeaderText: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+    marginLeft: spacing.sm,
   },
   postsSection: {
     backgroundColor: 'transparent',

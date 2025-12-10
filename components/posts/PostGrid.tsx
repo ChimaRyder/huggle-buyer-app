@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
@@ -21,10 +20,10 @@ interface PostGridProps {
   numColumns?: number;
 }
 
-const PostGrid: React.FC<PostGridProps> = ({ 
-  posts, 
+const PostGrid: React.FC<PostGridProps> = ({
+  posts,
   onPostPress,
-  numColumns = 2 
+  numColumns = 2
 }) => {
   const router = useRouter();
 
@@ -36,20 +35,25 @@ const PostGrid: React.FC<PostGridProps> = ({
     }
   };
 
-  const renderPost = ({ item }: { item: BackendPost }) => {
+  const renderPost = (item: BackendPost, index: number) => {
     const padding = spacing.lg;
     const gap = spacing.sm;
     const availableWidth = width - (padding * 2);
     const itemWidth = (availableWidth - (gap * (numColumns - 1))) / numColumns;
 
+    // Calculate if this item needs right margin (not the last in a row)
+    const isLastInRow = (index + 1) % numColumns === 0;
+
     return (
       <TouchableOpacity
+        key={item.id}
         style={[
           styles.postCard,
           {
             width: itemWidth,
             height: itemWidth,
-            marginRight: gap,
+            marginRight: isLastInRow ? 0 : gap,
+            marginBottom: gap,
           }
         ]}
         onPress={() => handlePostPress(item)}
@@ -62,35 +66,35 @@ const PostGrid: React.FC<PostGridProps> = ({
           />
         ) : (
           <View style={styles.placeholderContainer}>
-            <Ionicons 
-              name="image-outline" 
-              size={32} 
-              color={colors.text.tertiary} 
+            <Ionicons
+              name="image-outline"
+              size={32}
+              color={colors.text.tertiary}
             />
           </View>
         )}
-        
+
         {/* Post overlay with like count */}
         {item.likeCount > 0 && (
           <View style={styles.overlay}>
             <View style={styles.likesContainer}>
-              <Ionicons 
-                name="heart" 
-                size={16} 
-                color={colors.danger} 
+              <Ionicons
+                name="heart"
+                size={16}
+                color={colors.danger}
               />
               <Text style={styles.likesCount}>{item.likeCount}</Text>
             </View>
           </View>
         )}
-        
+
         {/* Multiple images indicator */}
         {item.imageUrls && item.imageUrls.length > 1 && (
           <View style={styles.multipleIndicator}>
-            <Ionicons 
-              name="copy-outline" 
-              size={16} 
-              color={colors.text.inverse} 
+            <Ionicons
+              name="copy-outline"
+              size={16}
+              color={colors.text.inverse}
             />
           </View>
         )}
@@ -112,23 +116,23 @@ const PostGrid: React.FC<PostGridProps> = ({
     return renderEmpty();
   }
 
+  // Use View-based grid instead of FlatList to avoid VirtualizedList nesting issues
   return (
-    <FlatList
-      data={posts}
-      renderItem={renderPost}
-      keyExtractor={(item) => item.id}
-      numColumns={numColumns}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.container}
-      columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
-      ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-    />
+    <View style={styles.container}>
+      <View style={styles.gridContainer}>
+        {posts.map((post, index) => renderPost(post, index))}
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     padding: spacing.lg,
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   row: {
     justifyContent: 'flex-start',

@@ -18,12 +18,12 @@ interface CartSummaryProps {
   disabledReason?: string;
 }
 
-const CartSummary: React.FC<CartSummaryProps> = ({ 
-  subtotal, 
-  deliveryFee, 
-  tax, 
-  total, 
-  onCheckout, 
+const CartSummary: React.FC<CartSummaryProps> = ({
+  subtotal,
+  deliveryFee,
+  tax,
+  total,
+  onCheckout,
   hasItems,
   isDisabled = false,
   disabledReason
@@ -32,35 +32,35 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     <View style={styles.summaryContainer}>
       <View style={styles.summaryRow}>
         <Text style={styles.summaryLabel}>Subtotal</Text>
-        <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+        <Text style={styles.summaryValue}>₱{subtotal.toFixed(2)}</Text>
       </View>
-      
+
       <View style={styles.summaryRow}>
         <Text style={styles.summaryLabel}>Delivery Fee</Text>
-        <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
+        <Text style={styles.summaryValue}>₱{deliveryFee.toFixed(2)}</Text>
       </View>
-      
+
       <View style={styles.summaryRow}>
         <Text style={styles.summaryLabel}>Tax</Text>
-        <Text style={styles.summaryValue}>${tax.toFixed(2)}</Text>
+        <Text style={styles.summaryValue}>₱{tax.toFixed(2)}</Text>
       </View>
-      
+
       <View style={[styles.summaryRow, styles.totalRow]}>
         <Text style={styles.totalLabel}>Total</Text>
-        <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+        <Text style={styles.totalValue}>₱{total.toFixed(2)}</Text>
       </View>
-      
+
       {disabledReason && (
         <View style={styles.disabledReasonContainer}>
           <Text style={styles.disabledReasonText}>{disabledReason}</Text>
         </View>
       )}
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={[
-          styles.checkoutButton, 
+          styles.checkoutButton,
           (!hasItems || isDisabled) && styles.disabledButton
-        ]} 
+        ]}
         onPress={onCheckout}
         disabled={!hasItems || isDisabled}
       >

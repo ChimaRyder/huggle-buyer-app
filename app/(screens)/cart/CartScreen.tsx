@@ -19,7 +19,6 @@ import CartItemCard from '@/components/cart/CartItemCard';
 import {
   CartHeader,
   CartSummary,
-  PromoCodeInput,
   EmptyCart
 } from '@/components/cart';
 import { colors } from '@/constants/theme';
@@ -27,11 +26,11 @@ import { colors } from '@/constants/theme';
 
 const CartScreen = () => {
   const router = useRouter();
-  const { 
-    items, 
-    total, 
-    removeItem, 
-    updateQuantity, 
+  const {
+    items,
+    total,
+    removeItem,
+    updateQuantity,
     clearCart,
     addItem,
     selectedItems,
@@ -44,8 +43,7 @@ const CartScreen = () => {
     refreshCart,
     isLoading
   } = useCart();
-  
-  const [promoCode, setPromoCode] = useState('');
+
   const [refreshing, setRefreshing] = useState(false);
 
   // TODO: Remove mock data loading - cart data should come from CartContext with API integration
@@ -67,7 +65,7 @@ const CartScreen = () => {
       Alert.alert('No Items Selected', 'Please select items to checkout');
       return;
     }
-    
+
     // Simple client-side validation
     if (hasExpiredItems) {
       const hasSelectedExpiredItems = expiredItems.some(item => item.selected);
@@ -87,7 +85,7 @@ const CartScreen = () => {
         const item = selectedItems.find(item => item.storeId === storeId);
         return item?.storeName || 'Unknown Store';
       });
-      
+
       Alert.alert(
         'Mixed Store Order Not Allowed',
         `You can only order from one store at a time. Your selected items are from: ${storeNames.join(', ')}. Please select items from only one store.`,
@@ -98,7 +96,7 @@ const CartScreen = () => {
 
     // For simplicity, use the first selected item's store
     const storeId = selectedItems[0]?.storeId || 'unknown-store';
-      
+
     // Navigate to OrderReviewScreen
     router.push({
       pathname: '/(screens)/cart/OrderReviewScreen',
@@ -131,13 +129,6 @@ const CartScreen = () => {
         { text: 'Remove', style: 'destructive', onPress: async () => await removeItem(id) },
       ]
     );
-  };
-
-
-  const handleApplyPromo = () => {
-    // In a real app, this would validate and apply the promo code
-    Alert.alert('Promo Code', `Applied promo code: ${promoCode}`);
-    setPromoCode('');
   };
 
   const handleClearCart = () => {
@@ -179,29 +170,29 @@ const CartScreen = () => {
   const uniqueStoreIds = new Set(selectedItems.map(item => item.storeId));
   const hasMixedStores = uniqueStoreIds.size > 1;
   const isCheckoutDisabled = hasMixedStores;
-  const checkoutDisabledReason = hasMixedStores 
+  const checkoutDisabledReason = hasMixedStores
     ? `Items from ${uniqueStoreIds.size} different stores selected. Please select items from only one store.`
     : undefined;
 
   // Group items by store
   const groupItemsByStore = () => {
     const groupedItems: { [storeId: string]: { storeName: string; items: typeof items } } = {};
-    
+
     items.forEach(item => {
 
       const storeId = item.storeId || 'unknown';
       const storeName = item.storeName || 'Unknown Store';
-      
+
       if (!groupedItems[storeId]) {
         groupedItems[storeId] = {
           storeName,
           items: []
         };
       }
-      
+
       groupedItems[storeId].items.push(item);
     });
-    
+
     return groupedItems;
   };
 
@@ -232,8 +223,8 @@ const CartScreen = () => {
           <View style={styles.storeHeader}>
             <View style={styles.storeHeaderContent}>
               {storeData.items[0]?.storeProfileImage ? (
-                <Image 
-                  source={{ uri: storeData.items[0].storeProfileImage }} 
+                <Image
+                  source={{ uri: storeData.items[0].storeProfileImage }}
                   style={styles.storeProfileImage}
                 />
               ) : (
@@ -289,16 +280,16 @@ const CartScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <CartHeader onBack={() => router.back()} title={`Your Cart (${items.length})`} />
-      
+
       {/* Loading overlay */}
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.primary.main} />
         </View>
       )}
-      
-      <ScrollView 
-        style={styles.container} 
+
+      <ScrollView
+        style={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -311,15 +302,15 @@ const CartScreen = () => {
       >
         {/* Selection Controls */}
         <View style={styles.selectionControls}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.selectAllButton}
             onPress={() => {
               const allAvailableSelected = areAllAvailableItemsSelected();
-              
+
               // Toggle selection for all items (including expired ones for deselection)
               items.forEach(item => {
                 const isUnavailable = isItemUnavailable(item);
-                
+
                 if (!allAvailableSelected) {
                   // Selecting all - only select available items that aren't selected
                   if (!isUnavailable && !item.selected) {
@@ -349,12 +340,12 @@ const CartScreen = () => {
             </Text>
             {selectedItems.length > 0 && (
               <Text style={styles.selectedTotalText}>
-                ${selectedTotal.toFixed(2)}
+                ₱{selectedTotal.toFixed(2)}
               </Text>
             )}
           </View>
         </View>
-        
+
         {/* Expired Items Warning */}
         {hasExpiredItems && (
           <View style={styles.warningBanner}>
@@ -374,18 +365,13 @@ const CartScreen = () => {
             </Text>
           </View>
         )}
-        
+
         <View style={styles.itemsContainer}>
           {renderItemsByStore()}
         </View>
       </ScrollView>
-      
+
       <View style={styles.summaryContainer}>
-        <PromoCodeInput 
-          value={promoCode} 
-          onChangeText={setPromoCode} 
-          onApply={handleApplyPromo} 
-        />
         <CartSummary
           subtotal={subtotal}
           deliveryFee={deliveryFee}

@@ -31,7 +31,8 @@ const SearchResultsScreen = () => {
   const [searchQuery, setSearchQuery] = useState(query);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [isFromExpandedSearch, setIsFromExpandedSearch] = useState(false); // Track if results are from expanded search
+
   // Filtering state
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [filters, setFilters] = useState<SearchFiltersType>({
@@ -40,13 +41,13 @@ const SearchResultsScreen = () => {
 
   const { searchAll, testSearchWithoutLocation, debugApiEndpoints } = useSearch();
   const { currentLocation } = useLocationContext();
-  const { 
-    followStore, 
-    unfollowStore, 
-    isStoreFollowed, 
-    fetchFollowedStores 
+  const {
+    followStore,
+    unfollowStore,
+    isStoreFollowed,
+    fetchFollowedStores
   } = useStoreContext();
-  
+
   // Fetch followed stores on mount to determine favorite status
   useEffect(() => {
     fetchFollowedStores();
@@ -67,14 +68,16 @@ const SearchResultsScreen = () => {
       if (!searchQuery.trim()) {
         setStores([]);
         setProducts([]);
+        setIsFromExpandedSearch(false);
         return;
       }
 
       setLoading(true);
       setError(null);
+      setIsFromExpandedSearch(false);
 
       try {
-        // Use the original searchAll function that worked before
+        // First, try searching with location-based filtering
         const searchOptions = currentLocation ? {
           latitude: currentLocation.latitude,
           longitude: currentLocation.longitude,
@@ -84,8 +87,26 @@ const SearchResultsScreen = () => {
           pageSize: 20,
         };
 
-        const results = await searchAll(searchQuery, searchOptions);
-        let { products: allProducts, stores } = results;
+        let results = await searchAll(searchQuery, searchOptions);
+        let { products: allProducts, stores: nearbyStores } = results;
+
+        // If no nearby stores found but we have location, try expanded search (without radius limit)
+        if (nearbyStores.length === 0 && currentLocation) {
+          console.log('🔍 No nearby stores found, expanding search radius...');
+
+          // Search without location restriction to get results from anywhere
+          const expandedOptions = {
+            pageSize: 20,
+          };
+          const expandedResults = await searchAll(searchQuery, expandedOptions);
+
+          // Use expanded results if they have stores or products
+          if (expandedResults.stores.length > 0 || expandedResults.products.length > 0) {
+            allProducts = expandedResults.products;
+            nearbyStores = expandedResults.stores;
+            setIsFromExpandedSearch(true);
+          }
+        }
 
         // Apply client-side filtering to products
         let filteredProducts = allProducts;
@@ -94,17 +115,17 @@ const SearchResultsScreen = () => {
         if (filters.category) {
           filteredProducts = filteredProducts.filter(product => {
             const categoryLower = filters.category!.toLowerCase();
-            
+
             // Check product type
             if (product.productType && product.productType.toLowerCase().includes(categoryLower)) {
               return true;
             }
-            
+
             // Check tags
             if (product.tags && Array.isArray(product.tags)) {
               return product.tags.some(tag => tag.toLowerCase().includes(categoryLower));
             }
-            
+
             return false;
           });
         }
@@ -140,8 +161,8 @@ const SearchResultsScreen = () => {
         }
 
         setProducts(filteredProducts);
-        setStores(stores);
-        
+        setStores(nearbyStores);
+
       } catch (err) {
         console.error('Search error:', err);
         setError('Failed to search. Please try again.');
@@ -201,28 +222,28 @@ const SearchResultsScreen = () => {
 
   const handleRemoveFilter = (key: keyof SearchFiltersType) => {
     const newFilters = { ...filters };
-    
+
     if (key === 'minPrice') {
       delete newFilters.minPrice;
       delete newFilters.maxPrice; // Remove both when removing price filter
     } else {
       delete newFilters[key];
     }
-    
+
     // Reset to relevance if removing sort filter
     if (key === 'sortBy') {
       newFilters.sortBy = 'relevance';
     }
-    
+
     setFilters(newFilters);
   };
 
   const hasActiveFilters = () => {
     return filters.category ||
-           filters.minPrice !== undefined ||
-           filters.maxPrice !== undefined ||
-           filters.distance ||
-           (filters.sortBy && filters.sortBy !== 'relevance');
+      filters.minPrice !== undefined ||
+      filters.maxPrice !== undefined ||
+      filters.distance ||
+      (filters.sortBy && filters.sortBy !== 'relevance');
   };
 
   // Render search bar
@@ -249,7 +270,7 @@ const SearchResultsScreen = () => {
           onFocus={() => {
             // Navigate back to the search screen
             router.back();
-            router.replace({pathname: '/(screens)/search/SearchScreen', params: {initialQuery: searchQuery}});
+            router.replace({ pathname: '/(screens)/search/SearchScreen', params: { initialQuery: searchQuery } });
           }}
         />
       </View>
@@ -257,9 +278,9 @@ const SearchResultsScreen = () => {
         onPress={() => setFiltersVisible(true)}
         style={[styles.filterButton, hasActiveFilters() && styles.filterButtonActive]}
       >
-        <Ionicons 
-          name="options-outline" 
-          size={20} 
+        <Ionicons
+          name="options-outline"
+          size={20}
           color={hasActiveFilters() ? colors.primary.main : colors.text.tertiary}
         />
         {hasActiveFilters() && <View style={styles.filterIndicator} />}
@@ -270,9 +291,9 @@ const SearchResultsScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       {renderSearchBar()}
-      
+
       <View style={styles.divider} />
-      
+
       {/* Filter Indicator */}
       {hasActiveFilters() && (
         <SearchFilterIndicator
@@ -281,7 +302,7 @@ const SearchResultsScreen = () => {
           onRemoveFilter={handleRemoveFilter}
         />
       )}
-      
+
       <ScrollView style={styles.contentContainer}>
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -293,7 +314,7 @@ const SearchResultsScreen = () => {
             <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
             <Text style={styles.errorTitle}>Search Error</Text>
             <Text style={styles.errorDescription}>{error}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.retryButton}
               onPress={() => {
                 setError(null);
@@ -304,13 +325,13 @@ const SearchResultsScreen = () => {
             >
               <Text style={styles.retryButtonText}>Try Again</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.retryButton, { backgroundColor: colors.info, marginTop: 8 }]}
               onPress={handleTestSearch}
             >
               <Text style={styles.retryButtonText}>Debug Search</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.retryButton, { backgroundColor: '#9C27B0', marginTop: 8 }]}
               onPress={() => debugApiEndpoints(searchQuery)}
             >
@@ -327,7 +348,20 @@ const SearchResultsScreen = () => {
                 </Text>
               </View>
             )}
-            
+
+            {/* Show notice if results are from expanded search (outside normal range) */}
+            {isFromExpandedSearch && (stores.length > 0 || products.length > 0) && (
+              <View style={styles.noticeContainer}>
+                <Ionicons name="location-outline" size={20} color={colors.warning} />
+                <View style={styles.noticeTextContainer}>
+                  <Text style={styles.noticeTitle}>Results from outside your area</Text>
+                  <Text style={styles.noticeText}>
+                    No nearby stores found. Showing results from stores further away.
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Use SearchResults component to show both stores and products with tag highlighting */}
             {(stores.length > 0 || products.length > 0) && (
               <SearchResults
@@ -339,7 +373,7 @@ const SearchResultsScreen = () => {
                 onFoodItemPress={(item) => handleProductPress(item.id)}
               />
             )}
-            
+
             {/* Show empty state only when not loading and no results */}
             {stores.length === 0 && products.length === 0 && !loading && (
               <View style={styles.emptyContainer}>
@@ -353,7 +387,7 @@ const SearchResultsScreen = () => {
           </>
         )}
       </ScrollView>
-      
+
       {/* Search Filters Modal */}
       <SearchFilters
         visible={filtersVisible}
@@ -505,6 +539,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.secondary,
     fontWeight: "500",
+  },
+  noticeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.warning,
+  },
+  noticeTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  noticeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: 2,
+  },
+  noticeText: {
+    fontSize: 13,
+    color: colors.text.secondary,
   },
   sectionHeader: {
     paddingHorizontal: 16,
