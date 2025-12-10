@@ -32,11 +32,11 @@ interface StoreContextType {
   nearbyError: string | null;
   fetchNearbyStores: (latitude: number, longitude: number, radius?: number) => Promise<void>;
   
-  // Popular Stores (all areas)
+  // Popular Stores (optionally filtered by radius)
   popularStores: Store[];
   isFetchingPopular: boolean;
   popularError: string | null;
-  fetchPopularStores: (userLat?: number, userLng?: number) => Promise<void>;
+  fetchPopularStores: (userLat?: number, userLng?: number, radiusKm?: number) => Promise<void>;
   
   // Store by ID
   currentStore: Store | null;
@@ -198,19 +198,27 @@ export function StoreProvider({ children }: StoreProviderProps) {
     }
   }, [client]);
 
-  // Fetch all popular stores (uses a center point in Philippines with massive radius)
-  const fetchPopularStores = useCallback(async (userLat?: number, userLng?: number): Promise<void> => {
+  // Fetch popular stores (optionally filtered by radius)
+  // When radiusKm is provided, filters stores within that radius
+  // When radiusKm is not provided, fetches all stores globally (20,000km radius)
+  const fetchPopularStores = useCallback(async (userLat?: number, userLng?: number, radiusKm?: number): Promise<void> => {
     setIsFetchingPopular(true);
     setPopularError(null);
     
     try {
-      console.log('🔍 StoreContext: Starting fetchPopularStores (all areas)');
-      
       // Use user's location if available, otherwise use Philippines center
-      // With a massive radius (20,000km) to include all stores globally
       const latitude = userLat ?? 12.8797; // Philippines center
       const longitude = userLng ?? 121.7740;
-      const radius = 20000; // 20,000km radius covers entire globe from any point
+      // If radius is provided, use it; otherwise use massive radius for "all areas" mode
+      const radius = radiusKm ?? 20000; // Default 20,000km covers entire globe from any point
+      
+      console.log('🔍 StoreContext: Starting fetchPopularStores', {
+        mode: radiusKm ? 'nearby' : 'all areas',
+        latitude,
+        longitude,
+        radius,
+        hasUserLocation: userLat !== undefined && userLng !== undefined
+      });
       
       const endpoint = API_ENDPOINTS.stores.popular(latitude, longitude, radius, 20);
       console.log('🔍 StoreContext: Using popular stores endpoint:', endpoint);

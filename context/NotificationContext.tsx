@@ -80,6 +80,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const handleNotificationNavigation = (data: any) => {
     const { type, relatedEntityId, relatedEntityType } = data;
     
+    // Only navigate if we have valid notification data
+    if (!data || !type) {
+      console.log('⚠️ NotificationContext: No valid notification data, skipping navigation');
+      return;
+    }
+    
     try {
       switch (type) {
         case 'OrderConfirmed':
@@ -112,13 +118,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           break;
           
         default:
-          router.push('/(screens)/home/NotificationScreen');
+          // Only navigate to notifications screen if explicitly a notification type we don't handle
+          console.log('⚠️ NotificationContext: Unknown notification type, not navigating:', type);
           break;
       }
     } catch (error) {
-      console.error('Navigation error from notification:', error);
-      // Fallback to notifications screen
-      router.push('/(screens)/home/NotificationScreen');
+      console.error('❌ NotificationContext: Navigation error from notification:', error);
     }
   };
 
