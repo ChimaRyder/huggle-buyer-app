@@ -10,6 +10,7 @@ import {
   Platform,
   Keyboard,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -309,8 +310,8 @@ export default function ChatScreen() {
             {!isConnected
               ? 'Chat service is not connected. Please check your Stream Chat configuration and internet connection.'
               : !client || !user
-              ? 'Chat service is not initialized. Please restart the app and try again.'
-              : 'Store not found'}
+                ? 'Chat service is not initialized. Please restart the app and try again.'
+                : 'Store not found'}
           </Text>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Go Back</Text>
@@ -322,77 +323,83 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          
-          <View style={styles.headerInfo}>
-            <Image source={{ uri: otherParticipant.image }} style={styles.storeAvatar} />
-            <View style={styles.storeInfo}>
-              <Text style={styles.storeName} numberOfLines={1}>
-                {otherParticipant.name}
-              </Text>
-              <Text style={styles.storeStatus}>Online</Text>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.headerBackButton}>
+              <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+
+            <View style={styles.headerInfo}>
+              <Image source={{ uri: otherParticipant.image }} style={styles.storeAvatar} />
+              <View style={styles.storeInfo}>
+                <Text style={styles.storeName} numberOfLines={1}>
+                  {otherParticipant.name}
+                </Text>
+                <Text style={styles.storeStatus}>Online</Text>
+              </View>
             </View>
-          </View>
 
-          <TouchableOpacity style={styles.headerAction}>
-            <Ionicons name="ellipsis-vertical" size={24} color="black" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Messages List */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          style={styles.messagesList}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={scrollToBottom}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyMessagesContainer}>
-              <Text style={styles.emptyMessagesText}>
-                {isLoadingChannel ? 'Loading messages...' : 'No messages yet. Start the conversation!'}
-              </Text>
-            </View>
-          )}
-          inverted
-        />
-
-        {/* Input Area */}
-        <View style={[styles.inputContainer]}>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.textInput}
-              value={message}
-              onChangeText={setMessage}
-              placeholder={`Message ${otherParticipant?.name || 'participant'}...`}
-              placeholderTextColor={colors.text.secondary}
-              multiline
-              maxLength={500}
-            />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                message.trim().length === 0 && styles.sendButtonDisabled
-              ]}
-              onPress={handleSendMessage}
-              disabled={message.trim().length === 0}
-            >
-              <Ionicons
-                name="send"
-                size={20}
-                color={message.trim().length > 0 ? colors.primary.main : colors.text.tertiary}
-              />
+            <TouchableOpacity style={styles.headerAction}>
+              <Ionicons name="ellipsis-vertical" size={24} color="black" />
             </TouchableOpacity>
           </View>
+
+          {/* Messages List */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item.id}
+            style={styles.messagesList}
+            contentContainerStyle={styles.messagesContent}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={scrollToBottom}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyMessagesContainer}>
+                <Text style={styles.emptyMessagesText}>
+                  {isLoadingChannel ? 'Loading messages...' : 'No messages yet. Start the conversation!'}
+                </Text>
+              </View>
+            )}
+            inverted={messages.length > 0}
+          />
+
+          {/* Input Area */}
+          <View style={[styles.inputContainer]}>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.textInput}
+                value={message}
+                onChangeText={setMessage}
+                placeholder={`Message ${otherParticipant?.name || 'participant'}...`}
+                placeholderTextColor={colors.text.secondary}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  message.trim().length === 0 && styles.sendButtonDisabled
+                ]}
+                onPress={handleSendMessage}
+                disabled={message.trim().length === 0}
+              >
+                <Ionicons
+                  name="send"
+                  size={20}
+                  color={message.trim().length > 0 ? colors.primary.main : colors.text.tertiary}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -401,6 +408,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.tertiary,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

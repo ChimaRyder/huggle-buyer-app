@@ -14,6 +14,7 @@ import {
   TextInput,
   Dimensions,
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScrollView } from "react-native-gesture-handler";
@@ -22,6 +23,7 @@ import { colors, spacing, typography } from '@/constants/theme';
 import { usePostContext } from '@/context/PostContext';
 import { useAuth } from '@clerk/clerk-expo';
 import { submitPostReport } from '@/utils/reports';
+
 import type { BackendPost } from '@/types/BackendModels';
 
 const { width } = Dimensions.get("window");
@@ -172,6 +174,27 @@ const PostScreen: React.FC<PostScreenProps> = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Post Header (Instagram style) */}
+        <View style={styles.postHeader}>
+          <TouchableOpacity
+            style={styles.headerUser}
+            onPress={handleStorePress}
+          >
+            <View style={styles.headerAvatarContainer}>
+              <LinearGradient
+                colors={[colors.primary.main + '20', colors.primary.main + '10']}
+                style={styles.headerAvatar}
+              >
+                <Ionicons name="storefront" size={16} color={colors.primary.main} />
+              </LinearGradient>
+            </View>
+            <View>
+              <Text style={styles.headerStoreName}>{currentPost.storeName || 'Store'}</Text>
+              <Text style={styles.headerLocation}>Suggested for you</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Image carousel */}
         <View style={styles.imageContainer}>
           {currentPost.imageUrls && currentPost.imageUrls.length > 0 && (
@@ -241,13 +264,19 @@ const PostScreen: React.FC<PostScreenProps> = () => {
         {/* Caption */}
         <View style={styles.contentContainer}>
           <Text style={styles.caption}>
-            <TouchableOpacity onPress={handleStorePress}>
-              <Text style={styles.storeNameInCaption}>{currentPost.storeName || 'Store'}</Text>
-            </TouchableOpacity>
+            <Text
+              style={styles.storeNameInCaption}
+              onPress={handleStorePress}
+            >
+              {currentPost.storeName || 'Store'}
+            </Text>
             {currentPost.content ? ` ${currentPost.content}` : ''}
           </Text>
           <Text style={styles.timestamp}>{formatDate(currentPost.createdAt)}</Text>
         </View>
+
+
+
       </ScrollView>
 
       {/* Report Modal - Improved UI/UX */}
@@ -349,7 +378,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 };
 
@@ -364,6 +393,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  headerUser: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerAvatarContainer: {
+    marginRight: spacing.sm,
+  },
+  headerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerStoreName: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+  },
+  headerLocation: {
+    fontSize: 11,
+    color: colors.text.tertiary,
   },
   headerTitle: {
     fontSize: typography.fontSizes.xxl,
@@ -416,7 +474,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   likesText: {
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.semibold,
     color: colors.text.primary,
   },
@@ -425,14 +483,15 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   timestamp: {
-    fontSize: typography.fontSizes.xs,
+    fontSize: typography.fontSizes.sm,
     color: colors.text.tertiary,
     marginTop: spacing.xs,
   },
+
   caption: {
-    ...typography.body2,
+    fontSize: typography.fontSizes.md,
     color: colors.text.primary,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   storeNameInCaption: {
     fontWeight: '600',
@@ -464,7 +523,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    ...typography.body1,
+    fontSize: typography.fontSizes.md,
     color: colors.text.secondary,
     textAlign: 'center',
     marginTop: spacing.md,
@@ -477,7 +536,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   backButtonText: {
-    ...typography.body2,
+    fontSize: typography.fontSizes.sm,
     color: colors.text.inverse,
     fontWeight: '600',
   },

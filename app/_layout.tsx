@@ -13,6 +13,8 @@ import { StatusBar } from "expo-status-bar";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "../utils/cache";
 
+import { colors } from "@/constants/theme";
+
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import mainTheme from '@/assets/themes/main-theme.json'
@@ -52,7 +54,7 @@ export default function RootLayout() {
             <CartProvider>
               <ApplicationProvider
                 {...eva}
-                theme={{...eva.light, ...mainTheme}}
+                theme={{ ...eva.light, ...mainTheme }}
               >
                 <ThemeProvider
                   value={DefaultTheme}
@@ -67,14 +69,14 @@ export default function RootLayout() {
                     <Stack.Screen name="(login)" />
                     <Stack.Screen name="(auth)" />
                     <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-                    <Stack.Screen 
-                      name="(screens)" 
-                      options={{ 
+                    <Stack.Screen
+                      name="(screens)"
+                      options={{
                         animation: 'slide_from_right',
-                      }} 
+                      }}
                     />
                   </Stack>
-                  <StatusBar translucent backgroundColor="transparent" style="light"/>
+                  <StatusBar translucent={false} backgroundColor={colors.background.successSubtle} style="dark" />
                 </ThemeProvider>
               </ApplicationProvider>
             </CartProvider>

@@ -10,20 +10,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radii } from '@/constants/theme';
 
 interface CartSummaryProps {
-  subtotal: number;
-  deliveryFee: number;
-  tax: number;
   total: number;
   onCheckout: () => void;
   hasItems: boolean;
-  isDisabled?: boolean;
-  disabledReason?: string;
+  isDisabled?: boolean | undefined;
+  disabledReason?: string | undefined;
 }
 
 const CartSummary: React.FC<CartSummaryProps> = ({
-  subtotal,
-  deliveryFee,
-  tax,
   total,
   onCheckout,
   hasItems,
@@ -34,30 +28,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({
 
   return (
     <View style={styles.summaryContainer}>
-      {/* Price Breakdown */}
-      <View style={styles.priceBreakdown}>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Subtotal</Text>
-          <Text style={styles.summaryValue}>₱{subtotal.toFixed(2)}</Text>
-        </View>
-
-        <View style={styles.summaryRow}>
-          <View style={styles.labelWithIcon}>
-            <Ionicons name="bicycle-outline" size={16} color={colors.text.tertiary} />
-            <Text style={styles.summaryLabel}>Delivery Fee</Text>
-          </View>
-          <Text style={styles.summaryValue}>₱{deliveryFee.toFixed(2)}</Text>
-        </View>
-
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Tax (12%)</Text>
-          <Text style={styles.summaryValue}>₱{tax.toFixed(2)}</Text>
-        </View>
-      </View>
-
-      {/* Divider */}
-      <View style={styles.divider} />
-
       {/* Total */}
       <View style={styles.totalRow}>
         <View>
@@ -118,34 +88,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
-  },
-  priceBreakdown: {
-    marginBottom: spacing.sm,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  labelWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  summaryLabel: {
-    fontSize: typography.fontSizes.md,
-    color: colors.text.tertiary,
-  },
-  summaryValue: {
-    fontSize: typography.fontSizes.md,
-    color: colors.text.primary,
-    fontWeight: typography.fontWeights.medium,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.primary,
-    marginVertical: spacing.md,
   },
   totalRow: {
     flexDirection: 'row',

@@ -33,8 +33,8 @@ interface OrderItem {
 
 const OrderReviewScreen = () => {
   const router = useRouter();
-  const { storeId, productId, productName, productPrice, productImage, quantity, isBundle } = useLocalSearchParams<{ 
-    storeId: string; 
+  const { storeId, productId, productName, productPrice, productImage, quantity, isBundle } = useLocalSearchParams<{
+    storeId: string;
     productId?: string;
     productName?: string;
     productPrice?: string;
@@ -62,7 +62,7 @@ const OrderReviewScreen = () => {
 
   const loadOrderData = () => {
     let items: OrderItem[] = [];
-    
+
     if (productId && productName && productPrice && quantity) {
       // When coming from product page with specific product details
       const productQuantity = parseInt(quantity);
@@ -90,7 +90,7 @@ const OrderReviewScreen = () => {
         storeName: item.storeName,
       }));
     }
-    
+
     setOrderItems(items);
   };
 
@@ -120,7 +120,7 @@ const OrderReviewScreen = () => {
             const cartItem = selectedItems.find(ci => ci.id === item.productId);
             itemIsBundle = cartItem?.isBundle || false;
           }
-          
+
           if (itemIsBundle) {
             return {
               bundleId: item.productId,
@@ -141,7 +141,7 @@ const OrderReviewScreen = () => {
 
       // Create order via OrderContext
       const createdOrder = await createOrder(orderRequest);
-      
+
       // Clear cart after successful order creation
       await clearCart();
 
@@ -151,8 +151,8 @@ const OrderReviewScreen = () => {
         storeName: createdOrder.storeName || currentStore?.name || 'Unknown Store',
         totalAmount: createdOrder.totalAmount ? createdOrder.totalAmount.toString() : '0.00',
       };
-      
-      
+
+
       router.replace({
         pathname: '/(screens)/cart/OrderConfirmationScreen',
         params: orderParams,
@@ -172,14 +172,7 @@ const OrderReviewScreen = () => {
     return orderItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
   };
 
-  const calculateTax = (subtotal: number) => {
-    if (!subtotal) return 0;
-    return subtotal * 0.12; // 12% VAT
-  };
 
-  const calculateDeliveryFee = () => {
-    return 25.00; // Fixed delivery fee for now
-  };
 
   const calculateSavedAmount = () => {
     // Mock saved amount - in real app this would be based on discounts/promos
@@ -187,31 +180,34 @@ const OrderReviewScreen = () => {
     return orderItems.reduce((sum, item) => sum + ((item.unitPrice || 0) * 0.1 * (item.quantity || 0)), 0);
   };
 
-  const calculateTotal = () => {
+  const calculateOriginalTotal = () => {
     const subtotal = calculateSubtotal();
-    const tax = calculateTax(subtotal);
-    const deliveryFee = calculateDeliveryFee();
-    return subtotal + tax + deliveryFee;
+    const saved = calculateSavedAmount();
+    return subtotal + saved;
+  };
+
+  const calculateTotal = () => {
+    return calculateSubtotal();
   };
 
   // Group order items by store
   const groupOrderItemsByStore = () => {
     const groupedItems: { [storeId: string]: { storeName: string; items: OrderItem[] } } = {};
-    
+
     orderItems.forEach(item => {
       const storeId = item.storeId || 'unknown';
       const storeName = item.storeName || 'Unknown Store';
-      
+
       if (!groupedItems[storeId]) {
         groupedItems[storeId] = {
           storeName,
           items: []
         };
       }
-      
+
       groupedItems[storeId].items.push(item);
     });
-    
+
     return groupedItems;
   };
 
@@ -229,7 +225,7 @@ const OrderReviewScreen = () => {
       const storeData = groupedItems[storeIds[0]];
       return storeData.items.map((item) => (
         <View key={item.id} style={styles.orderItem}>
-          <SafeImage 
+          <SafeImage
             source={{ uri: item.productImage }}
             style={styles.productImage}
             placeholderColor={colors.background.secondary}
@@ -248,7 +244,7 @@ const OrderReviewScreen = () => {
     return storeIds.map((storeId) => {
       const storeData = groupedItems[storeId];
       const storeSubtotal = storeData.items.reduce((sum, item) => sum + item.totalPrice, 0);
-      
+
       return (
         <View key={storeId} style={styles.storeItemsGroup}>
           {/* Store Header */}
@@ -263,7 +259,7 @@ const OrderReviewScreen = () => {
           {/* Store Items */}
           {storeData.items.map((item) => (
             <View key={item.id} style={styles.orderItem}>
-              <SafeImage 
+              <SafeImage
                 source={{ uri: item.productImage }}
                 style={styles.productImage}
                 placeholderColor={colors.background.secondary}
@@ -325,17 +321,17 @@ const OrderReviewScreen = () => {
         <View style={styles.headerPlaceholder} />
       </View>
 
-      <ScrollView 
-        style={styles.scrollContainer} 
+      <ScrollView
+        style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Store Information */}
         {currentStore && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Delivering from</Text>
+            <Text style={styles.sectionTitle}>Purchasing from</Text>
             <View style={styles.storeCard}>
-              <SafeImage 
+              <SafeImage
                 source={{ uri: currentStore.profileImageUrl }}
                 style={styles.storeImage}
                 placeholderColor={colors.background.secondary}
@@ -345,10 +341,10 @@ const OrderReviewScreen = () => {
                 <Text style={styles.storeAddress}>{currentStore.address}</Text>
                 <Text style={styles.storeCity}>{currentStore.city}, {currentStore.province}</Text>
                 <View style={styles.storeStatusContainer}>
-                  <Ionicons 
-                    name={currentStore.isOpen ? "time-outline" : "close-circle-outline"} 
-                    size={16} 
-                    color={currentStore.isOpen ? colors.success : colors.error} 
+                  <Ionicons
+                    name={currentStore.isOpen ? "time-outline" : "close-circle-outline"}
+                    size={16}
+                    color={currentStore.isOpen ? colors.success : colors.error}
                   />
                   <Text style={[styles.storeStatus, { color: currentStore.isOpen ? colors.success : colors.error }]}>
                     {currentStore.isOpen ? "Open now" : "Closed"}
@@ -385,16 +381,8 @@ const OrderReviewScreen = () => {
           <Text style={styles.sectionTitle}>Order Summary</Text>
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>₱{calculateSubtotal().toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery Fee</Text>
-              <Text style={styles.summaryValue}>₱{calculateDeliveryFee().toFixed(2)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tax (12%)</Text>
-              <Text style={styles.summaryValue}>₱{calculateTax(calculateSubtotal()).toFixed(2)}</Text>
+              <Text style={styles.summaryLabel}>Original Price Total</Text>
+              <Text style={styles.summaryValue}>₱{calculateOriginalTotal().toFixed(2)}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, styles.savedLabel]}>You Saved</Text>
@@ -412,11 +400,11 @@ const OrderReviewScreen = () => {
       {/* Fixed Bottom Button */}
       {orderItems.length > 0 && (
         <View style={styles.bottomContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.confirmButton, 
+              styles.confirmButton,
               isCreating && styles.confirmButtonDisabled
-            ]} 
+            ]}
             onPress={handleConfirmOrder}
             disabled={isCreating}
           >
@@ -543,9 +531,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border.secondary,
   },
   productImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
+    width: 100,
+    height: 100,
+    borderRadius: 12,
     marginRight: spacing.md,
   },
   itemInfo: {

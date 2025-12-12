@@ -346,25 +346,7 @@ const CartScreen = () => {
           </View>
         </View>
 
-        {/* Expired Items Warning */}
-        {hasExpiredItems && (
-          <View style={styles.warningBanner}>
-            <Ionicons name="warning" size={20} color="#FF6B6B" />
-            <Text style={styles.warningText}>
-              {expiredItems.length} item{expiredItems.length > 1 ? 's' : ''} unavailable for checkout
-            </Text>
-          </View>
-        )}
 
-        {/* Mixed Store Warning */}
-        {hasMixedStores && (
-          <View style={styles.warningBanner}>
-            <Ionicons name="information-circle" size={20} color="#FF6B6B" />
-            <Text style={styles.warningText}>
-              You have items from {uniqueStoreIds.size} different stores. You can only order from one store at a time.
-            </Text>
-          </View>
-        )}
 
         <View style={styles.itemsContainer}>
           {renderItemsByStore()}
@@ -373,9 +355,6 @@ const CartScreen = () => {
 
       <View style={styles.summaryContainer}>
         <CartSummary
-          subtotal={subtotal}
-          deliveryFee={deliveryFee}
-          tax={tax}
           total={totalWithFees}
           onCheckout={handleCheckout}
           hasItems={selectedItems.length > 0}
@@ -559,7 +538,7 @@ const styles = StyleSheet.create({
     color: colors.primary.main,
   },
   storeItems: {
-    paddingLeft: 8,
+    paddingLeft: 0,
   },
   warningText: {
     fontSize: 14,

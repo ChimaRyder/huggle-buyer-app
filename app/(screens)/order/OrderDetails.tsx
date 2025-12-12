@@ -32,18 +32,18 @@ interface OrderDetailsProps {
 }
 
 const OrderDetails: React.FC<OrderDetailsProps> = () => {
-  
+
   const router = useRouter();
   const params = useLocalSearchParams();
   const orderId = params.orderId as string;
-  
 
-  const { 
-    currentOrder, 
-    isLoading, 
-    isCancelling, 
-    error, 
-    fetchOrderById, 
+
+  const {
+    currentOrder,
+    isLoading,
+    isCancelling,
+    error,
+    fetchOrderById,
     cancelOrder,
     canCancelOrder: contextCanCancelOrder,
     clearError,
@@ -83,7 +83,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
 
   const onRefresh = async () => {
     if (!orderId) return;
-    
+
     setRefreshing(true);
     try {
       await fetchOrderById(orderId);
@@ -145,7 +145,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
     if (orderId) {
       fetchOrderById(orderId);
     }
-    
+
     return () => {
       clearError();
     };
@@ -201,6 +201,18 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
 
   const statusInfo = getStatusInfo(currentOrder.status);
 
+  // Calculate savings and original total to match OrderReviewScreen logic
+  const calculateSavedAmount = () => {
+    if (!currentOrder?.items) return 0;
+    // Mock saved amount calculation: 10% of unit price * quantity
+    return currentOrder.items.reduce((sum, item) => sum + ((item.unitPrice || 0) * 0.1 * (item.quantity || 0)), 0);
+  };
+
+  const calculateOriginalTotal = () => {
+    if (!currentOrder) return 0;
+    return currentOrder.totalAmount + calculateSavedAmount();
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
@@ -211,8 +223,8 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -223,34 +235,34 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           />
         }
       >
-        {/* Order Status Card */}
-        {/* <View style={[styles.statusCard, { backgroundColor: statusInfo.bgColor }]}>
-          <View style={styles.statusRow}>
-            <View style={styles.statusBadgeContainer}>
-              <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-                <Text style={styles.statusBadgeText}>{statusInfo.label}</Text>
-              </View>
-              <Text style={styles.orderIdText}>Order #{currentOrder.id.slice(-8).toUpperCase()}</Text>
-            </View>
-          </View>
-          
-          <View style={styles.orderTimeline}>
-            <View style={styles.timelineItem}>
-              <Ionicons name="time-outline" size={16} color={colors.text.secondary} />
-              <Text style={styles.timelineText}>
-                Placed {formatDate(currentOrder.createdAt)}
+        {/* Store Information (Moved to Top) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Store Information</Text>
+          <View style={styles.storeCard}>
+            <Image
+              source={{ uri: currentStore?.profileImageUrl }}
+              style={styles.storeImage}
+              resizeMode="cover"
+            />
+            <View style={styles.storeInfo}>
+              <Text style={styles.storeName}>{currentOrder.storeName}</Text>
+              <Text style={styles.storeAddress}>
+                {currentOrder.storeAddress}
               </Text>
+              <TouchableOpacity
+                style={styles.storeButton}
+                onPress={() => {
+                  router.push({
+                    pathname: "/(screens)/store/StoreHomepageScreen",
+                    params: { id: currentOrder.storeId }
+                  });
+                }}
+              >
+                <Text style={styles.storeButtonText}>Visit Store</Text>
+              </TouchableOpacity>
             </View>
-            {currentOrder.updatedAt && currentOrder.updatedAt !== currentOrder.createdAt && (
-              <View style={styles.timelineItem}>
-                <Ionicons name="refresh-outline" size={16} color={colors.text.secondary} />
-                <Text style={styles.timelineText}>
-                  Updated {formatDate(currentOrder.updatedAt)}
-                </Text>
-              </View>
-            )}
           </View>
-        </View> */}
+        </View>
 
         {/* Order Status Card */}
         <View style={[styles.statusCard, { backgroundColor: statusInfo.bgColor }]}>
@@ -272,7 +284,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           )}
         </View>
 
-        {/* Products Section */}
+        {/* Items Ordered */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Items Ordered</Text>
           {currentOrder.items.map((product, index) => (
@@ -300,12 +312,12 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
                   </View>
                 </View>
               </View>
-              
-              {/* Write Review Button for completed orders */}
+
+              {/* Write Review Button */}
               {(!product.hasReviewed && statusInfo.label === "Completed") && (
                 <TouchableOpacity
                   style={styles.reviewButton}
-                  onPress={() => handleReviewItem(product.id)}
+                  onPress={() => handleReviewItem(product)}
                 >
                   <Ionicons name="star-outline" size={16} color={colors.text.inverse} />
                   <Text style={styles.reviewButtonText}>Write Review</Text>
@@ -315,128 +327,24 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           ))}
         </View>
 
-        {/* Store Section */}
+        {/* Order Summary (New) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Store Information</Text>
-          <View style={styles.storeCard}>
-            <Image 
-              source={{ uri: currentStore?.profileImageUrl }}
-              style={styles.storeImage}
-              resizeMode="cover"
-            />
-            <View style={styles.storeInfo}>
-              <Text style={styles.storeName}>{currentOrder.storeName}</Text>
-              <Text style={styles.storeAddress}>
-                {currentOrder.storeAddress}
-              </Text>
-              <TouchableOpacity
-                style={styles.storeButton}
-                onPress={() => {
-                  router.push({
-                    pathname: "/(screens)/store/StoreHomepageScreen",
-                    params: { id: currentOrder.storeId }
-                  });
-                }}
-              >
-                <Text style={styles.storeButtonText}>Visit Store</Text>
-              </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Order Summary</Text>
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Original Price Total</Text>
+              <Text style={styles.summaryValue}>₱{calculateOriginalTotal().toFixed(2)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, styles.savedLabel]}>You Saved</Text>
+              <Text style={[styles.summaryValue, styles.savedValue]}>-₱{calculateSavedAmount().toFixed(2)}</Text>
+            </View>
+            <View style={[styles.summaryRow, styles.totalRow]}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValue}>₱{currentOrder.totalAmount.toFixed(2)}</Text>
             </View>
           </View>
         </View>
-
-        {/* Store and Items Section */}
-        {/*<View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Order Details</Text>
-            <Text style={styles.itemCount}>{currentOrder.items.length} item{currentOrder.items.length !== 1 ? 's' : ''}</Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.storeHeaderCard}
-            onPress={() => {
-              router.push({
-                pathname: "/(screens)/store/StoreHomepageScreen",
-                params: { id: currentOrder.storeId }
-              });
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={styles.storeIconContainer}>
-              <Ionicons name="storefront" size={20} color={colors.primary.main} />
-            </View>
-            <View style={styles.storeHeaderInfo}>
-              <Text style={styles.storeHeaderName}>{currentOrder.storeName || 'Unknown Store'}</Text>
-              <View style={styles.visitStoreButton}>
-                <Text style={styles.visitStoreText}>Visit Store</Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.primary.main} />
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.itemsList}>
-            {currentOrder.items.map((item, index) => {
-              const showReviewButton = currentOrder.status === OrderStatus.Completed;
-              const hasReviewed = item.hasReviewed || false; // Use the field from API response
-              
-              return (
-                <View key={item.id} style={[styles.itemCard, index === currentOrder.items.length - 1 && styles.lastItemCard]}>
-                  <Image
-                    source={item.productImage ? { uri: item.productImage } : require("@/assets/images/sample-store.jpg")}
-                    style={styles.itemImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.itemDetails}>
-                    <Text style={styles.itemName} numberOfLines={2}>
-                      {item.productName}
-                    </Text>
-                    <View style={styles.itemMetaRow}>
-                      <View style={styles.quantityBadge}>
-                        <Text style={styles.quantityText}>×{item.quantity}</Text>
-                      </View>
-                      <Text style={styles.itemPrice}>₱{item.unitPrice.toFixed(2)}</Text>
-                    </View>
-                    <Text style={styles.itemTotal}>
-                      Total: ₱{(item.unitPrice * item.quantity).toFixed(2)}
-                    </Text>
-                    
-                    {showReviewButton && (
-                      <View style={styles.reviewButtonContainer}>
-                        {hasReviewed ? (
-                          // Non-clickable reviewed indicator
-                          <View style={styles.reviewedButton}>
-                            <Ionicons 
-                              name="star" 
-                              size={16} 
-                              color={colors.success} 
-                            />
-                            <Text style={styles.reviewedButtonText}>
-                              Reviewed
-                            </Text>
-                          </View>
-                        ) : (
-                          // Clickable write review button
-                          <TouchableOpacity
-                            style={styles.reviewButton}
-                            onPress={() => handleReviewItem(item)}
-                          >
-                            <Ionicons 
-                              name="star-outline" 
-                              size={16} 
-                              color={colors.primary.main} 
-                            />
-                            <Text style={styles.reviewButtonText}>
-                              Write Review
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        </View> */}
 
         {/* Map Section */}
         {(currentStore?.location) && (
@@ -452,23 +360,6 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           </View>
         )}
 
-        {/*<View style={styles.summarySection}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Items ({currentOrder.items.length})</Text>
-              <Text style={styles.summaryValue}>
-                ₱{currentOrder.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0).toFixed(2)}
-              </Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryTotalLabel}>Total Amount</Text>
-              <Text style={styles.summaryTotalValue}>₱{currentOrder.totalAmount.toFixed(2)}</Text>
-            </View>
-          </View>
-        </View>*/}
-
         {/* Notes Section */}
         {currentOrder.notes && (
           <View style={styles.section}>
@@ -479,33 +370,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
           </View>
         )}
 
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
-
-      {/*
-      {(currentOrder.status !== OrderStatus.Completed && currentOrder.status !== OrderStatus.Cancelled) && (
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.fullCancelButton, isCancelling && styles.cancelButtonDisabled]}
-            onPress={handleCancelOrder}
-            disabled={isCancelling}
-          >
-            <Ionicons name="close-circle-outline" size={20} color={colors.text.inverse} />
-            <Text style={styles.fullCancelButtonText}>
-              {isCancelling ? "Cancelling Order..." : "Cancel Order"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}*/}
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalAmount}>₱{currentOrder.totalAmount.toFixed(2)}</Text>
-        </View>
-        
+        {/* Cancel Button (Moved to Bottom) */}
         {(currentOrder.status !== OrderStatus.Completed && currentOrder.status !== OrderStatus.Cancelled) && (
           <TouchableOpacity
             style={[styles.cancelButton, isCancelling && styles.cancelButtonDisabled]}
@@ -517,7 +382,9 @@ const OrderDetails: React.FC<OrderDetailsProps> = () => {
             </Text>
           </TouchableOpacity>
         )}
-      </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -547,7 +414,6 @@ const styles = StyleSheet.create({
   statusCard: {
     borderRadius: 12,
     padding: spacing.lg,
-    marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
   statusHeader: {
@@ -581,7 +447,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeights.bold,
   },
   section: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
     // ...typography.h4,
@@ -694,27 +560,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
   },
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    backgroundColor: colors.background.primary,
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  totalLabel: {
-    // ...typography.h3,
-    color: colors.text.primary,
-    fontWeight: typography.fontWeights.bold,
-  },
-  totalAmount: {
-    fontSize: typography.fontSizes.xl,
-    color: colors.primary.main,
-    fontWeight: '700',
-  },
   cancelButton: {
     backgroundColor: colors.error,
     paddingVertical: spacing.md,
@@ -763,6 +608,63 @@ const styles = StyleSheet.create({
     // ...typography.body2,
     color: colors.text.inverse,
     fontWeight: '600',
+  },
+  notesCard: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  notesText: {
+    fontSize: typography.fontSizes.md,
+    color: colors.text.primary,
+  },
+  // New Summary Styles
+  summaryCard: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border.primary,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  summaryLabel: {
+    fontSize: typography.fontSizes.md,
+    color: colors.text.secondary,
+  },
+  summaryValue: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.medium,
+    color: colors.text.primary,
+  },
+  savedLabel: {
+    color: colors.success,
+    fontWeight: typography.fontWeights.medium,
+  },
+  savedValue: {
+    color: colors.success,
+    fontWeight: typography.fontWeights.semibold,
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border.primary,
+    marginTop: spacing.xs,
+    paddingTop: spacing.sm,
+  },
+  totalLabel: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+  },
+  totalValue: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.primary.main,
   },
 });
 

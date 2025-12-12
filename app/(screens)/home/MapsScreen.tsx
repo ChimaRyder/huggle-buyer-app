@@ -25,23 +25,23 @@ const { height } = Dimensions.get("window");
 
 const MapsScreen = () => {
   // Core state
-  const [marker, setMarker] = useState<{latitude: number; longitude: number} | null>(null);
-  const [initialRegion, setInitialRegion] = useState<{latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number} | null>(null);
+  const [marker, setMarker] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [initialRegion, setInitialRegion] = useState<{ latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number } | null>(null);
   const [locationText, setLocationText] = useState("Tap to select location");
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // UI state
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveLocationLabel, setSaveLocationLabel] = useState("");
   const [isNewLocation, setIsNewLocation] = useState(false);
-  const [currentDeviceLocation, setCurrentDeviceLocation] = useState<{latitude: number; longitude: number} | null>(null);
-  
+  const [currentDeviceLocation, setCurrentDeviceLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
   const drawerAnimation = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<MapView>(null);
   const hasInitialized = useRef(false);
   const router = useRouter();
-  
+
   const {
     currentLocation,
     savedLocations,
@@ -97,17 +97,17 @@ const MapsScreen = () => {
 
         // Otherwise, request location permission and get current location
         const { status } = await Location.requestForegroundPermissionsAsync();
-        
+
         if (status === 'granted') {
           const position = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
           });
-          
+
           const location = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           };
-          
+
           const address = await getAddressFromCoords(location);
           setMarker(location);
           setInitialRegion({
@@ -170,7 +170,7 @@ const MapsScreen = () => {
     const address = await getAddressFromCoords(location);
     setLocationText(address);
     toggleDrawer();
-    
+
     // Animate map to the selected location
     if (mapRef.current) {
       mapRef.current.animateToRegion({
@@ -206,7 +206,7 @@ const MapsScreen = () => {
   const toggleDrawer = () => {
     const toValue = isDrawerExpanded ? 0 : 1;
     setIsDrawerExpanded(!isDrawerExpanded);
-    
+
     Animated.timing(drawerAnimation, {
       toValue,
       duration: 300,
@@ -240,7 +240,7 @@ const MapsScreen = () => {
       }
 
       await saveLocation(locationData, locationData.label);
-      
+
       setShowSaveModal(false);
       setSaveLocationLabel('');
       setIsNewLocation(false);
@@ -261,19 +261,19 @@ const MapsScreen = () => {
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      
+
       const freshLocation = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       };
-      
+
       setCurrentDeviceLocation(freshLocation);
       setMarker(freshLocation);
       setIsNewLocation(false);
-      
+
       const address = await getAddressFromCoords(freshLocation);
       setLocationText(address);
-      
+
       if (mapRef.current) {
         mapRef.current.animateToRegion({
           ...freshLocation,
@@ -308,7 +308,7 @@ const MapsScreen = () => {
         <TouchableOpacity style={styles.loadingCloseButton} onPress={() => router.back()}>
           <Ionicons name="close" size={24} color={colors.text.primary} />
         </TouchableOpacity>
-        
+
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color={colors.primary.main} />
           <Text style={styles.loadingTitle}>Loading map...</Text>
@@ -338,7 +338,7 @@ const MapsScreen = () => {
             />
             <Marker
               coordinate={currentDeviceLocation}
-              anchor={{x: 0.5, y: 0.5}}
+              anchor={{ x: 0.5, y: 0.5 }}
             >
               <View style={styles.currentLocationMarker}>
                 <View style={styles.currentLocationDot} />
@@ -346,7 +346,7 @@ const MapsScreen = () => {
             </Marker>
           </>
         )}
-        
+
         {/* Selected Location Marker */}
         {marker && (
           <Marker
@@ -363,7 +363,7 @@ const MapsScreen = () => {
           />
         )}
       </MapView>
-      
+
       {/* Floating Close Button */}
       <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
         <Ionicons name="close" size={24} color={colors.text.primary} />
@@ -373,14 +373,14 @@ const MapsScreen = () => {
       <TouchableOpacity style={styles.recenterButton} onPress={handleResetToCurrentLocation}>
         <Ionicons name="locate" size={22} color={colors.text.primary} />
       </TouchableOpacity>
-      
+
       {/* Bottom Drawer */}
       <Animated.View style={[
         styles.bottomCard,
         {
           height: drawerAnimation.interpolate({
             inputRange: [0, 1],
-            outputRange: [200, Dimensions.get('window').height * 0.6],
+            outputRange: [350, Dimensions.get('window').height * 0.6],
           }),
         },
       ]}>
@@ -389,10 +389,10 @@ const MapsScreen = () => {
           <View style={styles.locationContainer}>
             <Ionicons name="location" size={24} color={colors.primary.main} style={styles.locationIcon} />
             <Text style={styles.locationText} numberOfLines={2}>{locationText}</Text>
-            <Ionicons 
-              name={isDrawerExpanded ? "chevron-down" : "chevron-up"} 
-              size={20} 
-              color={colors.text.secondary} 
+            <Ionicons
+              name={isDrawerExpanded ? "chevron-down" : "chevron-up"}
+              size={20}
+              color={colors.text.secondary}
             />
           </View>
         </TouchableOpacity>
@@ -413,7 +413,7 @@ const MapsScreen = () => {
             {savedLocations.length > 0 ? (
               savedLocations.map((location) => (
                 <View key={location.id} style={styles.savedLocationItem}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.savedLocationMain}
                     onPress={() => handleSavedLocationSelect(location)}
                   >
@@ -425,15 +425,15 @@ const MapsScreen = () => {
                       </Text>
                     </View>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.deleteLocationBtn}
                     onPress={() => handleDeleteLocation(location.id, location.label)}
                     disabled={isDeletingLocation}
                   >
-                    <Ionicons 
-                      name="trash-outline" 
-                      size={16} 
-                      color={isDeletingLocation ? colors.text.disabled : colors.error} 
+                    <Ionicons
+                      name="trash-outline"
+                      size={16}
+                      color={isDeletingLocation ? colors.text.disabled : colors.error}
                     />
                   </TouchableOpacity>
                 </View>
@@ -451,15 +451,15 @@ const MapsScreen = () => {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           {isNewLocation && (
-            <TouchableOpacity 
-              style={styles.saveLocationBtn} 
+            <TouchableOpacity
+              style={styles.saveLocationBtn}
               onPress={() => setShowSaveModal(true)}
             >
               <Ionicons name="bookmark-outline" size={20} color={colors.primary.main} />
               <Text style={styles.saveLocationBtnText}>Save Location</Text>
             </TouchableOpacity>
           )}
-          
+
           <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm}>
             <Text style={styles.confirmBtnText}>Confirm Location</Text>
           </TouchableOpacity>
@@ -486,7 +486,7 @@ const MapsScreen = () => {
             <Text style={styles.modalSubtitle}>
               Give this location a name so you can find it easily later
             </Text>
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="Enter location name (e.g., Home, Work)"
@@ -495,10 +495,10 @@ const MapsScreen = () => {
               maxLength={50}
               autoFocus
             />
-            
+
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.modalCancelBtn} 
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
                 onPress={() => {
                   setShowSaveModal(false);
                   setSaveLocationLabel('');
@@ -506,9 +506,9 @@ const MapsScreen = () => {
               >
                 <Text style={styles.modalCancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalSaveBtn, isSavingLocation && styles.modalSaveBtnDisabled]} 
+
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, isSavingLocation && styles.modalSaveBtnDisabled]}
                 onPress={handleSaveLocation}
                 disabled={isSavingLocation}
               >

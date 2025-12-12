@@ -12,14 +12,14 @@ export default function TrendingProductsScreen() {
   const { productType } = useLocalSearchParams();
   const router = useRouter();
   const [title, setTitle] = useState("");
-  
+
   const {
     trendingProducts,
     isFetchingTrending,
     trendingError,
     fetchTrendingProducts
   } = useProductContext();
-  
+
   const { currentLocation } = useLocationContext();
 
   // Create stable location coordinates to prevent infinite re-renders
@@ -51,7 +51,7 @@ export default function TrendingProductsScreen() {
     }
 
     setTitle(screenTitle);
-    
+
     // Fetch trending products if we don't have productType (meaning this is the general trending screen)
     if (!productType) {
       fetchProducts();
@@ -83,7 +83,7 @@ export default function TrendingProductsScreen() {
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary.main} />
               <Text style={styles.loadingText}>
-                {locationCoords 
+                {locationCoords
                   ? `Loading trending products near ${locationCoords.address || 'you'}...`
                   : 'Loading trending products...'
                 }
@@ -94,8 +94,8 @@ export default function TrendingProductsScreen() {
               <Ionicons name="warning-outline" size={48} color={colors.error} />
               <Text style={styles.errorText}>Failed to load products</Text>
               <Text style={styles.errorSubtext}>{trendingError}</Text>
-              <TouchableOpacity 
-                style={styles.retryButton} 
+              <TouchableOpacity
+                style={styles.retryButton}
                 onPress={fetchProducts}
               >
                 <Text style={styles.retryButtonText}>Retry</Text>
@@ -106,8 +106,8 @@ export default function TrendingProductsScreen() {
               <Ionicons name="location-outline" size={48} color={colors.text.secondary} />
               <Text style={styles.emptyText}>Location Required</Text>
               <Text style={styles.emptySubtext}>Please set your location to see trending products near you</Text>
-              <TouchableOpacity 
-                style={styles.retryButton} 
+              <TouchableOpacity
+                style={styles.retryButton}
                 onPress={() => router.push('/(screens)/location/LocationScreen')}
               >
                 <Text style={styles.retryButtonText}>Set Location</Text>

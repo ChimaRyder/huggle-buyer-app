@@ -40,10 +40,10 @@ interface EnrichedOrder extends Omit<BackendOrder, 'totalPrice'> {
 
 const Orders = () => {
   const router = useRouter();
-  const { 
-    orders: contextOrders, 
-    isFetching, 
-    error: contextError, 
+  const {
+    orders: contextOrders,
+    isFetching,
+    error: contextError,
     refreshOrders,
     cancelOrder: contextCancelOrder,
     canCancelOrder: contextCanCancelOrder,
@@ -120,12 +120,18 @@ const Orders = () => {
   // Transform context orders to enriched format
   const enrichedOrders = contextOrders.map((order) => {
     // Support multiple products per order from API items
-    const items = order.items?.map((item) => ({
-      image: item.productImage ? { uri: item.productImage } : require("@/assets/images/sample-store.jpg"),
-      name: item.productName || "Unknown Product",
-      price: `₱${Number(item.unitPrice).toFixed(2)}`,
-      quantity: item.quantity,
-    })) || [];
+    const items = order.items?.map((item) => {
+      const unitPrice = Number(item.unitPrice || 0);
+      const subtotal = unitPrice * (item.quantity || 1);
+      return {
+        image: item.productImage ? { uri: item.productImage } : require("@/assets/images/sample-store.jpg"),
+        name: item.productName || "Unknown Product",
+        price: `₱${unitPrice.toFixed(2)}`,
+        quantity: item.quantity,
+        subtotal: `₱${subtotal.toFixed(2)}`,
+        rawPrice: unitPrice,
+      };
+    }) || [];
 
     // Compose total price
     const totalPrice = `₱${(order.totalAmount || 0).toFixed(2)}`;
@@ -181,7 +187,7 @@ const Orders = () => {
 
     try {
       setCancelling(true);
-      
+
       // Cancel order via OrderContext
       await contextCancelOrder(orderToCancel.id, {
         reason: 'Cancelled by buyer'
@@ -242,7 +248,7 @@ const Orders = () => {
           <Text style={styles.headerTitle}>Orders</Text>
           <View style={styles.headerPlaceholder} />
         </View>
-        
+
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary.light} />
           <Text style={styles.loadingText}>Loading your orders...</Text>
@@ -262,7 +268,7 @@ const Orders = () => {
           <Text style={styles.headerTitle}>Orders</Text>
           <View style={styles.headerPlaceholder} />
         </View>
-        
+
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{contextError}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refreshOrders}>
@@ -286,91 +292,92 @@ const Orders = () => {
 
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
-          <ScrollView
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabsScrollContainer}
         >
-            {orderTabs.map((tab) => (
-              <TouchableOpacity
-                key={tab}
+          {orderTabs.map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.tab,
+                selectedTab === tab && styles.activeTab,
+              ]}
+              onPress={() => setSelectedTab(tab)}
+            >
+              <Text
                 style={[
-                  styles.tab,
-                  selectedTab === tab && styles.activeTab,
+                  styles.tabText,
+                  selectedTab === tab && styles.activeTabText,
                 ]}
-                onPress={() => setSelectedTab(tab)}
               >
-                <Text
-                  style={[
-                    styles.tabText,
-                    selectedTab === tab && styles.activeTabText,
-                  ]}
-                >
-                  {tab}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </View>
 
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {filtered.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                No {selectedTab.toLowerCase()} orders found
-              </Text>
-              <Text style={styles.emptySubtext}>
-                {selectedTab === "Pending"
-                  ? "Orders you place will appear here"
-                  : `You don't have any ${selectedTab.toLowerCase()} orders yet`}
-              </Text>
-            </View>
-          ) : (
-            filtered.map((order) => (
-              <TouchableOpacity
-                key={order.id}
-                onPress={() => handleOrderPress(order)}
-                style={styles.orderCardContainer}
-                activeOpacity={0.8}
-              >
-                <OrderCard
-                  order={{
-                    id: order.id,
-                    date: order.formattedDate || "Unknown date",
-                    productName: order.productName || "Unknown Product",
-                    price: `₱${order.totalPrice?.toString() ?? "0.00"}`,
-                    description:
-                      order.description ||
-                      (Array.isArray(order.quantity)
-                        ? `${order.quantity.length} items`
-                        : `Quantity: ${order.quantity}`),
-                    storeName: order.storeName || "Unknown Store",
-                    location: order.storeLocation || "Unknown Location",
-                    status: getStatusFromEnum(order.status) as
-                      | "Pending"
-                      | "Confirmed"
-                      | "Ready for Pickup"
-                      | "Completed"
-                      | "Cancelled",
-                    image: order.productImage
-                      ? order.productImage
-                      : require("@/assets/images/sample-store.jpg"),
-                    items: order.items || [],
-                    totalPrice: order.totalPrice || "₱0.00",
-                  }}
-                  showCancelButton={canCancelOrder(order.status)}
-                  onCancel={() => handleCancelPress(order)}
-                  showReviewButton={order.status === OrderStatus.Completed}
-                  onReviewItems={() => handleReviewItems(order)}
-                />
-              </TouchableOpacity>
-            ))
-          )}
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {filtered.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              No {selectedTab.toLowerCase()} orders found
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {selectedTab === "Pending"
+                ? "Orders you place will appear here"
+                : `You don't have any ${selectedTab.toLowerCase()} orders yet`}
+            </Text>
+          </View>
+        ) : (
+          filtered.map((order) => (
+            <TouchableOpacity
+              key={order.id}
+              onPress={() => handleOrderPress(order as any)}
+              style={styles.orderCardContainer}
+              activeOpacity={0.8}
+            >
+              <OrderCard
+                order={{
+                  id: order.id,
+                  date: order.formattedDate || "Unknown date",
+                  productName: order.productName || "Unknown Product",
+                  price: `₱${order.totalPrice?.toString() ?? "0.00"}`,
+                  description:
+                    order.description ||
+                    (Array.isArray(order.quantity)
+                      ? `${order.quantity.length} items`
+                      : `Quantity: ${order.quantity}`),
+                  storeName: order.storeName || "Unknown Store",
+                  location: order.storeLocation || "Unknown Location",
+                  status: getStatusFromEnum(order.status) as
+                    | "Pending"
+                    | "Confirmed"
+                    | "Ready for Pickup"
+                    | "Completed"
+                    | "Cancelled",
+                  image: order.productImage
+                    ? order.productImage
+                    : require("@/assets/images/sample-store.jpg"),
+                  items: order.items || [],
+                  totalPrice: order.totalPrice || "₱0.00",
+                }}
+                storeImage={require("@/assets/images/sample-store.jpg")}
+                showCancelButton={canCancelOrder(order.status)}
+                onCancel={() => handleCancelPress(order as any)}
+                showReviewButton={order.status === OrderStatus.Completed}
+                onReviewItems={() => handleReviewItems(order as any)}
+              />
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
 
       <ConfirmationModal

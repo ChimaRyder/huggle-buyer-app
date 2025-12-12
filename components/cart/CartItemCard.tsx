@@ -13,10 +13,10 @@ interface CartItemCardProps {
   onToggleSelection?: () => void;
 }
 
-const CartItemCard: React.FC<CartItemCardProps> = ({ 
-  item, 
-  onIncrease, 
-  onDecrease, 
+const CartItemCard: React.FC<CartItemCardProps> = ({
+  item,
+  onIncrease,
+  onDecrease,
   onRemove,
   onToggleSelection
 }) => {
@@ -48,7 +48,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
   const onHandlerStateChange = (event: any) => {
     if (event.nativeEvent.oldState === State.ACTIVE) {
       const { translationX } = event.nativeEvent;
-      
+
       if (translationX < -80) {
         // Swipe left to show delete
         setIsSwipedOpen(true);
@@ -94,7 +94,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
           onGestureEvent={onGestureEvent}
           onHandlerStateChange={onHandlerStateChange}
         >
-          <Animated.View 
+          <Animated.View
             style={[
               styles.swipeableContent,
               { transform: [{ translateX }] }
@@ -105,8 +105,8 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
               {/* Left side with checkbox */}
               <View style={styles.leftColumn}>
                 {onToggleSelection && (
-                  <TouchableOpacity 
-                    style={styles.checkbox} 
+                  <TouchableOpacity
+                    style={styles.checkbox}
                     onPress={() => {
                       // For unavailable items, only allow deselection
                       if (isUnavailable && !item.selected) {
@@ -117,7 +117,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
                     disabled={false}
                   >
                     <View style={[
-                      styles.checkboxInner, 
+                      styles.checkboxInner,
                       item.selected && styles.checkboxSelected,
                       isUnavailable && !item.selected && styles.checkboxDisabled
                     ]}>
@@ -140,7 +140,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
                   </View>
                 )}
               </View>
-              
+
               {/* Product details */}
               <View style={styles.content}>
                 <View style={styles.nameRow}>
@@ -152,7 +152,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
                   )}
                 </View>
                 <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
-                
+
                 {/* Show bundle products if it's a bundle */}
                 {item.isBundle && item.bundleProducts && item.bundleProducts.length > 0 && (
                   <View style={styles.bundleProducts}>
@@ -161,27 +161,27 @@ const CartItemCard: React.FC<CartItemCardProps> = ({
                     </Text>
                   </View>
                 )}
-                
+
                 <View style={styles.footer}>
                   <Text style={styles.price}>₱{(item.price * item.quantity).toFixed(2)}</Text>
-                  
+
                   <View style={styles.quantityContainer}>
-                    <TouchableOpacity 
-                      style={[styles.quantityButton, (item.quantity <= 1 || isUnavailable) && styles.disabledButton]} 
+                    <TouchableOpacity
+                      style={[styles.quantityButton, (item.quantity <= 1 || isUnavailable) && styles.disabledButton]}
                       onPress={onDecrease}
                       disabled={isUnavailable}
                     >
-                      <Ionicons 
-                        name="remove" 
-                        size={16} 
+                      <Ionicons
+                        name="remove"
+                        size={16}
                         color={item.quantity > 0 && !isUnavailable ? colors.primary.main : "#C7C7CC"}
                       />
                     </TouchableOpacity>
-                    
+
                     <Text style={[styles.quantityText, isUnavailable && styles.unavailableText]}>{item.quantity}</Text>
-                    
-                    <TouchableOpacity 
-                      style={[styles.quantityButton, isUnavailable && styles.disabledButton]} 
+
+                    <TouchableOpacity
+                      style={[styles.quantityButton, isUnavailable && styles.disabledButton]}
                       onPress={onIncrease}
                       disabled={isUnavailable}
                     >
@@ -340,10 +340,10 @@ const styles = StyleSheet.create({
     borderColor: '#d1d1d6',
   },
   unavailableContainer: {
-    opacity: 0.7,
+    backgroundColor: '#F9FAFB', // Light gray background instead of opacity
   },
   unavailableImage: {
-    opacity: 0.5,
+    opacity: 0.7, // Slight opacity for image only
   },
   unavailableOverlay: {
     position: 'absolute',

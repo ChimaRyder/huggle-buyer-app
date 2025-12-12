@@ -23,22 +23,22 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress, fullWidth = 
   // Fetch dynamic pricing info if enabled
   useEffect(() => {
     const loadPricingInfo = async () => {
-      console.log('🔍 FoodItemCard: Checking dynamic pricing', {
-        productId: item.id,
-        productName: item.name
-      });
-      
+      // console.log('🔍 FoodItemCard: Checking dynamic pricing', {
+      //   productId: item.id,
+      //   productName: item.name
+      // });
+
       if (item.id) {
         try {
           setLoadingPricing(true);
-          console.log('📡 FoodItemCard: Fetching pricing info for', item.id);
+          // console.log('📡 FoodItemCard: Fetching pricing info for', item.id);
           const token = await getToken({ template: 'seller_app' });
           const response = await fetchDynamicPricingInfo(item.id, token);
-          console.log('✅ FoodItemCard: Pricing response:', {
-            success: response.success,
-            hasData: !!response.data,
-            trajectoryLength: response.data?.priceTrajectory?.length
-          });
+          // console.log('✅ FoodItemCard: Pricing response:', {
+          //   success: response.success,
+          //   hasData: !!response.data,
+          //   trajectoryLength: response.data?.priceTrajectory?.length
+          // });
           if (response.success && response.data) {
             setPricingInfo(response.data);
           }
@@ -56,15 +56,15 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress, fullWidth = 
   // Calculate display price and discount info from DTO
   const hasDiscount = item.hasDiscount || (item.price < item.originalPrice);
   const displayPrice = item.price; // Current price from DTO
-  
+
   return (
     <TouchableOpacity style={[styles.container, fullWidth && styles.fullWidthContainer]} onPress={onPress}>
       <View style={styles.imageContainer}>
-        <SafeImage 
-          source={{ 
-            uri: item.coverImage || (item.image && item.image.length > 0 ? item.image[0] : '') 
-          }} 
-          style={styles.image} 
+        <SafeImage
+          source={{
+            uri: item.coverImage || (item.image && item.image.length > 0 ? item.image[0] : '')
+          }}
+          style={styles.image}
         />
         {hasDiscount && (
           <View style={styles.popularBadge}>
@@ -73,19 +73,28 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress, fullWidth = 
             </Text>
           </View>
         )}
-        
+
         {/* Dynamic Pricing Countdown Badge */}
-        {pricingInfo && pricingInfo?.priceTrajectory[1] && (
-          <View style={styles.countdownBadge}>
-            <PriceCountdown 
-              targetTimestamp={pricingInfo.priceTrajectory[1].timestamp}
-              compact={true}
-              showIcon={true}
-            />
-          </View>
-        )}
+        {pricingInfo && pricingInfo?.priceTrajectory[1] && (() => {
+          const targetTime = new Date(pricingInfo.priceTrajectory[1].timestamp).getTime();
+          const now = new Date().getTime();
+          const daysDifference = (targetTime - now) / (1000 * 60 * 60 * 24);
+
+          if (daysDifference <= 3) {
+            return (
+              <View style={styles.countdownBadge}>
+                <PriceCountdown
+                  targetTimestamp={pricingInfo.priceTrajectory[1].timestamp}
+                  compact={true}
+                  showIcon={true}
+                />
+              </View>
+            );
+          }
+          return null;
+        })()}
       </View>
-      
+
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
@@ -96,7 +105,7 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress, fullWidth = 
             </View>
           )}
         </View>
-        
+
         <Text style={styles.description} numberOfLines={2}>
           {item.description}
         </Text>

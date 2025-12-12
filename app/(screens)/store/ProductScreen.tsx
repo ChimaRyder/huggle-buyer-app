@@ -12,6 +12,7 @@ import {
   RefreshControl,
   TextInput,
 } from "react-native";
+import ImageView from "react-native-image-viewing";
 import SafeImage from "@/components/common/SafeImage";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from '@clerk/clerk-expo';
@@ -32,6 +33,7 @@ import BundleProductCard from '@/components/bundle/BundleProductCard';
 import type { DynamicPricingInfo } from '@/types/DynamicPricing';
 import { fetchDynamicPricingInfo } from '@/services/pricingService';
 import { PriceCountdown } from '@/components/product/PriceCountdown';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -39,12 +41,19 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 // Skeleton Loading Component
 const ProductSkeleton = () => {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <ScrollView style={styles.scrollContainer}>
         {/* Image skeleton */}
         <View style={[styles.imageContainer, styles.skeletonBox]} />
 
         <View style={styles.content}>
+          {/* ... skeleton content ... */}
+          {/* This part was not fully read in previous steps so I should be careful not to overwrite skeleton internals blindly.
+              Actually, the skeleton was fully visible in step 62.
+              I will just update the wrapper.
+           */}
+          {/* ... skipped lines for brevity, using replace_file_content smartly ... */}
+
           {/* Title skeleton */}
           <View style={styles.nameRow}>
             <View style={[styles.skeletonBox, { height: 28, flex: 1 }]} />
@@ -103,7 +112,7 @@ const ProductSkeleton = () => {
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -119,6 +128,10 @@ export default function ProductScreen() {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
+
+  // Image Viewer state
+  const [isImageViewVisible, setIsImageViewVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
@@ -152,6 +165,7 @@ export default function ProductScreen() {
   } = useProductContext();
 
   const { addItem } = useCart();
+
 
   // Store context for fetching more products
   const {
@@ -457,7 +471,7 @@ export default function ProductScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <ScrollView
         style={styles.scrollContainer}
         refreshControl={
@@ -470,36 +484,55 @@ export default function ProductScreen() {
         }
       >
         <View style={styles.imageContainer}>
-          {/* Image carousel for bundles with multiple images */}
-          {isCurrentItemBundle && currentBundle ? (
-            (() => {
-              // Collect all images: bundle images + product images
-              const allImages: string[] = [];
+          {/* Image carousel for bundles/products */}
+          {(() => {
+            // Collect all images consistently
+            const galleryImages: string[] = [];
 
-              // Add bundle main images (use coverImage first - provided by backend)
-              if (currentBundle.coverImage) allImages.push(currentBundle.coverImage);
-              if (currentBundle.imageUrl) allImages.push(currentBundle.imageUrl);
+            if (isCurrentItemBundle && currentBundle) {
+              // Bundle logic
+              if (currentBundle.coverImage) galleryImages.push(currentBundle.coverImage);
+              if (currentBundle.imageUrl) galleryImages.push(currentBundle.imageUrl);
               if (currentBundle.images && currentBundle.images.length > 0) {
-                allImages.push(...currentBundle.images);
+                galleryImages.push(...currentBundle.images);
               }
-
-              // Add product images
               currentBundle.products.forEach(product => {
                 if (product.image && product.image.length > 0) {
-                  allImages.push(...product.image);
+                  galleryImages.push(...product.image);
                 }
               });
+            } else if (currentProduct) {
+              // Product logic
+              if (currentProduct.image && currentProduct.image.length > 0) {
+                galleryImages.push(...currentProduct.image);
+              }
+            }
 
-              // Remove duplicates
-              const uniqueImages = [...new Set(allImages)].filter(img => img && img.trim() !== '');
+            // Deduplicate and filter empty
+            const uniqueImages = [...new Set(galleryImages)].filter(img => img && img.trim() !== '');
 
+            // If no images, fallback to placeholder (handled by SafeImage usually, but here we might just not show anything or show a single placeholder)
+            // However, for the Viewer we need valid URIs.
+
+            // Prepare images for ImageView (needs {uri: string} objects)
+            const viewerImages = uniqueImages.map(img => ({ uri: img }));
+
+            const renderImageContent = () => {
               if (uniqueImages.length <= 1) {
-                // Single image - no carousel needed
+                // Single image
                 return (
-                  <SafeImage
-                    source={{ uri: uniqueImages[0] || '' }}
-                    style={styles.image}
-                  />
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => {
+                      setCurrentImageIndex(0);
+                      setIsImageViewVisible(true);
+                    }}
+                  >
+                    <SafeImage
+                      source={{ uri: uniqueImages[0] || '' }}
+                      style={styles.image}
+                    />
+                  </TouchableOpacity>
                 );
               }
 
@@ -513,44 +546,39 @@ export default function ProductScreen() {
                 >
                   {uniqueImages.map((imageUri, index) => (
                     <View key={index} style={styles.imageSlide}>
-                      <SafeImage
-                        source={{ uri: imageUri }}
-                        style={styles.image}
-                      />
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => {
+                          setCurrentImageIndex(index);
+                          setIsImageViewVisible(true);
+                        }}
+                      >
+                        <SafeImage
+                          source={{ uri: imageUri }}
+                          style={styles.image}
+                        />
+                      </TouchableOpacity>
                     </View>
                   ))}
                 </ScrollView>
               );
-            })()
-          ) : (
-            // Regular product images
-            currentProduct && currentProduct.image && currentProduct.image.length > 1 ? (
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                style={styles.imageCarousel}
-              >
-                {currentProduct.image.map((imageUri, index) => (
-                  <View key={index} style={styles.imageSlide}>
-                    <SafeImage
-                      source={{ uri: imageUri }}
-                      style={styles.image}
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <SafeImage
-                source={{
-                  uri: currentProduct?.image && currentProduct.image.length > 0
-                    ? currentProduct.image[0]
-                    : ''
-                }}
-                style={styles.image}
-              />
-            )
-          )}
+            };
+
+            return (
+              <>
+                {renderImageContent()}
+                <ImageView
+                  images={viewerImages}
+                  imageIndex={currentImageIndex}
+                  visible={isImageViewVisible}
+                  onRequestClose={() => setIsImageViewVisible(false)}
+                  swipeToCloseEnabled={true}
+                  doubleTapToZoomEnabled={true}
+                  onImageIndexChange={(index) => setCurrentImageIndex(index)}
+                />
+              </>
+            );
+          })()}
 
           {/* Back button overlay */}
           <TouchableOpacity
@@ -577,7 +605,22 @@ export default function ProductScreen() {
 
           {/* Dynamic Pricing Countdown */}
           {pricingInfo && pricingInfo.isDynamicPricingEnabled && pricingInfo.priceTrajectory.length > 0 && pricingInfo.priceTrajectory[0]?.timestamp && (
-            <PriceCountdown targetTimestamp={pricingInfo.priceTrajectory[1].timestamp} />
+            (() => {
+              const timestamp = pricingInfo.priceTrajectory[1]?.timestamp;
+              if (!timestamp) return null;
+
+              const targetTime = new Date(timestamp).getTime();
+              const now = new Date().getTime();
+              const timeUntilChange = targetTime - now;
+              const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+
+              if (timeUntilChange < threeDaysInMs) {
+                return (
+                  <PriceCountdown targetTimestamp={timestamp} />
+                );
+              }
+              return null;
+            })()
           )}
 
           {/* Divider */}
@@ -647,6 +690,39 @@ export default function ProductScreen() {
             )}
           </View>
 
+
+
+          {/* Price and Expiry Table */}
+          {currentItem && (
+            <View style={styles.section}>
+              <View style={styles.summaryCard}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Original Price</Text>
+                  <Text style={[styles.summaryValue, styles.strikethrough]}>
+                    ₱{(currentItem.originalPrice || 0).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Current Price</Text>
+                  <Text style={styles.summaryValue}>
+                    ₱{(currentItem.price || 0).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, styles.savedLabel]}>You Save</Text>
+                  <Text style={[styles.summaryValue, styles.savedValue]}>
+                    ₱{((currentItem.originalPrice || 0) - (currentItem.price || 0)).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={[styles.summaryRow, styles.totalRow]}>
+                  <Text style={styles.totalLabel}>Expires On</Text>
+                  <Text style={styles.totalValue}>
+                    {currentItem.expiresOn ? new Date(currentItem.expiresOn).toLocaleDateString() : 'N/A'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Store info section */}
           {currentItem?.storeName && (
@@ -860,19 +936,20 @@ export default function ProductScreen() {
                 <Text style={styles.productNameDrawer}>{currentItem?.name}</Text>
               </View>
 
-              {/* Stock info */}
-              <View style={styles.stockInfo}>
-                <Text style={styles.stockText}>
-                  {(currentItem?.stock || 0) > 0
-                    ? `${currentItem?.stock} items available`
-                    : 'Out of stock'
-                  }
-                </Text>
-              </View>
+
 
               {/* Quantity selector */}
               <View style={styles.quantitySection}>
-                <Text style={styles.quantityLabel}>Quantity</Text>
+                <View>
+                  <Text style={styles.quantityLabel}>Quantity</Text>
+                  <Text style={styles.stockText}>
+                    {(currentItem?.stock || 0) > 0
+                      ? `${currentItem?.stock} items available`
+                      : 'Out of stock'
+                    }
+                  </Text>
+                </View>
+
                 <View style={styles.quantityControls}>
                   <TouchableOpacity
                     style={[styles.quantityButton, quantity <= 1 && styles.quantityButtonDisabled]}
@@ -1050,7 +1127,7 @@ export default function ProductScreen() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -1097,7 +1174,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: 50,
+    top: 12,
     left: 20,
     backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 20,
@@ -1105,7 +1182,7 @@ const styles = StyleSheet.create({
   },
   reportButton: {
     position: "absolute",
-    top: 50,
+    top: 12,
     right: 20,
     backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 20,
@@ -1390,26 +1467,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text.secondary,
   },
-  stockInfo: {
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginBottom: 20,
-  },
-  stockText: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
+
   quantitySection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
   },
   quantityLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text.primary,
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  stockText: {
+    fontSize: 13,
+    color: colors.text.secondary,
   },
   quantityButtonDisabled: {
     backgroundColor: colors.background.secondary,
@@ -1776,9 +1849,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+
   pricingLabel: {
     fontSize: 14,
     fontWeight: '500',
     color: colors.text.secondary,
+  },
+  summaryCard: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border.primary,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: colors.text.secondary,
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text.primary,
+  },
+  strikethrough: {
+    textDecorationLine: 'line-through',
+    color: colors.text.tertiary,
+  },
+  savedLabel: {
+    color: colors.success,
+    fontWeight: '500',
+  },
+  savedValue: {
+    color: colors.success,
+    fontWeight: '600',
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border.primary,
+    marginTop: spacing.xs,
+    paddingTop: spacing.sm,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary.main,
   },
 });
