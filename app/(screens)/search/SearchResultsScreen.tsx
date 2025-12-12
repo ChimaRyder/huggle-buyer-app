@@ -31,7 +31,6 @@ const SearchResultsScreen = () => {
   const [searchQuery, setSearchQuery] = useState(query);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFromExpandedSearch, setIsFromExpandedSearch] = useState(false); // Track if results are from expanded search
 
   // Filtering state
   const [filtersVisible, setFiltersVisible] = useState(false);
@@ -68,13 +67,11 @@ const SearchResultsScreen = () => {
       if (!searchQuery.trim()) {
         setStores([]);
         setProducts([]);
-        setIsFromExpandedSearch(false);
         return;
       }
 
       setLoading(true);
       setError(null);
-      setIsFromExpandedSearch(false);
 
       try {
         // First, try searching with location-based filtering
@@ -89,24 +86,6 @@ const SearchResultsScreen = () => {
 
         let results = await searchAll(searchQuery, searchOptions);
         let { products: allProducts, stores: nearbyStores } = results;
-
-        // If no nearby stores found but we have location, try expanded search (without radius limit)
-        if (nearbyStores.length === 0 && currentLocation) {
-          console.log('🔍 No nearby stores found, expanding search radius...');
-
-          // Search without location restriction to get results from anywhere
-          const expandedOptions = {
-            pageSize: 20,
-          };
-          const expandedResults = await searchAll(searchQuery, expandedOptions);
-
-          // Use expanded results if they have stores or products
-          if (expandedResults.stores.length > 0 || expandedResults.products.length > 0) {
-            allProducts = expandedResults.products;
-            nearbyStores = expandedResults.stores;
-            setIsFromExpandedSearch(true);
-          }
-        }
 
         // Apply client-side filtering to products
         let filteredProducts = allProducts;
@@ -346,19 +325,6 @@ const SearchResultsScreen = () => {
                 <Text style={styles.resultsCount}>
                   Found {stores.length + products.length} results for "{searchQuery}"
                 </Text>
-              </View>
-            )}
-
-            {/* Show notice if results are from expanded search (outside normal range) */}
-            {isFromExpandedSearch && (stores.length > 0 || products.length > 0) && (
-              <View style={styles.noticeContainer}>
-                <Ionicons name="location-outline" size={20} color={colors.warning} />
-                <View style={styles.noticeTextContainer}>
-                  <Text style={styles.noticeTitle}>Results from outside your area</Text>
-                  <Text style={styles.noticeText}>
-                    No nearby stores found. Showing results from stores further away.
-                  </Text>
-                </View>
               </View>
             )}
 

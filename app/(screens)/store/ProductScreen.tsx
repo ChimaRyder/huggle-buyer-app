@@ -614,20 +614,20 @@ export default function ProductScreen() {
                   <View style={styles.bundleSummaryRow}>
                     <Text style={styles.bundleSummaryLabel}>Total Individual Price:</Text>
                     <Text style={styles.bundleSummaryValue}>
-                      ${currentBundle.totalProductPrice?.toFixed(2) || 'N/A'}
+                      ₱{currentBundle.totalProductPrice?.toFixed(2) || 'N/A'}
                     </Text>
                   </View>
                   <View style={styles.bundleSummaryRow}>
                     <Text style={styles.bundleSummaryLabel}>Bundle Price:</Text>
                     <Text style={styles.bundlePriceValue}>
-                      ${currentBundle.price?.toFixed(2) || 'N/A'}
+                      ₱{currentBundle.price?.toFixed(2) || 'N/A'}
                     </Text>
                   </View>
                   {currentBundle.hasDiscount && (
                     <View style={styles.bundleSummaryRow}>
                       <Text style={styles.bundleSavingsLabel}>Your Savings:</Text>
                       <Text style={styles.bundleSavingsValue}>
-                        ${((currentBundle.totalProductPrice || 0) - (currentBundle.price || 0)).toFixed(2)}
+                        ₱{((currentBundle.totalProductPrice || 0) - (currentBundle.price || 0)).toFixed(2)}
                       </Text>
                     </View>
                   )}
@@ -801,11 +801,11 @@ export default function ProductScreen() {
         <View style={styles.bottomBar}>
           <View style={styles.priceSection}>
             <Text style={styles.price}>
-              ${currentItem?.price?.toFixed(2)}
+              ₱{currentItem?.price?.toFixed(2)}
             </Text>
             {currentItem?.originalPrice !== currentItem?.price && (
               <Text style={styles.originalPriceFooter}>
-                Was ${currentItem?.originalPrice?.toFixed(2)}
+                Was ₱{currentItem?.originalPrice?.toFixed(2)}
               </Text>
             )}
           </View>
@@ -899,7 +899,7 @@ export default function ProductScreen() {
                   {currentItem?.originalPrice !== currentItem?.price && (
                     <View style={styles.savingsInfo}>
                       <Text style={styles.savingsText}>
-                        You save ${(((currentItem?.originalPrice || 0) - (currentItem?.price || 0)) * quantity).toFixed(2)}
+                        You save ₱{(((currentItem?.originalPrice || 0) - (currentItem?.price || 0)) * quantity).toFixed(2)}
                       </Text>
                       {(currentItem?.discountPercentage || 0) > 0 && (
                         <Text style={styles.discountBadgeText}>
@@ -911,11 +911,11 @@ export default function ProductScreen() {
                 </View>
                 <View style={styles.totalPriceContainer}>
                   <Text style={styles.totalPrice}>
-                    ${((currentItem?.price || 0) * quantity).toFixed(2)}
+                    ₱{((currentItem?.price || 0) * quantity).toFixed(2)}
                   </Text>
                   {currentItem?.originalPrice !== currentItem?.price && (
                     <Text style={styles.totalOriginalPrice}>
-                      ${((currentItem?.originalPrice || 0) * quantity).toFixed(2)}
+                      ₱{((currentItem?.originalPrice || 0) * quantity).toFixed(2)}
                     </Text>
                   )}
                 </View>

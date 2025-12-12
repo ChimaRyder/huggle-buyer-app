@@ -5,7 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { colors } from '@/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, typography, radii } from '@/constants/theme';
 
 interface CartSummaryProps {
   subtotal: number;
@@ -28,45 +30,76 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   isDisabled = false,
   disabledReason
 }) => {
+  const isButtonDisabled = !hasItems || isDisabled;
+
   return (
     <View style={styles.summaryContainer}>
-      <View style={styles.summaryRow}>
-        <Text style={styles.summaryLabel}>Subtotal</Text>
-        <Text style={styles.summaryValue}>₱{subtotal.toFixed(2)}</Text>
+      {/* Price Breakdown */}
+      <View style={styles.priceBreakdown}>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Subtotal</Text>
+          <Text style={styles.summaryValue}>₱{subtotal.toFixed(2)}</Text>
+        </View>
+
+        <View style={styles.summaryRow}>
+          <View style={styles.labelWithIcon}>
+            <Ionicons name="bicycle-outline" size={16} color={colors.text.tertiary} />
+            <Text style={styles.summaryLabel}>Delivery Fee</Text>
+          </View>
+          <Text style={styles.summaryValue}>₱{deliveryFee.toFixed(2)}</Text>
+        </View>
+
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Tax (12%)</Text>
+          <Text style={styles.summaryValue}>₱{tax.toFixed(2)}</Text>
+        </View>
       </View>
 
-      <View style={styles.summaryRow}>
-        <Text style={styles.summaryLabel}>Delivery Fee</Text>
-        <Text style={styles.summaryValue}>₱{deliveryFee.toFixed(2)}</Text>
-      </View>
+      {/* Divider */}
+      <View style={styles.divider} />
 
-      <View style={styles.summaryRow}>
-        <Text style={styles.summaryLabel}>Tax</Text>
-        <Text style={styles.summaryValue}>₱{tax.toFixed(2)}</Text>
-      </View>
-
-      <View style={[styles.summaryRow, styles.totalRow]}>
-        <Text style={styles.totalLabel}>Total</Text>
+      {/* Total */}
+      <View style={styles.totalRow}>
+        <View>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalHint}>Including all taxes & fees</Text>
+        </View>
         <Text style={styles.totalValue}>₱{total.toFixed(2)}</Text>
       </View>
 
+      {/* Disabled Reason */}
       {disabledReason && (
         <View style={styles.disabledReasonContainer}>
+          <Ionicons name="alert-circle" size={18} color="#FF6B6B" />
           <Text style={styles.disabledReasonText}>{disabledReason}</Text>
         </View>
       )}
 
+      {/* Checkout Button */}
       <TouchableOpacity
-        style={[
-          styles.checkoutButton,
-          (!hasItems || isDisabled) && styles.disabledButton
-        ]}
         onPress={onCheckout}
-        disabled={!hasItems || isDisabled}
+        disabled={isButtonDisabled}
+        activeOpacity={0.8}
+        style={styles.checkoutButtonContainer}
       >
-        <Text style={styles.checkoutButtonText}>
-          {isDisabled ? 'Cannot Checkout' : 'Checkout'}
-        </Text>
+        {isButtonDisabled ? (
+          <View style={styles.disabledButton}>
+            <Text style={styles.disabledButtonText}>
+              {!hasItems ? 'Select Items' : 'Cannot Checkout'}
+            </Text>
+          </View>
+        ) : (
+          <LinearGradient
+            colors={[colors.primary.main, colors.primary.dark || '#3D7A1E']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.checkoutButton}
+          >
+            <Ionicons name="cart-outline" size={22} color={colors.text.inverse} />
+            <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
+            <Ionicons name="arrow-forward" size={20} color={colors.text.inverse} />
+          </LinearGradient>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -75,62 +108,107 @@ const CartSummary: React.FC<CartSummaryProps> = ({
 const styles = StyleSheet.create({
   summaryContainer: {
     backgroundColor: colors.background.primary,
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.primary,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    borderTopLeftRadius: radii.xxl,
+    borderTopRightRadius: radii.xxl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  priceBreakdown: {
+    marginBottom: spacing.sm,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  labelWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   summaryLabel: {
-    fontSize: 16,
+    fontSize: typography.fontSizes.md,
     color: colors.text.tertiary,
   },
   summaryValue: {
-    fontSize: 16,
+    fontSize: typography.fontSizes.md,
     color: colors.text.primary,
+    fontWeight: typography.fontWeights.medium,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border.primary,
+    marginVertical: spacing.md,
   },
   totalRow: {
-    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
   },
   totalLabel: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
+  },
+  totalHint: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.tertiary,
+    marginTop: 2,
   },
   totalValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
+    fontSize: typography.fontSizes.xxl,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.primary.main,
+  },
+  checkoutButtonContainer: {
+    borderRadius: radii.xl,
+    overflow: 'hidden',
   },
   checkoutButton: {
-    backgroundColor: colors.primary.main,
-    borderRadius: 12,
-    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: colors.text.tertiary,
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
   },
   checkoutButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
     color: colors.text.inverse,
   },
+  disabledButton: {
+    backgroundColor: colors.background.tertiary,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.xl,
+  },
+  disabledButtonText: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.tertiary,
+  },
   disabledReasonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFF5F5',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF6B6B',
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   disabledReasonText: {
-    fontSize: 14,
+    flex: 1,
+    fontSize: typography.fontSizes.sm,
     color: '#FF6B6B',
-    textAlign: 'center',
   },
 });
 
