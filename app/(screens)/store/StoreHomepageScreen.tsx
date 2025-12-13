@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,9 +15,12 @@ import ProductGrid from "@/components/product/ProductGrid";
 import PostGrid from "@/components/posts/PostGrid";
 import SafeImage from "@/components/common/SafeImage";
 import { StoreSearchInput } from "@/components/store";
+import { BundleGrid } from "@/components/bundle";
 import { useStoreContext } from "@/context/StoreContext";
 import { usePostContext } from "@/context/PostContext";
-import type { BackendProduct } from "@/types/BackendModels";
+import { useApi } from "@/context/ApiContext";
+import { API_ENDPOINTS } from "@/constants/config";
+import type { BackendProduct, BackendBundle } from "@/types/BackendModels";
 // Get screen width for layout
 
 // Store Homepage Skeleton Loading Component
@@ -122,8 +126,50 @@ export default function StoreHomepageScreen() {
     clearStorePosts
   } = usePostContext();
 
+  // API context for bundle fetching
+  const { client } = useApi();
+
+  // Bundle state
+  const [storeBundles, setStoreBundles] = useState<BackendBundle[]>([]);
+  const [isFetchingBundles, setIsFetchingBundles] = useState(false);
+  const [bundlesError, setBundlesError] = useState<string | null>(null);
+
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Fetch store bundles
+  const fetchStoreBundles = useCallback(async (storeId: string) => {
+    setIsFetchingBundles(true);
+    setBundlesError(null);
+    try {
+      const response = await client.get<any>(API_ENDPOINTS.bundles.byStore(storeId));
+      if (response.success && response.data) {
+        // Extract bundles from response
+        let bundlesArray: BackendBundle[] = [];
+        if (response.data.data?.items && Array.isArray(response.data.data.items)) {
+          bundlesArray = response.data.data.items;
+        } else if (response.data.items && Array.isArray(response.data.items)) {
+          bundlesArray = response.data.items;
+        } else if (Array.isArray(response.data.data)) {
+          bundlesArray = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          bundlesArray = response.data;
+        }
+        setStoreBundles(bundlesArray);
+        console.log('✅ StoreHomepageScreen: Fetched', bundlesArray.length, 'bundles');
+      } else {
+        console.warn('❌ StoreHomepageScreen: Failed to fetch bundles:', response.error);
+        setBundlesError(response.error || 'Failed to fetch bundles');
+        setStoreBundles([]);
+      }
+    } catch (error) {
+      console.error('❌ StoreHomepageScreen: Exception fetching bundles:', error);
+      setBundlesError(error instanceof Error ? error.message : 'Unknown error');
+      setStoreBundles([]);
+    } finally {
+      setIsFetchingBundles(false);
+    }
+  }, [client]);
 
   // Filter products based on search query
   useEffect(() => {
@@ -173,6 +219,7 @@ export default function StoreHomepageScreen() {
       fetchStoreProducts(id);
       fetchFollowStatus(id);
       fetchPostsByStore(id);
+      fetchStoreBundles(id);
     }
 
     // Cleanup when component unmounts or ID changes
@@ -181,8 +228,9 @@ export default function StoreHomepageScreen() {
       clearStoreProducts();
       clearFollowStatus();
       clearStorePosts();
+      setStoreBundles([]);
     };
-  }, [id, fetchStoreById, clearCurrentStore, fetchStoreProducts, clearStoreProducts, fetchFollowStatus, clearFollowStatus, fetchPostsByStore, clearStorePosts]);
+  }, [id, fetchStoreById, clearCurrentStore, fetchStoreProducts, clearStoreProducts, fetchFollowStatus, clearFollowStatus, fetchPostsByStore, clearStorePosts, fetchStoreBundles]);
 
   // Pull to refresh handler
   const onRefresh = async () => {
@@ -194,7 +242,8 @@ export default function StoreHomepageScreen() {
         fetchStoreById(id),
         fetchStoreProducts(id),
         fetchFollowStatus(id),
-        fetchPostsByStore(id)
+        fetchPostsByStore(id),
+        fetchStoreBundles(id)
       ]);
     } catch (error) {
       console.error('🔍 StoreHomepageScreen: Error during refresh:', error);
@@ -579,7 +628,7 @@ export default function StoreHomepageScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.categoriesGrid}>
-            {storeCategories.map((category, index) => {
+            {storeCategories.map((category) => {
               const color = getCategoryColor(category.name);
               return (
                 <TouchableOpacity
@@ -608,10 +657,66 @@ export default function StoreHomepageScreen() {
   };
 
 
+  // Render bundles tab content
+  const renderBundlesTab = () => {
+    if (isFetchingBundles) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+          <Text style={styles.loadingText}>Loading bundles...</Text>
+        </View>
+      );
+    }
+
+    if (bundlesError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Ionicons name="warning-outline" size={48} color={colors.error} />
+          <Text style={styles.errorText}>Failed to load bundles</Text>
+          <Text style={styles.errorSubtext}>{bundlesError}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => id && typeof id === 'string' && fetchStoreBundles(id)}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (storeBundles.length === 0) {
+      return (
+        <View style={styles.emptyContentContainer}>
+          <Ionicons name="layers-outline" size={64} color={colors.text.tertiary} />
+          <Text style={styles.emptyContentText}>No bundles available</Text>
+          <Text style={styles.emptyContentSubtext}>
+            This store hasn't created any bundles yet. Check back later for special bundle deals!
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.bundlesTabContent}>
+        <View style={styles.bundlesHeaderContainer}>
+          <Ionicons name="layers" size={18} color={colors.primary.main} />
+          <Text style={styles.bundlesHeaderText}>
+            {storeBundles.length} Bundle{storeBundles.length !== 1 ? 's' : ''} Available
+          </Text>
+        </View>
+        <BundleGrid
+          bundles={storeBundles}
+          onBundlePress={handleProductPress}
+        />
+      </View>
+    );
+  };
+
   // Tab configuration
   const tabs = [
     { key: "Featured", label: "Featured" },
     { key: "Products", label: "Products" },
+    { key: "Bundles", label: "Bundles" },
     { key: "Posts", label: "Posts" },
     { key: "Categories", label: "Categories" },
   ];
@@ -781,6 +886,7 @@ export default function StoreHomepageScreen() {
         <View style={styles.tabContentWrapper}>
           {activeTab === "Featured" && renderFeaturedTab()}
           {activeTab === "Products" && renderProductsTab()}
+          {activeTab === "Bundles" && renderBundlesTab()}
           {activeTab === "Posts" && renderPostsTab()}
           {activeTab === "Categories" && renderCategoriesTab()}
         </View>
@@ -1280,5 +1386,21 @@ const styles = StyleSheet.create({
   categoryProductsGrid: {
     padding: spacing.lg,
     flex: 1,
+  },
+  // Bundles tab styles
+  bundlesTabContent: {
+    padding: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  bundlesHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  bundlesHeaderText: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
   },
 });

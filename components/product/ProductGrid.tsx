@@ -5,7 +5,7 @@ import {
   FlatList,
   Dimensions,
 } from "react-native";
-import { colors, spacing } from "@/constants/theme";
+import { spacing } from "@/constants/theme";
 import type { BackendProduct } from "@/types/BackendModels";
 import FoodItemCard from "../food/FoodItemCard";
 
@@ -21,21 +21,24 @@ interface ProductGridProps {
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPress }) => {
+  // Filter out bundles - they have their own dedicated Bundles tab
+  const filteredProducts = products.filter(p => p.isBundle !== true);
+
   const renderItem = ({ item, index }: { item: BackendProduct; index: number }) => {
     const isLeftColumn = index % 2 === 0;
-    
+
     return (
-      <View 
+      <View
         style={[
           styles.cardWrapper,
-          { 
+          {
             width: CARD_WIDTH,
             marginRight: isLeftColumn ? GAP : 0,
           }
         ]}
       >
-        <FoodItemCard 
-          item={item} 
+        <FoodItemCard
+          item={item}
           onPress={() => onProductPress(item.id)}
           fullWidth
         />
@@ -45,7 +48,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductPre
 
   return (
     <FlatList
-      data={products}
+      data={filteredProducts}
       renderItem={renderItem}
       keyExtractor={(item) => item.id}
       numColumns={NUM_COLUMNS}
