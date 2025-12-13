@@ -12,6 +12,7 @@ import {
   RefreshControl,
   TextInput,
 } from "react-native";
+import ImageView from "react-native-image-viewing";
 import SafeImage from "@/components/common/SafeImage";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from '@clerk/clerk-expo';
@@ -32,6 +33,7 @@ import BundleProductCard from '@/components/bundle/BundleProductCard';
 import type { DynamicPricingInfo } from '@/types/DynamicPricing';
 import { fetchDynamicPricingInfo } from '@/services/pricingService';
 import { PriceCountdown } from '@/components/product/PriceCountdown';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Get screen width for carousel
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -39,17 +41,24 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 // Skeleton Loading Component
 const ProductSkeleton = () => {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <ScrollView style={styles.scrollContainer}>
         {/* Image skeleton */}
         <View style={[styles.imageContainer, styles.skeletonBox]} />
-        
+
         <View style={styles.content}>
+          {/* ... skeleton content ... */}
+          {/* This part was not fully read in previous steps so I should be careful not to overwrite skeleton internals blindly.
+              Actually, the skeleton was fully visible in step 62.
+              I will just update the wrapper.
+           */}
+          {/* ... skipped lines for brevity, using replace_file_content smartly ... */}
+
           {/* Title skeleton */}
           <View style={styles.nameRow}>
             <View style={[styles.skeletonBox, { height: 28, flex: 1 }]} />
           </View>
-          
+
           {/* Store section skeleton */}
           <View style={styles.storeSection}>
             <View style={styles.storeContent}>
@@ -62,26 +71,26 @@ const ProductSkeleton = () => {
               </View>
             </View>
           </View>
-          
+
           {/* Divider */}
           <View style={styles.divider} />
-          
+
           {/* Description skeleton */}
           <View style={styles.section}>
             <View style={[styles.skeletonBox, { height: 16, marginBottom: 8 }]} />
             <View style={[styles.skeletonBox, { height: 16, width: '80%', marginBottom: 8 }]} />
             <View style={[styles.skeletonBox, { height: 16, width: '60%', marginBottom: 16 }]} />
-            
+
             {/* Category badges skeleton */}
             <View style={styles.categoriesContainer}>
               <View style={[styles.skeletonBox, { width: 80, height: 24, borderRadius: 8, marginRight: 8 }]} />
               <View style={[styles.skeletonBox, { width: 60, height: 24, borderRadius: 8, marginRight: 8 }]} />
             </View>
           </View>
-          
+
           {/* Divider */}
           <View style={styles.divider} />
-          
+
           {/* Reviews section skeleton */}
           <View style={styles.reviewsHeader}>
             <View style={[styles.skeletonBox, { height: 20, width: 120 }]} />
@@ -89,7 +98,7 @@ const ProductSkeleton = () => {
           </View>
         </View>
       </ScrollView>
-      
+
       {/* Bottom bar skeleton */}
       <View style={styles.bottomBarContainer}>
         <View style={styles.bottomBar}>
@@ -103,7 +112,7 @@ const ProductSkeleton = () => {
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -119,22 +128,26 @@ export default function ProductScreen() {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
-  
+
+  // Image Viewer state
+  const [isImageViewVisible, setIsImageViewVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   // Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
-  
+
   // Reviews state
   const [reviews, setReviews] = useState<BackendReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
-  
+
   // Dynamic pricing state
   const [pricingInfo, setPricingInfo] = useState<DynamicPricingInfo | null>(null);
   const [pricingLoading, setPricingLoading] = useState(false);
-  
+
   const {
     currentProduct,
     isFetchingProduct,
@@ -150,9 +163,10 @@ export default function ProductScreen() {
     currentItem,
     fetchItemById
   } = useProductContext();
-  
+
   const { addItem } = useCart();
-  
+
+
   // Store context for fetching more products
   const {
     storeProducts,
@@ -160,16 +174,16 @@ export default function ProductScreen() {
     fetchStoreProducts,
     clearStoreProducts
   } = useStoreContext();
-  
+
   // Function to fetch reviews
   const fetchProductReviews = async (productId: string) => {
     try {
       setReviewsLoading(true);
       setReviewsError(null);
-      const token = await getToken({template: "seller_app"});
-      
+      const token = await getToken({ template: "seller_app" });
+
       const response = await fetchReviews(token, { productId });
-      
+
       if (response && response.data) {
         const reviewsData = Array.isArray(response.data) ? response.data : [];
         setReviews(reviewsData);
@@ -184,14 +198,14 @@ export default function ProductScreen() {
       setReviewsLoading(false);
     }
   };
-  
+
   // Function to fetch dynamic pricing info
   const fetchProductPricingInfo = async (productId: string) => {
     try {
       setPricingLoading(true);
       console.log('📡 ProductScreen: Fetching pricing info for', productId);
-      const token = await getToken({template: "seller_app"});
-      
+      const token = await getToken({ template: "seller_app" });
+
       const response = await fetchDynamicPricingInfo(productId, token);
       console.log('✅ ProductScreen: Pricing response:', {
         success: response?.success,
@@ -200,7 +214,7 @@ export default function ProductScreen() {
         trajectoryLength: response?.data?.priceTrajectory?.length,
         firstTimestamp: response?.data?.priceTrajectory?.[0]?.timestamp
       });
-      
+
       if (response && response.success && response.data) {
         console.log("AAAAAAAAAAAAAAA")
         console.log(response.data);
@@ -215,27 +229,28 @@ export default function ProductScreen() {
       setPricingLoading(false);
     }
   };
-  
+
   useEffect(() => {
     if (id && typeof id === 'string') {
-      
+
       // Use smart fetch that tries both product and bundle endpoints
       fetchItemById(id);
       fetchProductReviews(id); // Fetch reviews for both products and bundles
       fetchProductPricingInfo(id); // Fetch dynamic pricing info
     }
-    
-    // Cleanup when component unmounts or ID changes
+
+    // Cleanup only LOCAL state when component unmounts or ID changes
+    // DO NOT clear context state (currentProduct, currentBundle) as this causes
+    // "Product Not Found" errors when navigating back through the stack
+    // The context state will be overwritten by the next fetchItemById call anyway
     return () => {
-      clearCurrentProduct();
-      clearCurrentBundle();
       setReviews([]);
       setReviewsError(null);
       setPricingInfo(null);
       clearStoreProducts();
     };
-  }, [id, fetchItemById, clearCurrentProduct, clearCurrentBundle, clearStoreProducts]);
-  
+  }, [id, fetchItemById, clearStoreProducts]);
+
   // Fetch store products when currentItem is available
   useEffect(() => {
     if (currentItem?.storeId) {
@@ -259,7 +274,7 @@ export default function ProductScreen() {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>{error || `${isCurrentItemBundle ? 'Bundle' : 'Product'} not found`}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -269,13 +284,13 @@ export default function ProductScreen() {
     );
   }
 
-  const averageRating = reviews.length > 0 
+  const averageRating = reviews.length > 0
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
     : "0.0";
 
   const handleRefresh = async () => {
     if (!id || typeof id !== 'string') return;
-    
+
     setRefreshing(true);
     try {
       const refreshPromises = [
@@ -283,12 +298,12 @@ export default function ProductScreen() {
         fetchProductReviews(id),
         fetchProductPricingInfo(id)
       ];
-      
+
       // Also refresh store products if we have a storeId
       if (currentItem?.storeId) {
         refreshPromises.push(fetchStoreProducts(currentItem.storeId));
       }
-      
+
       await Promise.all(refreshPromises);
     } catch (error) {
       console.error('❌ ProductScreen: Error refreshing data:', error);
@@ -337,29 +352,29 @@ export default function ProductScreen() {
 
   const confirmAction = async () => {
     if (!currentItem) return;
-    
+
     try {
       if (drawerAction === 'cart') {
         // Create cart item from current item using appropriate helper
         const cartItem = isCurrentItemBundle && currentBundle
           ? bundleToCartItem(currentBundle, quantity)
           : genericProductToCartItem(currentItem, quantity);
-        
+
         await addItem(cartItem);
-        
+
         setShowAddToCartModal(true);
       } else if (drawerAction === 'order') {
         closeDrawer();
-        
+
         // Get the first image URL for display
-        const imageUrl = Array.isArray(currentItem.image) 
-          ? currentItem.image[0] 
+        const imageUrl = Array.isArray(currentItem.image)
+          ? currentItem.image[0]
           : currentItem.image || '';
-          
+
         // Navigate directly to OrderReviewScreen for immediate checkout
         router.push({
           pathname: '/(screens)/cart/OrderReviewScreen',
-          params: { 
+          params: {
             storeId: currentItem.storeId,
             productId: currentItem.id,
             productName: currentItem.name,
@@ -371,7 +386,7 @@ export default function ProductScreen() {
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 
+      const errorMessage = error instanceof Error ? error.message :
         drawerAction === 'cart' ? 'Failed to add item to cart' : 'Failed to process order';
       console.error('❌ ProductScreen: confirmAction failed', {
         error: errorMessage,
@@ -398,11 +413,13 @@ export default function ProductScreen() {
   const handleViewAllReviews = () => {
     router.push(`/(screens)/store/ReviewsScreen?id=${store?.id}&productId=${currentItem?.id}`);
   };
-  
+
   const handleMoreProductPress = (productId: string) => {
-    router.push(`/(screens)/store/ProductScreen?id=${productId}`);
+    // Use replace instead of push to avoid stacking multiple product screens
+    // This prevents "Product Not Found" error when navigating back through the stack
+    router.replace(`/(screens)/store/ProductScreen?id=${productId}`);
   };
-  
+
   // Filter out the current product from store products
   const otherStoreProducts = storeProducts.filter(product => product.id !== currentItem?.id);
 
@@ -418,22 +435,22 @@ export default function ProductScreen() {
     const clampedIndex = Math.min(Math.max(newIndex, 0), reviews.length - 1);
     setCurrentReviewIndex(clampedIndex);
   };
-  
+
   const handleReport = async () => {
     if (!reportReason) {
       alert("Please select a reason for reporting.");
       return;
     }
-    
+
     if (!currentItem || !userId) {
       alert("Unable to submit report. Please try again.");
       return;
     }
-    
+
     setReportLoading(true);
     try {
       const token = await getToken({ template: "seller_app" });
-      
+
       await submitProductReport(
         userId,
         currentItem.id,
@@ -441,7 +458,7 @@ export default function ProductScreen() {
         reportDescription,
         token
       );
-      
+
       setShowReportModal(false);
       setReportReason("");
       setReportDescription("");
@@ -454,52 +471,71 @@ export default function ProductScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView 
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+      <ScrollView
         style={styles.scrollContainer}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[colors.primary.main]}
-              tintColor={colors.primary.main}
-            />
-          }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary.main]}
+            tintColor={colors.primary.main}
+          />
+        }
       >
         <View style={styles.imageContainer}>
-          {/* Image carousel for bundles with multiple images */}
-          {isCurrentItemBundle && currentBundle ? (
-            (() => {
-              // Collect all images: bundle images + product images
-              const allImages: string[] = [];
-              
-              // Add bundle main images (use coverImage first - provided by backend)
-              if (currentBundle.coverImage) allImages.push(currentBundle.coverImage);
-              if (currentBundle.imageUrl) allImages.push(currentBundle.imageUrl);
+          {/* Image carousel for bundles/products */}
+          {(() => {
+            // Collect all images consistently
+            const galleryImages: string[] = [];
+
+            if (isCurrentItemBundle && currentBundle) {
+              // Bundle logic
+              if (currentBundle.coverImage) galleryImages.push(currentBundle.coverImage);
+              if (currentBundle.imageUrl) galleryImages.push(currentBundle.imageUrl);
               if (currentBundle.images && currentBundle.images.length > 0) {
-                allImages.push(...currentBundle.images);
+                galleryImages.push(...currentBundle.images);
               }
-              
-              // Add product images
               currentBundle.products.forEach(product => {
                 if (product.image && product.image.length > 0) {
-                  allImages.push(...product.image);
+                  galleryImages.push(...product.image);
                 }
               });
-              
-              // Remove duplicates
-              const uniqueImages = [...new Set(allImages)].filter(img => img && img.trim() !== '');
-              
+            } else if (currentProduct) {
+              // Product logic
+              if (currentProduct.image && currentProduct.image.length > 0) {
+                galleryImages.push(...currentProduct.image);
+              }
+            }
+
+            // Deduplicate and filter empty
+            const uniqueImages = [...new Set(galleryImages)].filter(img => img && img.trim() !== '');
+
+            // If no images, fallback to placeholder (handled by SafeImage usually, but here we might just not show anything or show a single placeholder)
+            // However, for the Viewer we need valid URIs.
+
+            // Prepare images for ImageView (needs {uri: string} objects)
+            const viewerImages = uniqueImages.map(img => ({ uri: img }));
+
+            const renderImageContent = () => {
               if (uniqueImages.length <= 1) {
-                // Single image - no carousel needed
+                // Single image
                 return (
-                  <SafeImage 
-                    source={{ uri: uniqueImages[0] || '' }} 
-                    style={styles.image} 
-                  />
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => {
+                      setCurrentImageIndex(0);
+                      setIsImageViewVisible(true);
+                    }}
+                  >
+                    <SafeImage
+                      source={{ uri: uniqueImages[0] || '' }}
+                      style={styles.image}
+                    />
+                  </TouchableOpacity>
                 );
               }
-              
+
               // Multiple images - show carousel
               return (
                 <ScrollView
@@ -510,55 +546,50 @@ export default function ProductScreen() {
                 >
                   {uniqueImages.map((imageUri, index) => (
                     <View key={index} style={styles.imageSlide}>
-                      <SafeImage 
-                        source={{ uri: imageUri }} 
-                        style={styles.image} 
-                      />
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => {
+                          setCurrentImageIndex(index);
+                          setIsImageViewVisible(true);
+                        }}
+                      >
+                        <SafeImage
+                          source={{ uri: imageUri }}
+                          style={styles.image}
+                        />
+                      </TouchableOpacity>
                     </View>
                   ))}
                 </ScrollView>
               );
-            })()
-          ) : (
-            // Regular product images
-            currentProduct && currentProduct.image && currentProduct.image.length > 1 ? (
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                style={styles.imageCarousel}
-              >
-                {currentProduct.image.map((imageUri, index) => (
-                  <View key={index} style={styles.imageSlide}>
-                    <SafeImage 
-                      source={{ uri: imageUri }} 
-                      style={styles.image} 
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <SafeImage 
-                source={{ 
-                  uri: currentProduct?.image && currentProduct.image.length > 0 
-                    ? currentProduct.image[0] 
-                    : '' 
-                }} 
-                style={styles.image} 
-              />
-            )
-          )}
-          
+            };
+
+            return (
+              <>
+                {renderImageContent()}
+                <ImageView
+                  images={viewerImages}
+                  imageIndex={currentImageIndex}
+                  visible={isImageViewVisible}
+                  onRequestClose={() => setIsImageViewVisible(false)}
+                  swipeToCloseEnabled={true}
+                  doubleTapToZoomEnabled={true}
+                  onImageIndexChange={(index) => setCurrentImageIndex(index)}
+                />
+              </>
+            );
+          })()}
+
           {/* Back button overlay */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          
+
           {/* Report button overlay */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.reportButton}
             onPress={() => setShowReportModal(true)}
           >
@@ -574,7 +605,22 @@ export default function ProductScreen() {
 
           {/* Dynamic Pricing Countdown */}
           {pricingInfo && pricingInfo.isDynamicPricingEnabled && pricingInfo.priceTrajectory.length > 0 && pricingInfo.priceTrajectory[0]?.timestamp && (
-           <PriceCountdown targetTimestamp={pricingInfo.priceTrajectory[1].timestamp}/>
+            (() => {
+              const timestamp = pricingInfo.priceTrajectory[1]?.timestamp;
+              if (!timestamp) return null;
+
+              const targetTime = new Date(timestamp).getTime();
+              const now = new Date().getTime();
+              const timeUntilChange = targetTime - now;
+              const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+
+              if (timeUntilChange < threeDaysInMs) {
+                return (
+                  <PriceCountdown targetTimestamp={timestamp} />
+                );
+              }
+              return null;
+            })()
           )}
 
           {/* Divider */}
@@ -583,7 +629,7 @@ export default function ProductScreen() {
           {/* Description without header */}
           <View style={styles.section}>
             <Text style={styles.description}>{currentItem?.description}</Text>
-            
+
             {/* Bundle products list or categories display */}
             {isCurrentItemBundle && currentBundle ? (
               <View style={styles.bundleProductsContainer}>
@@ -592,7 +638,7 @@ export default function ProductScreen() {
                     Products in this bundle ({currentBundle.products.length})
                   </Text>
                 </View>
-                
+
                 <View style={styles.bundleProductsList}>
                   {currentBundle.products.map((product, index) => (
                     <BundleProductCard
@@ -605,26 +651,26 @@ export default function ProductScreen() {
                     />
                   ))}
                 </View>
-                
+
                 {/* Bundle Summary */}
                 <View style={styles.bundleSummaryContainer}>
                   <View style={styles.bundleSummaryRow}>
                     <Text style={styles.bundleSummaryLabel}>Total Individual Price:</Text>
                     <Text style={styles.bundleSummaryValue}>
-                      ${currentBundle.totalProductPrice?.toFixed(2) || 'N/A'}
+                      ₱{currentBundle.totalProductPrice?.toFixed(2) || 'N/A'}
                     </Text>
                   </View>
                   <View style={styles.bundleSummaryRow}>
                     <Text style={styles.bundleSummaryLabel}>Bundle Price:</Text>
                     <Text style={styles.bundlePriceValue}>
-                      ${currentBundle.price?.toFixed(2) || 'N/A'}
+                      ₱{currentBundle.price?.toFixed(2) || 'N/A'}
                     </Text>
                   </View>
                   {currentBundle.hasDiscount && (
                     <View style={styles.bundleSummaryRow}>
                       <Text style={styles.bundleSavingsLabel}>Your Savings:</Text>
                       <Text style={styles.bundleSavingsValue}>
-                        ${((currentBundle.totalProductPrice || 0) - (currentBundle.price || 0)).toFixed(2)}
+                        ₱{((currentBundle.totalProductPrice || 0) - (currentBundle.price || 0)).toFixed(2)}
                       </Text>
                     </View>
                   )}
@@ -643,7 +689,40 @@ export default function ProductScreen() {
               )
             )}
           </View>
-          
+
+
+
+          {/* Price and Expiry Table */}
+          {currentItem && (
+            <View style={styles.section}>
+              <View style={styles.summaryCard}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Original Price</Text>
+                  <Text style={[styles.summaryValue, styles.strikethrough]}>
+                    ₱{(currentItem.originalPrice || 0).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Current Price</Text>
+                  <Text style={styles.summaryValue}>
+                    ₱{(currentItem.price || 0).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, styles.savedLabel]}>You Save</Text>
+                  <Text style={[styles.summaryValue, styles.savedValue]}>
+                    ₱{((currentItem.originalPrice || 0) - (currentItem.price || 0)).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={[styles.summaryRow, styles.totalRow]}>
+                  <Text style={styles.totalLabel}>Expires On</Text>
+                  <Text style={styles.totalValue}>
+                    {currentItem.expiresOn ? new Date(currentItem.expiresOn).toLocaleDateString() : 'N/A'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Store info section */}
           {currentItem?.storeName && (
@@ -688,8 +767,8 @@ export default function ProductScreen() {
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
-          
-          
+
+
           {/* Reviews carousel */}
           <View style={styles.reviewsCarouselContainer}>
             {reviewsLoading ? (
@@ -701,7 +780,7 @@ export default function ProductScreen() {
               <View style={styles.reviewsErrorContainer}>
                 <Ionicons name="alert-circle-outline" size={24} color={colors.error} />
                 <Text style={styles.reviewsErrorText}>{reviewsError}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.retryButton}
                   onPress={() => id && fetchProductReviews(id as string)}
                 >
@@ -726,7 +805,7 @@ export default function ProductScreen() {
                 >
                   {reviews.map((review) => (
                     <View key={review.id} style={styles.reviewSlide}>
-                      <ReviewCard 
+                      <ReviewCard
                         buyerId={review.buyerId}
                         reviewerName={review.buyerName}
                         message={review.content}
@@ -738,7 +817,7 @@ export default function ProductScreen() {
                     </View>
                   ))}
                 </ScrollView>
-                
+
                 {/* Carousel indicators */}
                 {reviews.length > 1 && (
                   <View style={styles.indicatorsContainer}>
@@ -756,10 +835,10 @@ export default function ProductScreen() {
               </>
             )}
           </View>
-          
+
           {/* More Products Section */}
           <View style={styles.divider} />
-          
+
           <View style={styles.moreProductsSection}>
             <View style={styles.moreProductsHeader}>
               <Text style={styles.sectionTitle}>More from this store</Text>
@@ -769,7 +848,7 @@ export default function ProductScreen() {
                 </TouchableOpacity>
               )}
             </View>
-            
+
             {isFetchingProducts ? (
               <View style={styles.moreProductsLoadingContainer}>
                 <ActivityIndicator size="small" color={colors.primary.main} />
@@ -783,7 +862,7 @@ export default function ProductScreen() {
               </View>
             ) : (
               <View style={styles.moreProductsGrid}>
-                <ProductGrid 
+                <ProductGrid
                   products={otherStoreProducts.slice(0, 4)}
                   onProductPress={handleMoreProductPress}
                 />
@@ -798,11 +877,11 @@ export default function ProductScreen() {
         <View style={styles.bottomBar}>
           <View style={styles.priceSection}>
             <Text style={styles.price}>
-              ${currentItem?.price?.toFixed(2)}
+              ₱{currentItem?.price?.toFixed(2)}
             </Text>
             {currentItem?.originalPrice !== currentItem?.price && (
               <Text style={styles.originalPriceFooter}>
-                Was ${currentItem?.originalPrice?.toFixed(2)}
+                Was ₱{currentItem?.originalPrice?.toFixed(2)}
               </Text>
             )}
           </View>
@@ -825,12 +904,12 @@ export default function ProductScreen() {
         onRequestClose={closeDrawer}
       >
         <View style={styles.modalOverlay}>
-          <TouchableOpacity 
-            style={styles.modalBackground} 
-            activeOpacity={1} 
+          <TouchableOpacity
+            style={styles.modalBackground}
+            activeOpacity={1}
             onPress={closeDrawer}
           />
-          <Animated.View 
+          <Animated.View
             style={[
               styles.drawer,
               {
@@ -847,7 +926,7 @@ export default function ProductScreen() {
           >
             {/* Drawer handle */}
             <View style={styles.drawerHandle} />
-            
+
             {/* Drawer content */}
             <View style={styles.drawerContent}>
               <View style={styles.drawerHeader}>
@@ -856,22 +935,23 @@ export default function ProductScreen() {
                 </Text>
                 <Text style={styles.productNameDrawer}>{currentItem?.name}</Text>
               </View>
-              
-              {/* Stock info */}
-              <View style={styles.stockInfo}>
-                <Text style={styles.stockText}>
-                  {(currentItem?.stock || 0) > 0 
-                    ? `${currentItem?.stock} items available`
-                    : 'Out of stock'
-                  }
-                </Text>
-              </View>
-              
+
+
+
               {/* Quantity selector */}
               <View style={styles.quantitySection}>
-                <Text style={styles.quantityLabel}>Quantity</Text>
+                <View>
+                  <Text style={styles.quantityLabel}>Quantity</Text>
+                  <Text style={styles.stockText}>
+                    {(currentItem?.stock || 0) > 0
+                      ? `${currentItem?.stock} items available`
+                      : 'Out of stock'
+                    }
+                  </Text>
+                </View>
+
                 <View style={styles.quantityControls}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.quantityButton, quantity <= 1 && styles.quantityButtonDisabled]}
                     onPress={() => handleQuantityChange(false)}
                     disabled={quantity <= 1}
@@ -879,7 +959,7 @@ export default function ProductScreen() {
                     <Ionicons name="remove" size={16} color="#fff" />
                   </TouchableOpacity>
                   <Text style={styles.quantityText}>{quantity}</Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.quantityButton, quantity >= (currentItem?.stock || 0) && styles.quantityButtonDisabled]}
                     onPress={() => handleQuantityChange(true)}
                     disabled={quantity >= (currentItem?.stock || 0)}
@@ -888,7 +968,7 @@ export default function ProductScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-              
+
               {/* Total price */}
               <View style={styles.totalSection}>
                 <View style={styles.totalLabelSection}>
@@ -896,7 +976,7 @@ export default function ProductScreen() {
                   {currentItem?.originalPrice !== currentItem?.price && (
                     <View style={styles.savingsInfo}>
                       <Text style={styles.savingsText}>
-                        You save ${(((currentItem?.originalPrice || 0) - (currentItem?.price || 0)) * quantity).toFixed(2)}
+                        You save ₱{(((currentItem?.originalPrice || 0) - (currentItem?.price || 0)) * quantity).toFixed(2)}
                       </Text>
                       {(currentItem?.discountPercentage || 0) > 0 && (
                         <Text style={styles.discountBadgeText}>
@@ -908,18 +988,18 @@ export default function ProductScreen() {
                 </View>
                 <View style={styles.totalPriceContainer}>
                   <Text style={styles.totalPrice}>
-                    ${((currentItem?.price || 0) * quantity).toFixed(2)}
+                    ₱{((currentItem?.price || 0) * quantity).toFixed(2)}
                   </Text>
                   {currentItem?.originalPrice !== currentItem?.price && (
                     <Text style={styles.totalOriginalPrice}>
-                      ${((currentItem?.originalPrice || 0) * quantity).toFixed(2)}
+                      ₱{((currentItem?.originalPrice || 0) * quantity).toFixed(2)}
                     </Text>
                   )}
                 </View>
               </View>
-              
+
               {/* Confirm button */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.confirmButton, (currentItem?.stock || 0) === 0 && styles.confirmButtonDisabled]}
                 onPress={confirmAction}
                 disabled={(currentItem?.stock || 0) === 0}
@@ -947,82 +1027,107 @@ export default function ProductScreen() {
         }}
         onClose={() => setShowAddToCartModal(false)}
       />
-      
-      {/* Report Modal */}
+
+      {/* Report Modal - Improved UI/UX */}
       <Modal
         visible={showReportModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowReportModal(false)}
       >
-        <View style={styles.reportModalOverlay}>
-          <View style={styles.reportModalContainer}>
-            <Text style={styles.reportModalTitle}>Report Product</Text>
-            
-            <Text style={styles.reportModalLabel}>Reason</Text>
+        <TouchableOpacity
+          style={styles.reportModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowReportModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.reportModalContainer}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Header with icon */}
+            <View style={styles.reportModalHeader}>
+              <View style={styles.reportModalIconContainer}>
+                <Ionicons name="flag" size={24} color={colors.error} />
+              </View>
+              <Text style={styles.reportModalTitle}>Report Product</Text>
+              <Text style={styles.reportModalSubtitle}>Help us keep Huggle safe</Text>
+            </View>
+
+            {/* Close button */}
+            <TouchableOpacity
+              style={styles.reportCloseButton}
+              onPress={() => setShowReportModal(false)}
+            >
+              <Ionicons name="close" size={24} color={colors.text.secondary} />
+            </TouchableOpacity>
+
+            <Text style={styles.reportModalLabel}>What's the issue?</Text>
             <View style={styles.reportReasonContainer}>
-              {["Inappropriate", "Fraud", "Spam", "Other"].map((reason) => (
+              {[
+                { key: "Inappropriate", icon: "warning-outline" },
+                { key: "Fraud", icon: "alert-circle-outline" },
+                { key: "Spam", icon: "mail-outline" },
+                { key: "Other", icon: "ellipsis-horizontal-outline" }
+              ].map((item) => (
                 <TouchableOpacity
-                  key={reason}
+                  key={item.key}
                   style={[
                     styles.reportReasonButton,
-                    {
-                      backgroundColor:
-                        reportReason === reason ? colors.primary.main : colors.background.secondary,
-                    }
+                    reportReason === item.key && styles.reportReasonButtonActive,
                   ]}
-                  onPress={() => setReportReason(reason)}
+                  onPress={() => setReportReason(item.key)}
                 >
+                  <Ionicons
+                    name={reportReason === item.key ? "checkmark-circle" : item.icon as any}
+                    size={18}
+                    color={reportReason === item.key ? colors.text.inverse : colors.text.secondary}
+                    style={styles.reportReasonIcon}
+                  />
                   <Text
                     style={[
                       styles.reportReasonText,
-                      {
-                        color: reportReason === reason ? colors.text.inverse : colors.text.primary
-                      }
+                      reportReason === item.key && styles.reportReasonTextActive,
                     ]}
                   >
-                    {reason}
+                    {item.key}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            
-            <Text style={styles.reportModalLabel}>Description (optional)</Text>
+
+            <Text style={styles.reportModalLabel}>Additional details (optional)</Text>
             <TextInput
               style={styles.reportTextInput}
               multiline
               numberOfLines={3}
               value={reportDescription}
               onChangeText={setReportDescription}
-              placeholder="Describe the issue..."
-              placeholderTextColor={colors.text.secondary}
+              placeholder="Tell us more about the issue..."
+              placeholderTextColor={colors.text.tertiary}
             />
-            
+
             <TouchableOpacity
               style={[
                 styles.reportSubmitButton,
-                {
-                  backgroundColor: reportLoading ? colors.text.secondary : colors.primary.main
-                }
+                !reportReason && styles.reportSubmitButtonDisabled,
               ]}
               onPress={handleReport}
-              disabled={reportLoading}
+              disabled={reportLoading || !reportReason}
             >
-              <Text style={styles.reportSubmitButtonText}>
-                {reportLoading ? "Submitting..." : "Submit Report"}
-              </Text>
+              {reportLoading ? (
+                <ActivityIndicator size="small" color={colors.text.inverse} />
+              ) : (
+                <>
+                  <Ionicons name="send" size={18} color={colors.text.inverse} style={{ marginRight: 8 }} />
+                  <Text style={styles.reportSubmitButtonText}>Submit Report</Text>
+                </>
+              )}
             </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.reportCancelButton}
-              onPress={() => setShowReportModal(false)}
-            >
-              <Text style={styles.reportCancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -1069,7 +1174,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: 50,
+    top: 12,
     left: 20,
     backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 20,
@@ -1077,7 +1182,7 @@ const styles = StyleSheet.create({
   },
   reportButton: {
     position: "absolute",
-    top: 50,
+    top: 12,
     right: 20,
     backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 20,
@@ -1362,26 +1467,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text.secondary,
   },
-  stockInfo: {
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginBottom: 20,
-  },
-  stockText: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
+
   quantitySection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
   },
   quantityLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text.primary,
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  stockText: {
+    fontSize: 13,
+    color: colors.text.secondary,
   },
   quantityButtonDisabled: {
     backgroundColor: colors.background.secondary,
@@ -1509,77 +1610,124 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  // Report Modal styles
+  // Report Modal styles - Improved
   reportModalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   reportModalContainer: {
     backgroundColor: colors.background.tertiary,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     width: '90%',
     maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  reportModalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  reportModalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.error + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   reportModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
     color: colors.text.primary,
-    marginBottom: 20,
     textAlign: 'center',
   },
+  reportModalSubtitle: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  reportCloseButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.background.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   reportModalLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 12,
     fontWeight: '600',
   },
   reportReasonContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 20,
+    gap: 8,
   },
   reportReasonButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: colors.background.secondary,
+    borderWidth: 1.5,
+    borderColor: colors.border.primary,
+  },
+  reportReasonButtonActive: {
+    backgroundColor: colors.primary.main,
+    borderColor: colors.primary.main,
+  },
+  reportReasonIcon: {
+    marginRight: 6,
   },
   reportReasonText: {
     fontSize: 14,
     fontWeight: '600',
+    color: colors.text.primary,
+  },
+  reportReasonTextActive: {
+    color: colors.text.inverse,
   },
   reportTextInput: {
-    minHeight: 80,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: 8,
+    minHeight: 100,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: colors.border.primary,
+    borderRadius: 12,
     marginBottom: 20,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text.primary,
     textAlignVertical: 'top',
+    backgroundColor: colors.background.secondary,
   },
   reportSubmitButton: {
-    padding: 12,
-    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: colors.primary.main,
+  },
+  reportSubmitButtonDisabled: {
+    backgroundColor: colors.text.tertiary,
   },
   reportSubmitButtonText: {
     fontSize: 16,
     color: colors.text.inverse,
-    fontWeight: '600',
-  },
-  reportCancelButton: {
-    alignItems: 'center',
-  },
-  reportCancelButtonText: {
-    fontSize: 16,
-    color: colors.primary.main,
     fontWeight: '600',
   },
   // Enhanced Bundle Styles
@@ -1701,9 +1849,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+
   pricingLabel: {
     fontSize: 14,
     fontWeight: '500',
     color: colors.text.secondary,
+  },
+  summaryCard: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 12,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border.primary,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: colors.text.secondary,
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text.primary,
+  },
+  strikethrough: {
+    textDecorationLine: 'line-through',
+    color: colors.text.tertiary,
+  },
+  savedLabel: {
+    color: colors.success,
+    fontWeight: '500',
+  },
+  savedValue: {
+    color: colors.success,
+    fontWeight: '600',
+  },
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border.primary,
+    marginTop: spacing.xs,
+    paddingTop: spacing.sm,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary.main,
   },
 });

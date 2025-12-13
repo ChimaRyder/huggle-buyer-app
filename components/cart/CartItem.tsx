@@ -29,7 +29,7 @@ const CartItem: React.FC<CartItemProps> = ({
     />
     <View style={styles.info}>
       <Text style={styles.name}>{item.name}</Text>
-      <Text style={styles.price}>${item.price}</Text>
+      <Text style={styles.price}>₱{item.price}</Text>
       <View style={styles.quantityRow}>
         <TouchableOpacity
           onPress={onDecrease}

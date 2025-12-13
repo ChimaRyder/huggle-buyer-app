@@ -47,13 +47,13 @@ export function ApiProvider({ children }: ApiProviderProps) {
     } = requestConfig;
 
     try {
-      console.log('🌐 ApiClient: Making request to:', url);
-      console.log('🌐 ApiClient: Method:', method);
-      console.log('🌐 ApiClient: Body:', body);
-      
-      const token = await getToken({template: "seller_app"});
-      console.log('🔑 ApiClient: Got token:', token ? 'YES' : 'NO');
-      
+      // console.log('🌐 ApiClient: Making request to:', url);
+      // console.log('🌐 ApiClient: Method:', method);
+      // console.log('🌐 ApiClient: Body:', body);
+
+      const token = await getToken({ template: "seller_app" });
+      // console.log('🔑 ApiClient: Got token:', token ? 'YES' : 'NO');
+
       const requestHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         ...headers,
@@ -64,7 +64,7 @@ export function ApiProvider({ children }: ApiProviderProps) {
         requestHeaders.Authorization = `Bearer ${token}`;
       }
 
-      console.log('📋 ApiClient: Request headers:', requestHeaders);
+      // console.log('📋 ApiClient: Request headers:', requestHeaders);
 
       const requestInit: RequestInit = {
         method,
@@ -81,21 +81,21 @@ export function ApiProvider({ children }: ApiProviderProps) {
       });
 
       clearTimeout(timeoutId);
-      
-      console.log('📥 ApiClient: Response status:', response.status, response.statusText);
-      console.log('📥 ApiClient: Response ok:', response.ok);
+
+      // console.log('📥 ApiClient: Response status:', response.status, response.statusText);
+      // console.log('📥 ApiClient: Response ok:', response.ok);
 
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('❌ ApiClient: Response not ok - status:', response.status, 'error text:', errorText);
-        
+        // console.log('❌ ApiClient: Response not ok - status:', response.status, 'error text:', errorText);
+
         const apiError = createAPIError(
           `HTTP ${response.status}: ${errorText}`,
           response.status,
           response.status.toString()
         );
-        
+
         return {
           success: false,
           error: apiError.userMessage || apiError.message,
@@ -104,8 +104,8 @@ export function ApiProvider({ children }: ApiProviderProps) {
 
       try {
         const data = await response.json();
-        console.log('✅ ApiClient: Success response data:', data);
-        console.log('✅ ApiClient: Response data type:', typeof data, 'Is Array:', Array.isArray(data));
+        // console.log('✅ ApiClient: Success response data:', data);
+        // console.log('✅ ApiClient: Response data type:', typeof data, 'Is Array:', Array.isArray(data));
         return {
           success: true,
           data,
@@ -117,18 +117,18 @@ export function ApiProvider({ children }: ApiProviderProps) {
           response.status,
           'INVALID_JSON'
         );
-        
+
         return {
           success: false,
           error: apiError.userMessage || apiError.message,
         };
       }
     } catch (error) {
-      console.log('❌ ApiClient: Caught error:', error);
-      console.log('❌ ApiClient: Error type:', typeof error);
-      console.log('❌ ApiClient: Error name:', error instanceof Error ? error.name : 'Not an Error object');
-      console.log('❌ ApiClient: Error message:', error instanceof Error ? error.message : String(error));
-      
+      // console.log('❌ ApiClient: Caught error:', error);
+      // console.log('❌ ApiClient: Error type:', typeof error);
+      // console.log('❌ ApiClient: Error name:', error instanceof Error ? error.name : 'Not an Error object');
+      // console.log('❌ ApiClient: Error message:', error instanceof Error ? error.message : String(error));
+
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           const timeoutError = createNetworkError('Request timeout');
@@ -137,14 +137,14 @@ export function ApiProvider({ children }: ApiProviderProps) {
             error: timeoutError.userMessage || timeoutError.message,
           };
         }
-        
+
         const networkError = createNetworkError(error.message);
         return {
           success: false,
           error: networkError.userMessage || networkError.message,
         };
       }
-      
+
       const unknownError = createNetworkError('Unknown error occurred');
       return {
         success: false,
@@ -158,9 +158,9 @@ export function ApiProvider({ children }: ApiProviderProps) {
       endpoint: string,
       headers?: Record<string, string>
     ): Promise<ApiResponse<T>> {
-      return request<T>(endpoint, { 
-        method: 'GET', 
-        ...(headers && { headers }) 
+      return request<T>(endpoint, {
+        method: 'GET',
+        ...(headers && { headers })
       });
     },
 
@@ -169,10 +169,10 @@ export function ApiProvider({ children }: ApiProviderProps) {
       data?: any,
       headers?: Record<string, string>
     ): Promise<ApiResponse<T>> {
-      return request<T>(endpoint, { 
-        method: 'POST', 
-        body: data, 
-        ...(headers && { headers }) 
+      return request<T>(endpoint, {
+        method: 'POST',
+        body: data,
+        ...(headers && { headers })
       });
     },
 
@@ -181,10 +181,10 @@ export function ApiProvider({ children }: ApiProviderProps) {
       data?: any,
       headers?: Record<string, string>
     ): Promise<ApiResponse<T>> {
-      return request<T>(endpoint, { 
-        method: 'PUT', 
-        body: data, 
-        ...(headers && { headers }) 
+      return request<T>(endpoint, {
+        method: 'PUT',
+        body: data,
+        ...(headers && { headers })
       });
     },
 
@@ -193,10 +193,10 @@ export function ApiProvider({ children }: ApiProviderProps) {
       data?: any,
       headers?: Record<string, string>
     ): Promise<ApiResponse<T>> {
-      return request<T>(endpoint, { 
-        method: 'PATCH', 
-        body: data, 
-        ...(headers && { headers }) 
+      return request<T>(endpoint, {
+        method: 'PATCH',
+        body: data,
+        ...(headers && { headers })
       });
     },
 
@@ -204,9 +204,9 @@ export function ApiProvider({ children }: ApiProviderProps) {
       endpoint: string,
       headers?: Record<string, string>
     ): Promise<ApiResponse<T>> {
-      return request<T>(endpoint, { 
-        method: 'DELETE', 
-        ...(headers && { headers }) 
+      return request<T>(endpoint, {
+        method: 'DELETE',
+        ...(headers && { headers })
       });
     },
   };

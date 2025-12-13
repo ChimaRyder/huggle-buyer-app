@@ -58,7 +58,7 @@ export const searchProducts = async (
   try {
     // Build query parameters
     const queryParams = new URLSearchParams();
-    
+
     if (params.searchTerm) queryParams.append('searchTerm', params.searchTerm);
     if (params.category) queryParams.append('category', params.category);
     if (params.storeId) queryParams.append('storeId', params.storeId);
@@ -86,7 +86,7 @@ export const searchProducts = async (
     const endpoint = `${API_ENDPOINTS.search.products}?${queryParams.toString()}`;
     console.log('🔍 Product Search - Full URL:', endpoint);
     console.log('🔍 Product Search - Parameters:', params);
-    
+
     const response = await apiClient.get(endpoint);
     console.log('📥 Product Search - Raw Response:', response);
     console.log('📥 Product Search - Response Success:', response.success);
@@ -99,7 +99,7 @@ export const searchProducts = async (
       console.log('✅ Product Search - Response Data Structure:', responseData);
       console.log('✅ Product Search - Extracted Products:', products.length, 'items');
       console.log('✅ Product Search - First product:', products[0]);
-      
+
       return {
         products,
         pagination: responseData.pagination || {
@@ -131,7 +131,7 @@ export const searchStores = async (
     // The POST endpoint supports all parameters including location
     console.log('🔍 Store Search - Using POST endpoint for comprehensive search');
     console.log('🔍 Store Search - Parameters:', params);
-    
+
     const response = await apiClient.post(API_ENDPOINTS.search.stores, params);
     console.log('📥 Store Search - Raw Response:', response);
     console.log('📥 Store Search - Response Success:', response.success);
@@ -144,7 +144,7 @@ export const searchStores = async (
       console.log('✅ Store Search - Response Data Structure:', responseData);
       console.log('✅ Store Search - Extracted Stores:', stores.length, 'items');
       console.log('✅ Store Search - First store:', stores[0]);
-      
+
       return {
         stores,
         pagination: responseData.pagination
@@ -170,10 +170,10 @@ export const getProductsFromStore = async (
   try {
     const endpoint = API_ENDPOINTS.products.byStore(storeId);
     console.log('🏪 Store Products - Fetching products from store:', storeId);
-    
+
     const response = await apiClient.get(endpoint);
     console.log('🏪 Store Products - Raw response:', response);
-    
+
     if (response.success) {
       // Extract products from nested response structure
       const responseData = response.data?.data || response.data || {};
@@ -192,7 +192,7 @@ export const getProductsFromStore = async (
 
 /**
  * Combined search for both products and stores
- * Also fetches products from found stores as a fallback
+ * Searches products and stores in parallel, returns whatever results we get
  */
 export const searchAll = async (
   apiClient: any,
@@ -205,93 +205,79 @@ export const searchAll = async (
     pageSize?: number;
   } = {}
 ): Promise<SearchResults> => {
-  try {
-    console.log('🔍 Combined Search - Starting search for:', searchTerm);
-    console.log('🔍 Combined Search - Options:', options);
-    console.log('🔍 Combined Search - Has location:', !!options.latitude && !!options.longitude);
-    
-    if (!searchTerm || !searchTerm.trim()) {
-      console.log('⚠️ Combined Search - Empty search term, returning empty results');
-      return { products: [], stores: [] };
-    }
-    
-    const [productResults, storeResults] = await Promise.allSettled([
-      searchProducts(apiClient, {
-        searchTerm,
-        latitude: options.latitude,
-        longitude: options.longitude,
-        radiusKm: options.radiusKm,
-        page: options.page,
-        pageSize: options.pageSize,
-      }),
-      searchStores(apiClient, {
-        searchTerm: searchTerm,
-        latitude: options.latitude,
-        longitude: options.longitude,
-        radiusKm: options.radiusKm,
-        page: options.page,
-        pageSize: options.pageSize,
-      })
-    ]);
-
-    let products = productResults.status === 'fulfilled' ? productResults.value.products : [];
-    const stores = storeResults.status === 'fulfilled' ? storeResults.value.stores : [];
-
-    // If we found stores but no products, try to get products from the found stores
-    if (products.length === 0 && stores.length > 0) {
-      console.log('🔄 Combined Search - No products found, fetching from', stores.length, 'stores');
-      
-      try {
-        const storeProductPromises = stores.slice(0, 3).map(store => // Limit to first 3 stores
-          getProductsFromStore(apiClient, store.id, 10) // Limit to 10 products per store
-        );
-        
-        const storeProductResults = await Promise.allSettled(storeProductPromises);
-        const storeProducts: BackendProduct[] = [];
-        
-        storeProductResults.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            const productsFromStore = (Array.isArray(result.value) ? result.value : []).map(product => ({
-              ...product,
-              storeName: stores[index].name // Add store name for context
-            }));
-            storeProducts.push(...productsFromStore);
-          }
-        });
-        
-        if (storeProducts.length > 0) {
-          console.log('✅ Combined Search - Found', storeProducts.length, 'products from stores');
-          products = storeProducts;
-        }
-      } catch (error) {
-        console.error('❌ Combined Search - Error fetching products from stores:', error);
-      }
-    }
-
-    console.log('✅ Combined Search - Final Results:', {
-      productsCount: products.length,
-      storesCount: stores.length,
-      productSearchStatus: productResults.status,
-      storeSearchStatus: storeResults.status
-    });
-    
-    if (productResults.status === 'rejected') {
-      console.error('❌ Combined Search - Product search failed:', productResults.reason);
-    }
-    
-    if (storeResults.status === 'rejected') {
-      console.error('❌ Combined Search - Store search failed:', storeResults.reason);
-    }
-
-    return {
-      products,
-      stores,
-      pagination: productResults.status === 'fulfilled' ? productResults.value.pagination : undefined
-    };
-  } catch (error) {
-    console.error('Error in combined search:', error);
-    throw error;
+  if (!searchTerm?.trim()) {
+    return { products: [], stores: [] };
   }
+
+  console.log('🔍 Search - Starting search for:', searchTerm);
+  console.log('🔍 Search - Options:', options);
+
+  // Build search params - only include defined values to satisfy exactOptionalPropertyTypes
+  const productParams: ProductSearchRequest = { searchTerm };
+  const storeParams: StoreSearchRequest = { searchTerm };
+
+  if (options.latitude !== undefined) {
+    productParams.latitude = options.latitude;
+    storeParams.latitude = options.latitude;
+  }
+  if (options.longitude !== undefined) {
+    productParams.longitude = options.longitude;
+    storeParams.longitude = options.longitude;
+  }
+  if (options.radiusKm !== undefined) {
+    productParams.radiusKm = options.radiusKm;
+    storeParams.radiusKm = options.radiusKm;
+  }
+  if (options.page !== undefined) {
+    productParams.page = options.page;
+    storeParams.page = options.page;
+  }
+  if (options.pageSize !== undefined) {
+    productParams.pageSize = options.pageSize;
+    storeParams.pageSize = options.pageSize;
+  }
+
+  // Search products and stores in parallel
+  const [productResults, storeResults] = await Promise.allSettled([
+    searchProducts(apiClient, productParams),
+    searchStores(apiClient, storeParams)
+  ]);
+
+  // Get results from successful searches
+  let products = productResults.status === 'fulfilled' ? productResults.value.products : [];
+  let stores = storeResults.status === 'fulfilled' ? storeResults.value.stores : [];
+
+  // Client-side filter stores to ensure they match search term
+  // This handles cases where the backend returns all stores instead of filtered ones
+  if (stores.length > 0 && searchTerm.trim()) {
+    const searchLower = searchTerm.toLowerCase();
+    const filteredStores = stores.filter(store =>
+      store.name?.toLowerCase().includes(searchLower) ||
+      store.description?.toLowerCase().includes(searchLower) ||
+      store.tags?.some((tag: string) => tag.toLowerCase().includes(searchLower))
+    );
+
+    if (filteredStores.length !== stores.length) {
+      console.log(`🔍 Search - Filtered stores from ${stores.length} to ${filteredStores.length}`);
+      stores = filteredStores;
+    }
+  }
+
+  // Log any failures for debugging
+  if (productResults.status === 'rejected') {
+    console.warn('⚠️ Product search failed:', productResults.reason);
+  }
+  if (storeResults.status === 'rejected') {
+    console.warn('⚠️ Store search failed:', storeResults.reason);
+  }
+
+  console.log('✅ Search - Results:', { products: products.length, stores: stores.length });
+
+  return {
+    products,
+    stores,
+    pagination: productResults.status === 'fulfilled' ? productResults.value.pagination : undefined
+  };
 };
 
 /**
@@ -305,9 +291,9 @@ export const getPopularStores = async (
   pageSize: number = 10
 ): Promise<BackendStore[]> => {
   try {
-    const endpoint = API_ENDPOINTS.search.storesPopular + 
+    const endpoint = API_ENDPOINTS.search.storesPopular +
       `?latitude=${latitude}&longitude=${longitude}&radius=${radius}&pageSize=${pageSize}`;
-    
+
     const response = await apiClient.get(endpoint);
 
     if (response.success) {
@@ -330,7 +316,7 @@ export const testSearchWithoutLocation = async (
 ): Promise<SearchResults> => {
   try {
     console.log('🧪 Test Search - Searching without location constraints for:', searchTerm);
-    
+
     const [productResults, storeResults] = await Promise.allSettled([
       // Search products without location
       searchProducts(apiClient, {
@@ -345,17 +331,17 @@ export const testSearchWithoutLocation = async (
     ]);
 
     const products = productResults.status === 'fulfilled' ? productResults.value.products : [];
-    const stores = storeResults.status === 'fulfilled' 
-      ? (storeResults.value.data?.stores || storeResults.value.data || []) 
+    const stores = storeResults.status === 'fulfilled'
+      ? (storeResults.value.data?.stores || storeResults.value.data || [])
       : [];
 
     console.log('✅ Test Search - Products found:', products.length);
     console.log('✅ Test Search - Stores found:', stores.length);
-    
+
     if (productResults.status === 'rejected') {
       console.error('❌ Test Search - Product search failed:', productResults.reason);
     }
-    
+
     if (storeResults.status === 'rejected') {
       console.error('❌ Test Search - Store search failed:', storeResults.reason);
     }
@@ -375,7 +361,7 @@ export const testSearchWithoutLocation = async (
  */
 export const debugApiEndpoints = async (apiClient: any, searchTerm: string) => {
   console.log('📊 Debug - Testing individual API endpoints for:', searchTerm);
-  
+
   // Test product search API without location
   try {
     const productUrl = `${API_ENDPOINTS.search.products}?searchTerm=${encodeURIComponent(searchTerm)}&pageSize=50`;
@@ -391,7 +377,7 @@ export const debugApiEndpoints = async (apiClient: any, searchTerm: string) => {
   } catch (error) {
     console.error('❌ Debug - Product API Error:', error);
   }
-  
+
   // Test store search API using POST (no location required)
   try {
     const storeResponse = await apiClient.post(API_ENDPOINTS.search.stores, {
@@ -408,7 +394,7 @@ export const debugApiEndpoints = async (apiClient: any, searchTerm: string) => {
   } catch (error) {
     console.error('❌ Debug - Store API Error:', error);
   }
-  
+
   // Also try a general search to see what stores exist
   try {
     console.log('📊 Debug - Trying general store search...');
@@ -436,7 +422,7 @@ export const useSearch = () => {
     searchProducts: (params: ProductSearchRequest) => searchProducts(client, params),
     searchStores: (params: StoreSearchRequest) => searchStores(client, params),
     searchAll: (searchTerm: string, options?: any) => searchAll(client, searchTerm, options),
-    getPopularStores: (latitude: number, longitude: number, radius?: number, pageSize?: number) => 
+    getPopularStores: (latitude: number, longitude: number, radius?: number, pageSize?: number) =>
       getPopularStores(client, latitude, longitude, radius, pageSize),
     getProductsFromStore: (storeId: string, pageSize?: number) => getProductsFromStore(client, storeId, pageSize),
     testSearchWithoutLocation: (searchTerm: string) => testSearchWithoutLocation(client, searchTerm),

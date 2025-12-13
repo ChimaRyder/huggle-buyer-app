@@ -14,6 +14,7 @@ import {
   TextInput,
   Dimensions,
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScrollView } from "react-native-gesture-handler";
@@ -22,22 +23,23 @@ import { colors, spacing, typography } from '@/constants/theme';
 import { usePostContext } from '@/context/PostContext';
 import { useAuth } from '@clerk/clerk-expo';
 import { submitPostReport } from '@/utils/reports';
+
 import type { BackendPost } from '@/types/BackendModels';
 
 const { width } = Dimensions.get("window");
 
-interface PostScreenProps {}
+interface PostScreenProps { }
 
 const PostScreen: React.FC<PostScreenProps> = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { getToken, userId } = useAuth();
-  const { 
-    currentPost, 
-    isFetchingPost, 
-    postError, 
-    fetchPostById, 
-    toggleLike 
+  const {
+    currentPost,
+    isFetchingPost,
+    postError,
+    fetchPostById,
+    toggleLike
   } = usePostContext();
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -54,7 +56,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
     const diffWeeks = Math.floor(diffDays / 7);
-    
+
     if (diffMinutes < 1) return 'just now';
     if (diffMinutes < 60) return `${diffMinutes}m`;
     if (diffHours < 24) return `${diffHours}h`;
@@ -70,7 +72,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
 
   const handleLikeToggle = async () => {
     if (!currentPost) return;
-    
+
     try {
       await toggleLike(currentPost.id);
     } catch (error) {
@@ -84,16 +86,16 @@ const PostScreen: React.FC<PostScreenProps> = () => {
       alert("Please select a reason for reporting.");
       return;
     }
-    
+
     if (!currentPost || !userId) {
       alert("Unable to submit report. Please try again.");
       return;
     }
-    
+
     setReportLoading(true);
     try {
       const token = await getToken({ template: "seller_app" });
-      
+
       await submitPostReport(
         userId,
         currentPost.id,
@@ -101,7 +103,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
         reportDescription,
         token
       );
-      
+
       setShowReportModal(false);
       setReportReason("");
       setReportDescription("");
@@ -165,13 +167,34 @@ const PostScreen: React.FC<PostScreenProps> = () => {
           <Ionicons name="flag-outline" size={24} color={colors.error} />
         </TouchableOpacity>
       </View>
-      
+
       {/* Main scrollable content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Post Header (Instagram style) */}
+        <View style={styles.postHeader}>
+          <TouchableOpacity
+            style={styles.headerUser}
+            onPress={handleStorePress}
+          >
+            <View style={styles.headerAvatarContainer}>
+              <LinearGradient
+                colors={[colors.primary.main + '20', colors.primary.main + '10']}
+                style={styles.headerAvatar}
+              >
+                <Ionicons name="storefront" size={16} color={colors.primary.main} />
+              </LinearGradient>
+            </View>
+            <View>
+              <Text style={styles.headerStoreName}>{currentPost.storeName || 'Store'}</Text>
+              <Text style={styles.headerLocation}>Suggested for you</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Image carousel */}
         <View style={styles.imageContainer}>
           {currentPost.imageUrls && currentPost.imageUrls.length > 0 && (
@@ -198,7 +221,7 @@ const PostScreen: React.FC<PostScreenProps> = () => {
               ))}
             </ScrollView>
           )}
-          
+
           {/* Image indicator */}
           {currentPost.imageUrls && currentPost.imageUrls.length > 1 && (
             <View style={styles.imageIndicator}>
@@ -207,10 +230,10 @@ const PostScreen: React.FC<PostScreenProps> = () => {
                   key={idx}
                   style={[
                     styles.indicatorDot,
-                    { 
-                      backgroundColor: idx === currentImageIdx 
-                        ? colors.text.primaryInverted 
-                        : 'rgba(255,255,255,0.5)' 
+                    {
+                      backgroundColor: idx === currentImageIdx
+                        ? colors.text.primaryInverted
+                        : 'rgba(255,255,255,0.5)'
                     }
                   ]}
                 />
@@ -237,94 +260,125 @@ const PostScreen: React.FC<PostScreenProps> = () => {
             </TouchableOpacity>
           </View>
         </View>
-        
+
         {/* Caption */}
         <View style={styles.contentContainer}>
           <Text style={styles.caption}>
-            <TouchableOpacity onPress={handleStorePress}>
-              <Text style={styles.storeNameInCaption}>{currentPost.storeName || 'Store'}</Text>
-            </TouchableOpacity>
+            <Text
+              style={styles.storeNameInCaption}
+              onPress={handleStorePress}
+            >
+              {currentPost.storeName || 'Store'}
+            </Text>
             {currentPost.content ? ` ${currentPost.content}` : ''}
           </Text>
           <Text style={styles.timestamp}>{formatDate(currentPost.createdAt)}</Text>
         </View>
+
+
+
       </ScrollView>
-      
-      {/* Report Modal */}
+
+      {/* Report Modal - Improved UI/UX */}
       <Modal
         visible={showReportModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowReportModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Report Post</Text>
-            
-            <Text style={styles.modalLabel}>Reason</Text>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowReportModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContainer}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Header with icon */}
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconContainer}>
+                <Ionicons name="flag" size={24} color={colors.error} />
+              </View>
+              <Text style={styles.modalTitle}>Report Post</Text>
+              <Text style={styles.modalSubtitle}>Help us keep Huggle safe</Text>
+            </View>
+
+            {/* Close button */}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowReportModal(false)}
+            >
+              <Ionicons name="close" size={24} color={colors.text.secondary} />
+            </TouchableOpacity>
+
+            <Text style={styles.modalLabel}>What's the issue?</Text>
             <View style={styles.reasonContainer}>
-              {["Inappropriate", "Fraud", "Spam", "Other"].map((reason) => (
+              {[
+                { key: "Inappropriate", icon: "warning-outline" },
+                { key: "Fraud", icon: "alert-circle-outline" },
+                { key: "Spam", icon: "mail-outline" },
+                { key: "Other", icon: "ellipsis-horizontal-outline" }
+              ].map((item) => (
                 <TouchableOpacity
-                  key={reason}
+                  key={item.key}
                   style={[
                     styles.reasonButton,
-                    {
-                      backgroundColor:
-                        reportReason === reason ? colors.primary.main : colors.background.secondary,
-                    }
+                    reportReason === item.key && styles.reasonButtonActive,
                   ]}
-                  onPress={() => setReportReason(reason)}
+                  onPress={() => setReportReason(item.key)}
                 >
+                  <Ionicons
+                    name={reportReason === item.key ? "checkmark-circle" : item.icon as any}
+                    size={18}
+                    color={reportReason === item.key ? colors.text.inverse : colors.text.secondary}
+                    style={styles.reasonIcon}
+                  />
                   <Text
                     style={[
                       styles.reasonText,
-                      {
-                        color: reportReason === reason ? colors.text.inverse : colors.text.primary
-                      }
+                      reportReason === item.key && styles.reasonTextActive,
                     ]}
                   >
-                    {reason}
+                    {item.key}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            
-            <Text style={styles.modalLabel}>Description (optional)</Text>
+
+            <Text style={styles.modalLabel}>Additional details (optional)</Text>
             <TextInput
               style={styles.textInput}
               multiline
               numberOfLines={3}
               value={reportDescription}
               onChangeText={setReportDescription}
-              placeholder="Describe the issue..."
-              placeholderTextColor={colors.text.secondary}
+              placeholder="Tell us more about the issue..."
+              placeholderTextColor={colors.text.tertiary}
             />
-            
+
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                {
-                  backgroundColor: reportLoading ? colors.text.secondary : colors.primary.main
-                }
+                !reportReason && styles.submitButtonDisabled,
               ]}
               onPress={handleReport}
-              disabled={reportLoading}
+              disabled={reportLoading || !reportReason}
             >
-              <Text style={styles.submitButtonText}>
-                {reportLoading ? "Submitting..." : "Submit Report"}
-              </Text>
+              {reportLoading ? (
+                <Text style={styles.submitButtonText}>Submitting...</Text>
+              ) : (
+                <View style={styles.submitButtonContent}>
+                  <Ionicons name="send" size={18} color={colors.text.inverse} style={{ marginRight: 8 }} />
+                  <Text style={styles.submitButtonText}>Submit Report</Text>
+                </View>
+              )}
             </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowReportModal(false)}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 };
 
@@ -339,6 +393,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  headerUser: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerAvatarContainer: {
+    marginRight: spacing.sm,
+  },
+  headerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerStoreName: {
+    fontSize: typography.fontSizes.md,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.primary,
+  },
+  headerLocation: {
+    fontSize: 11,
+    color: colors.text.tertiary,
   },
   headerTitle: {
     fontSize: typography.fontSizes.xxl,
@@ -391,7 +474,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   likesText: {
-    fontSize: typography.fontSizes.md,
+    fontSize: typography.fontSizes.lg,
     fontWeight: typography.fontWeights.semibold,
     color: colors.text.primary,
   },
@@ -400,14 +483,15 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   timestamp: {
-    fontSize: typography.fontSizes.xs,
+    fontSize: typography.fontSizes.sm,
     color: colors.text.tertiary,
     marginTop: spacing.xs,
   },
+
   caption: {
-    ...typography.body2,
+    fontSize: typography.fontSizes.md,
     color: colors.text.primary,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   storeNameInCaption: {
     fontWeight: '600',
@@ -439,7 +523,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    ...typography.body1,
+    fontSize: typography.fontSizes.md,
     color: colors.text.secondary,
     textAlign: 'center',
     marginTop: spacing.md,
@@ -452,81 +536,132 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   backButtonText: {
-    ...typography.body2,
+    fontSize: typography.fontSizes.sm,
     color: colors.text.inverse,
     fontWeight: '600',
   },
-  // Modal styles
+  // Modal styles - Improved
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   modalContainer: {
     backgroundColor: colors.background.tertiary,
-    borderRadius: 16,
-    padding: spacing.xl,
+    borderRadius: 20,
+    padding: 24,
     width: '90%',
     maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.error + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   modalTitle: {
-    fontSize: typography.fontSizes.xxl,
-    fontWeight: typography.fontWeights.bold,
+    fontSize: 22,
+    fontWeight: '700',
     color: colors.text.primary,
-    marginBottom: spacing.lg,
     textAlign: 'center',
   },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.background.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   modalLabel: {
-    ...typography.body2,
+    fontSize: 15,
     color: colors.text.primary,
-    marginBottom: spacing.sm,
+    marginBottom: 12,
     fontWeight: '600',
   },
   reasonContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: spacing.lg,
+    marginBottom: 20,
+    gap: 8,
   },
   reasonButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: colors.background.secondary,
+    borderWidth: 1.5,
+    borderColor: colors.border.primary,
+  },
+  reasonButtonActive: {
+    backgroundColor: colors.primary.main,
+    borderColor: colors.primary.main,
+  },
+  reasonIcon: {
+    marginRight: 6,
   },
   reasonText: {
-    ...typography.caption,
+    fontSize: 14,
     fontWeight: '600',
+    color: colors.text.primary,
+  },
+  reasonTextActive: {
+    color: colors.text.inverse,
   },
   textInput: {
-    minHeight: 80,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: 8,
-    marginBottom: spacing.lg,
-    ...typography.body2,
+    minHeight: 100,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: colors.border.primary,
+    borderRadius: 12,
+    marginBottom: 20,
+    fontSize: 15,
     color: colors.text.primary,
     textAlignVertical: 'top',
+    backgroundColor: colors.background.secondary,
   },
   submitButton: {
-    padding: spacing.md,
-    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: colors.primary.main,
+  },
+  submitButtonDisabled: {
+    backgroundColor: colors.text.tertiary,
+  },
+  submitButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   submitButtonText: {
-    ...typography.body2,
+    fontSize: 16,
     color: colors.text.inverse,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    ...typography.body2,
-    color: colors.primary.main,
     fontWeight: '600',
   },
 });

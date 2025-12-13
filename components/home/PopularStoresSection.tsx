@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
-import { colors } from '@/constants/theme';
+import { colors, spacing, typography } from '@/constants/theme';
 import { useStoreContext } from '@/context/StoreContext';
 import { useLocationContext } from '@/context/LocationContext';
+
+type FilterMode = 'all' | 'nearby';
 
 interface PopularStoresSectionProps {
   onRestaurantPress: (id: string) => void;
@@ -32,61 +34,156 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
     isStoreFollowed 
   } = useStoreContext();
   const { currentLocation } = useLocationContext();
+  
+  // Filter mode state
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  
+  // Track if we've done initial fetch and with what location state
+  const hasFetchedRef = useRef(false);
+  const lastFilterModeRef = useRef<FilterMode>('all');
+  const hadLocationOnLastFetchRef = useRef(false);
 
-  // Create stable location coordinates
-  const locationCoords = useMemo(() => {
-    if (!currentLocation) return null;
-    return {
-      latitude: currentLocation.latitude,
-      longitude: currentLocation.longitude
-    };
-  }, [currentLocation?.latitude, currentLocation?.longitude]);
+  // Check if we have a valid location
+  const hasLocation = useMemo(() => {
+    return currentLocation !== null && 
+      currentLocation.latitude !== 0 && 
+      currentLocation.longitude !== 0;
+  }, [currentLocation]);
 
-  // Fetch followed stores on mount to determine favorite status
+  // Fetch followed stores on mount
   useEffect(() => {
     fetchFollowedStores();
   }, [fetchFollowedStores]);
 
-  // Fetch popular stores when component mounts or location changes
+  // Fetch stores based on filter mode
+  // Always pass user location when available for accurate distance calculation
   useEffect(() => {
-    if (locationCoords) {
-      fetchPopularStores(locationCoords.latitude, locationCoords.longitude, 5);
-    }
-  }, [locationCoords, fetchPopularStores]);
+    const fetchStores = async () => {
+      // Re-fetch if:
+      // 1. Haven't fetched yet
+      // 2. Filter mode changed
+      // 3. Location became available for the first time (distances were calculated from fallback)
+      const locationJustBecameAvailable = hasLocation && !hadLocationOnLastFetchRef.current;
+      const shouldFetch = !hasFetchedRef.current || 
+                          lastFilterModeRef.current !== filterMode ||
+                          locationJustBecameAvailable;
+      
+      if (shouldFetch) {
+        hasFetchedRef.current = true;
+        lastFilterModeRef.current = filterMode;
+        hadLocationOnLastFetchRef.current = hasLocation;
+        
+        if (filterMode === 'nearby' && hasLocation && currentLocation) {
+          console.log('🔍 PopularStoresSection: Fetching nearby stores');
+          await fetchPopularStores(currentLocation.latitude, currentLocation.longitude, 5);
+        } else {
+          // Always pass user location if available for accurate distance calculation
+          // Even in "All areas" mode, we want distances from user's actual location
+          console.log('🔍 PopularStoresSection: Fetching all popular stores', hasLocation ? 'with location' : 'without location');
+          if (hasLocation && currentLocation) {
+            await fetchPopularStores(currentLocation.latitude, currentLocation.longitude);
+          } else {
+            await fetchPopularStores();
+          }
+        }
+      }
+    };
+
+    fetchStores();
+  }, [fetchPopularStores, filterMode, hasLocation, currentLocation]);
 
   // Show only first 3 stores for home screen
   const displayStores = popularStores.slice(0, 3);
 
+  const handleFilterChange = (mode: FilterMode) => {
+    if (mode === 'nearby' && !hasLocation) return;
+    setFilterMode(mode);
+  };
+
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>Popular Stores</Text>
-        <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
-          <Text style={styles.seeAllText}>See All</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
-        </TouchableOpacity>
+        <View style={styles.titleRow}>
+          <Text style={styles.sectionTitle}>Popular Stores</Text>
+          <View style={styles.filterContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.filterBadge, 
+                filterMode === 'all' && styles.filterBadgeActive
+              ]}
+              onPress={() => handleFilterChange('all')}
+            >
+              <Text style={[
+                styles.filterText,
+                filterMode === 'all' && styles.filterTextActive
+              ]}>All areas</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.filterBadge, 
+                filterMode === 'nearby' && styles.filterBadgeActive,
+                !hasLocation && styles.filterBadgeDisabled
+              ]}
+              onPress={() => handleFilterChange('nearby')}
+              disabled={!hasLocation}
+            >
+              <Ionicons 
+                name="location" 
+                size={12} 
+                color={filterMode === 'nearby' ? colors.text.inverse : (!hasLocation ? colors.text.quaternary : colors.text.secondary)} 
+              />
+              <Text style={[
+                styles.filterText,
+                filterMode === 'nearby' && styles.filterTextActive,
+                !hasLocation && styles.filterTextDisabled
+              ]}>Nearby</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {displayStores.length > 0 && (
+          <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
+            <Text style={styles.seeAllText}>See All</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
+          </TouchableOpacity>
+        )}
       </View>
+      
       <View style={styles.restaurantsContainer}>
-        {isFetchingPopular ? (
+        {isFetchingPopular && popularStores.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={colors.primary.main} />
-            <Text style={styles.loadingText}>Loading popular stores...</Text>
+            <Text style={styles.loadingText}>Loading stores...</Text>
           </View>
-        ) : popularError ? (
+        ) : popularError && popularStores.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Failed to load popular stores</Text>
-            <Text style={styles.errorText}>{popularError}</Text>
-          </View>
-        ) : !locationCoords ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="location-outline" size={32} color={colors.text.secondary} />
-            <Text style={styles.emptyText}>Location required</Text>
-            <Text style={styles.emptySubtext}>Please set your location to see popular stores nearby</Text>
+            <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+            <Text style={styles.emptyText}>Couldn't load stores</Text>
+            <Text style={styles.emptySubtext}>Pull down to refresh</Text>
           </View>
         ) : displayStores.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No popular stores available</Text>
-            <Text style={styles.emptySubtext}>Check back later for popular stores in your area</Text>
+          // Improved empty state
+          <View style={styles.noStoresContainer}>
+            <View style={styles.noStoresIconWrapper}>
+              <Ionicons name="storefront-outline" size={48} color={colors.primary.main} />
+            </View>
+            <Text style={styles.noStoresTitle}>
+              {filterMode === 'nearby' ? 'No stores nearby' : 'No stores available'}
+            </Text>
+            <Text style={styles.noStoresSubtitle}>
+              {filterMode === 'nearby' 
+                ? 'There are no stores within 5km of your location yet. Try switching to "All areas" to browse stores from other locations.'
+                : 'Stores will appear here as they join Huggle. Check back soon!'
+              }
+            </Text>
+            {filterMode === 'nearby' && (
+              <TouchableOpacity 
+                style={styles.switchFilterButton}
+                onPress={() => handleFilterChange('all')}
+              >
+                <Text style={styles.switchFilterText}>Show all stores</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.primary.main} />
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           displayStores.map((store) => (
@@ -97,12 +194,12 @@ const PopularStoresSection: React.FC<PopularStoresSectionProps> = ({
                 name: store.name,
                 description: store.description,
                 image: store.profileImageUrl,
-                rating: 4.5, // Default rating since not provided by API
-                deliveryTime: '15-30 min', // Default delivery time
-                distance: store.distance ? `${store.distance.toFixed(1)}km` : '0.0km',
+                rating: 4.5,
+                deliveryTime: '15-30 min',
+                distance: store.distance ? `${store.distance.toFixed(1)}km` : 'N/A',
                 categories: store.tags || [],
                 isFavorite: isStoreFollowed(store.id),
-                promotion: store.isVerified ? 'Verified' : undefined,
+                ...(store.isVerified && { promotion: 'Verified' }),
                 address: store.address,
                 city: store.city,
                 province: store.province,
@@ -127,17 +224,54 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 16,
+  },
+  titleRow: {
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.text.primary,
+    marginBottom: 8,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.background.secondary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+  },
+  filterBadgeActive: {
+    backgroundColor: colors.primary.main,
+  },
+  filterBadgeDisabled: {
+    backgroundColor: colors.background.tertiary,
+    opacity: 0.6,
+  },
+  filterText: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    fontWeight: '600',
+  },
+  filterTextActive: {
+    color: colors.text.inverse,
+  },
+  filterTextDisabled: {
+    color: colors.text.quaternary,
   },
   seeAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingTop: 4,
   },
   seeAllText: {
     fontSize: 14,
@@ -147,20 +281,72 @@ const styles = StyleSheet.create({
   restaurantsContainer: {
     paddingHorizontal: 0,
   },
-  emptyContainer: {
-    paddingVertical: 32,
+  // Improved empty state
+  noStoresContainer: {
     alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    backgroundColor: colors.background.secondary,
+    borderRadius: 20,
   },
-  emptyText: {
-    fontSize: 16,
-    color: colors.text.tertiary,
+  noStoresIconWrapper: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.primary.main + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  noStoresTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
     textAlign: 'center',
+    marginBottom: spacing.sm,
   },
-  emptySubtext: {
+  noStoresSubtitle: {
     fontSize: 14,
     color: colors.text.secondary,
     textAlign: 'center',
-    marginTop: 8,
+    lineHeight: 22,
+    maxWidth: '100%',
+  },
+  switchFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.lg,
+    backgroundColor: colors.primary.main + '15',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  switchFilterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary.main,
+  },
+  // General empty state
+  emptyContainer: {
+    paddingVertical: 48,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: typography.fontSizes.lg,
+    fontWeight: typography.fontWeights.semibold,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  emptySubtext: {
+    fontSize: typography.fontSizes.md,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: '85%',
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -172,12 +358,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 14,
     color: colors.text.secondary,
-  },
-  errorText: {
-    fontSize: 12,
-    color: colors.error,
-    textAlign: 'center',
-    marginTop: 4,
   },
 });
 

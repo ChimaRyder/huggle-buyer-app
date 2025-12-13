@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, BackHandler } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
 import { Redirect } from "expo-router";
 import { useTheme, Layout, Text } from "@ui-kitten/components";
@@ -13,7 +13,7 @@ import Animated, {
 import { ShoppingBag } from "lucide-react-native";
 
 const SplashScreen = () => {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const theme = useTheme();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -27,6 +27,15 @@ const SplashScreen = () => {
   });
 
   useEffect(() => {
+    // Handle Android back button during splash - prevent going back
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        // Return true to prevent default back behavior during splash
+        return true;
+      }
+    );
+
     // Start the pulsating animation
     scale.value = withRepeat(
       withTiming(1.2, {
@@ -37,16 +46,28 @@ const SplashScreen = () => {
       true // Reverse
     );
 
-    // Set a timeout to check user and redirect after 3 seconds
+    // Wait for Clerk to load and show splash for minimum 2 seconds
     const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
+      if (isLoaded) {
+        setIsLoading(false);
+      }
+    }, 2000);
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      clearTimeout(timer);
+      backHandler.remove();
+    };
+  }, [isLoaded]);
+
+  // If Clerk is loaded but splash is still showing, dismiss it once ready
+  useEffect(() => {
+    if (isLoaded && !isLoading) {
+      // Ready to redirect
+    }
+  }, [isLoaded, isLoading]);
 
   // If loading is complete, redirect based on user status
-  if (!isLoading) {
+  if (!isLoading && isLoaded) {
     if (user) {
       return <Redirect href="/(auth)" />;
     }

@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RestaurantCard from '@/components/restaurant/RestaurantCard';
@@ -40,30 +41,30 @@ interface SearchResultsProps {
   onFoodItemPress: (item: BackendProduct) => void;
 }
 
-const SearchResults: React.FC<SearchResultsProps> = ({ 
-  restaurants, 
-  foodItems, 
+const SearchResults: React.FC<SearchResultsProps> = ({
+  restaurants,
+  foodItems,
   searchTerm,
-  onRestaurantPress, 
-  onToggleFavorite, 
-  onFoodItemPress 
+  onRestaurantPress,
+  onToggleFavorite,
+  onFoodItemPress
 }) => {
   const { followedStores, followStore, unfollowStore, fetchFollowedStores } = useStoreContext();
   const [followedStoreIds, setFollowedStoreIds] = useState<string[]>([]);
-  
+
   // Extract store IDs from followed stores
   useEffect(() => {
-    const ids = followedStores.map((followedStore: any) => 
+    const ids = followedStores.map((followedStore: any) =>
       followedStore.storeId || followedStore.store?.id || followedStore.id
     ).filter(Boolean);
     setFollowedStoreIds(ids);
   }, [followedStores]);
-  
+
   // Fetch followed stores on component mount
   useEffect(() => {
     fetchFollowedStores();
   }, [fetchFollowedStores]);
-  
+
   const handleToggleFavorite = async (storeId: string) => {
     try {
       if (followedStoreIds.includes(storeId)) {
@@ -97,7 +98,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {restaurants.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Restaurants</Text>
+          <Text style={styles.sectionTitle}>Stores</Text>
           {restaurants.map((restaurant) => (
             <View key={restaurant.id} style={styles.resultItem}>
               <RestaurantCard
@@ -112,8 +113,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                   {restaurant.tags.slice(0, 3).map((tag, index) => {
                     const isMatch = tag.toLowerCase().includes(searchTerm.toLowerCase());
                     return (
-                      <Text 
-                        key={index} 
+                      <Text
+                        key={index}
                         style={[styles.tag, isMatch && styles.matchingTag]}
                       >
                         {tag}{index < Math.min(restaurant.tags.length, 3) - 1 && ', '}
@@ -129,38 +130,47 @@ const SearchResults: React.FC<SearchResultsProps> = ({
           ))}
         </View>
       )}
-      
+
       {foodItems.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Food Items</Text>
+          <Text style={styles.sectionTitle}>Products</Text>
           <View style={styles.foodItemsContainer}>
-            {foodItems.map((item) => (
-              <View key={item.id} style={styles.foodItemWrapper}>
-                <FoodItemCard 
-                  item={item} 
-                  onPress={() => onFoodItemPress(item)} 
-                />
-                {/* Show matching tags */}
-                {searchTerm && item.tags && item.tags.length > 0 && (
-                  <View style={styles.productTagsContainer}>
-                    {item.tags.slice(0, 2).map((tag, index) => {
-                      const isMatch = tag.toLowerCase().includes(searchTerm.toLowerCase());
-                      return (
-                        <Text 
-                          key={index} 
-                          style={[styles.productTag, isMatch && styles.matchingProductTag]}
-                        >
-                          {tag}
-                        </Text>
-                      );
-                    })}
-                    {item.tags.length > 2 && (
-                      <Text style={styles.productTag}>+{item.tags.length - 2}</Text>
-                    )}
-                  </View>
-                )}
-              </View>
-            ))}
+            {foodItems.map((item, index) => {
+              const isLeftColumn = index % 2 === 0;
+              return (
+                <View
+                  key={item.id}
+                  style={[
+                    styles.foodItemWrapper,
+                    isLeftColumn ? styles.foodItemLeft : styles.foodItemRight
+                  ]}
+                >
+                  <FoodItemCard
+                    item={item}
+                    onPress={() => onFoodItemPress(item)}
+                  />
+                  {/* Show matching tags */}
+                  {searchTerm && item.tags && item.tags.length > 0 && (
+                    <View style={styles.productTagsContainer}>
+                      {item.tags.slice(0, 2).map((tag, tagIndex) => {
+                        const isMatch = tag.toLowerCase().includes(searchTerm.toLowerCase());
+                        return (
+                          <Text
+                            key={tagIndex}
+                            style={[styles.productTag, isMatch && styles.matchingProductTag]}
+                          >
+                            {tag}
+                          </Text>
+                        );
+                      })}
+                      {item.tags.length > 2 && (
+                        <Text style={styles.productTag}>+{item.tags.length - 2}</Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </View>
         </View>
       )}
@@ -230,10 +240,16 @@ const styles = StyleSheet.create({
   foodItemsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
   },
   foodItemWrapper: {
-    width: '48%',
+    width: (Dimensions.get('window').width - 32 - 12) / 2, // (screenWidth - padding - gap) / 2
+    marginBottom: 12,
+  },
+  foodItemLeft: {
+    marginRight: 12,
+  },
+  foodItemRight: {
+    marginRight: 0,
   },
   emptyContainer: {
     flex: 1,

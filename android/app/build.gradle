@@ -96,6 +96,38 @@ android {
         versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
+        
+        // Google Maps API Key - reads from .env, local.properties, gradle.properties, or environment
+        def googleMapsApiKey = ''
+        
+        // Try reading from .env file first (same file Expo uses)
+        def envFile = new File(projectRoot, '.env')
+        if (envFile.exists()) {
+            envFile.eachLine { line ->
+                if (line.startsWith('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=')) {
+                    googleMapsApiKey = line.split('=', 2)[1].trim()
+                }
+            }
+        }
+        
+        // Fallback to local.properties
+        if (!googleMapsApiKey) {
+            def localProperties = new Properties()
+            def localPropertiesFile = rootProject.file('local.properties')
+            if (localPropertiesFile.exists()) {
+                localPropertiesFile.withInputStream { localProperties.load(it) }
+            }
+            googleMapsApiKey = localProperties.getProperty('GOOGLE_MAPS_API_KEY') ?: ''
+        }
+        
+        // Fallback to gradle.properties or environment
+        if (!googleMapsApiKey) {
+            googleMapsApiKey = project.findProperty('GOOGLE_MAPS_API_KEY') 
+                ?: System.getenv('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY') 
+                ?: ''
+        }
+        
+        manifestPlaceholders = [GOOGLE_MAPS_API_KEY: googleMapsApiKey]
     }
     signingConfigs {
         debug {

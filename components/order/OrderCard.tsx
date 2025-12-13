@@ -1,7 +1,6 @@
 import React from "react";
 import { View, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { Text } from "@ui-kitten/components";
-import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { colors, spacing, radii, typography } from "../../constants/theme";
 
 interface OrderCardProps {
@@ -14,21 +13,22 @@ interface OrderCardProps {
     storeName: string;
     location: string;
     status:
-      | "Pending"
-      | "Confirmed"
-      | "Ready for Pickup"
-      | "Completed"
-      | "Cancelled";
+    | "Pending"
+    | "Confirmed"
+    | "Ready for Pickup"
+    | "Completed"
+    | "Cancelled";
     image: any;
-    // Add for multi-item support
     items?: Array<{
       image: any;
       name: string;
       price: string;
       quantity: number;
+      subtotal?: string;
     }>;
     totalPrice?: string;
   };
+  storeImage?: any;
   onCancel?: () => void;
   showCancelButton?: boolean;
   onReviewItems?: () => void;
@@ -37,6 +37,7 @@ interface OrderCardProps {
 
 const OrderCard: React.FC<OrderCardProps> = ({
   order,
+  storeImage,
   onCancel,
   showCancelButton = false,
   onReviewItems,
@@ -46,277 +47,236 @@ const OrderCard: React.FC<OrderCardProps> = ({
     (order.status === "Pending" || order.status === "Confirmed") &&
     showCancelButton;
 
-  // If items array exists, render multi-item layout
-  if (order.items && order.items.length > 0) {
-    return (
-      <View style={styles.card}>
-        <Text appearance="hint" style={styles.dateText}>
-          {order.date}
+  // Use store image or fallback
+  const displayStoreImage = storeImage || require("@/assets/images/sample-store.jpg");
+
+  const renderItem = (item: any, index: number) => (
+    <View key={index} style={styles.itemRow}>
+      <Image source={item.image} style={styles.itemImage} />
+      <View style={styles.itemDetails}>
+        <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.itemQuantityLine}>
+          {item.quantity} x {item.price} = <Text style={styles.itemSubtotal}>{item.subtotal}</Text>
         </Text>
-        {order.items.map((item, idx) => (
-          <View key={idx} style={styles.multiItemRow}>
-            <View style={styles.productSection}>
-              <Image source={item.image} style={styles.multiItemImage} />
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.quantityText}>x{item.quantity}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.priceSection}>
-              <Text style={styles.price}>{item.price}</Text>
-            </View>
-          </View>
-        ))}
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalPriceText}>{order.totalPrice}</Text>
-        </View>
-          <View style={styles.bottomRowMulti}>
-            {showReviewButton && onReviewItems && (
-              <TouchableOpacity
-                style={styles.reviewButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onReviewItems && onReviewItems();
-                }}
-              >
-                <Text style={styles.reviewButtonText}>Review Items</Text>
-              </TouchableOpacity>
-            )}
-            {canCancel && onCancel && (
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onCancel && onCancel();
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            )}
-          </View>
       </View>
-    );
-  }
+    </View>
+  );
 
   return (
     <View style={styles.card}>
-      <Text appearance="hint" style={styles.dateText}>
-        {order.date}
-      </Text>
-
-      <View style={styles.contentRow}>
-        <View style={styles.productSection}>
-          <Image source={order.image} style={styles.image} />
-          <Text category="s1" style={styles.productName}>
-            {order.productName}
-          </Text>
+      {/* --- Header Row: Store Info & Date --- */}
+      <View style={styles.headerRow}>
+        <View style={styles.storeInfoContainer}>
+          <Image source={displayStoreImage} style={styles.storeImage} />
+          <View>
+            <Text style={styles.storeName}>{order.storeName}</Text>
+          </View>
         </View>
-
-        <View style={styles.priceSection}>
-          <Text status="primary" style={styles.price}>
-            {order.price}
-          </Text>
-        </View>
+        <Text style={styles.dateText}>{order.date}</Text>
       </View>
 
-      {/* Extra details row */}
-      <View style={styles.extraDetailsRow}>
-        <Text style={styles.extraDetailsText} numberOfLines={2}>
-          {order.description}
-        </Text>
+      <View style={styles.divider} />
+
+      {/* --- Body Row: Items List --- */}
+      <View style={styles.bodyContainer}>
+        {/* Left: Items List */}
+        {order.items && order.items.length > 0 ? (
+          order.items.map(renderItem)
+        ) : (
+          // Fallback for single item structure if items array missing
+          <View style={styles.itemRow}>
+            <Image source={order.image} style={styles.itemImage} />
+            <View style={styles.itemDetails}>
+              <Text style={styles.itemName} numberOfLines={1}>{order.productName}</Text>
+              <Text style={styles.itemQuantityLine}>
+                {order.description}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
-      {/* Location row */}
-      <View style={styles.locationRow}>
-        <FontAwesome5 name="store" size={14} color={colors.primary.main} />
-        <Text style={styles.metaText}> {order.storeName} | </Text>
-        <Ionicons name="location-sharp" size={14} color={colors.primary.light} />
-        <Text style={styles.metaText}> {order.location}</Text>
-      </View>
-
-      {canCancel && onCancel && (
-        <View style={styles.bottomRow}>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              onCancel();
-            }}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
+      {/* --- Footer: Total & Actions --- */}
+      <View style={styles.totalContainer}>
+        <View style={styles.totalWrapper}>
+          <Text style={styles.totalLabel}>Total: </Text>
+          <Text style={styles.totalPrice}>{order.totalPrice || order.price}</Text>
         </View>
-      )}
+
+        <View style={styles.buttonWrapper}>
+          {showReviewButton && onReviewItems && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                onReviewItems && onReviewItems();
+              }}
+            >
+              <Text style={styles.actionButtonText}>Review</Text>
+            </TouchableOpacity>
+          )}
+
+          {canCancel && onCancel && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.cancelButton]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onCancel && onCancel();
+              }}
+            >
+              <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
     </View>
   );
 };
 
 export default OrderCard;
 
-/* const getStatusStyle = (status: string) => ({
-  backgroundColor:
-    status === "Completed"
-      ? colors.background.successSubtle
-      : status === "Cancelled"
-      ? colors.background.dangerSubtle
-      : status === "Confirmed"
-      ? colors.background.infoSubtle
-      : status === "Ready for Pickup"
-      ? colors.background.warningSubtle
-      : colors.background.warningSubtle, // Pending
-}); */
-
-
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.background.primary,
     borderRadius: radii.lg,
-    marginHorizontal: 0, // Remove horizontal margin since we handle it in the parent
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-    // Remove shadows completely
+    marginHorizontal: 0,
+    padding: spacing.md,
+
+    // Shadows
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
+
+    // Border
+    borderWidth: 1,
+    borderColor: colors.border.primary,
   },
-  dateText: {
-    marginBottom: spacing.md,
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.semibold,
-    color: colors.primary.main,
-  },
-  contentRow: {
+  // Header Styles
+  headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: spacing.xs,
   },
-  productSection: {
+  storeInfoContainer: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
-    paddingRight: spacing.md,
     gap: spacing.sm,
   },
-  image: {
+  storeImage: {
+    width: 24,
+    height: 24,
+    borderRadius: radii.full,
+  },
+  storeName: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+  },
+  dateText: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.secondary,
+    fontWeight: typography.fontWeights.medium,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border.primary,
+    marginVertical: spacing.sm,
+  },
+
+  // Body Layout
+  bodyContainer: {
+    marginBottom: spacing.xs,
+  },
+
+  // Item Row Styles
+  itemRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.sm,
+    alignItems: 'center',
+  },
+  itemImage: {
     width: 50,
     height: 50,
-    borderRadius: radii.full,
+    borderRadius: radii.md,
+    marginRight: spacing.sm,
+    backgroundColor: colors.background.secondary,
   },
-  productInfo: {
+  itemDetails: {
     flex: 1,
+    justifyContent: 'center',
   },
-  productNameSection: {
-    flex: 1,
-    paddingRight: spacing.sm,
+  itemName: {
+    fontSize: typography.fontSizes.sm,
+    fontWeight: typography.fontWeights.bold,
+    color: colors.text.primary,
+    marginBottom: 2,
   },
-  priceSection: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-    minWidth: 60,
+  itemQuantityLine: {
+    fontSize: typography.fontSizes.xs,
+    color: colors.text.secondary,
   },
-  productName: {
-    fontWeight: typography.fontWeights.semibold,
+  itemSubtotal: {
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
   },
-  price: {
-    fontWeight: typography.fontWeights.medium,
-    color: colors.text.primary,
-    fontSize: typography.fontSizes.md,
-  },
-  description: {
+
+  // Footer / Total Section
+  totalContainer: {
+    flexDirection: 'row', // Row for Total | Buttons
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: spacing.xs,
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.secondary,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: spacing.xs,
-    paddingLeft: 50 + spacing.md, // Align with product name (image width + margin)
-    paddingRight: spacing.sm + 60, // Account for price section width
-  },
-  metaText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.secondary,
-  },
-  bottomRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    marginTop: spacing.md,
-  },
-  cancelButton: {
-    backgroundColor: colors.danger,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.sm,
-  },
-  cancelButtonText: {
-    color: colors.text.inverse,
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.medium,
-  },
-  reviewButton: {
-    backgroundColor: colors.primary.main,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.sm,
-  },
-  reviewButtonText: {
-    color: colors.text.inverse,
-    fontSize: typography.fontSizes.sm,
-    fontWeight: typography.fontWeights.medium,
-  },
-  extraDetailsRow: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-    paddingLeft: 50 + spacing.md, // Align with product name (image width + margin)
-    paddingRight: spacing.sm + 60, // Account for price section width
-  },
-  extraDetailsText: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.text.secondary,
-  },
-  // New styles for multi-item support
-  multiItemRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-  multiItemImage: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.full,
-  },
-  quantityText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.text.secondary,
-    marginTop: 2,
-  },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-    paddingTop: spacing.md,
+    paddingTop: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: colors.border.primary,
   },
+  totalWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   totalLabel: {
     fontSize: typography.fontSizes.sm,
-    color: colors.text.primary,
-    fontWeight: typography.fontWeights.bold,
+    color: colors.text.secondary,
+    fontWeight: typography.fontWeights.medium,
   },
-  totalPriceText: {
+  totalPrice: {
+    fontSize: typography.fontSizes.md,
     fontWeight: typography.fontWeights.bold,
     color: colors.primary.main,
-    fontSize: typography.fontSizes.md,
+    marginLeft: spacing.xs,
   },
-  bottomRowMulti: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    marginTop: spacing.md,
+
+  buttonWrapper: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+
+  // Action Buttons
+  actionButton: {
+    backgroundColor: colors.primary.main,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: radii.full, // Rounded full buttons
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 70,
+  },
+  actionButtonText: {
+    color: colors.text.inverse,
+    fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.bold,
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  cancelButtonText: {
+    color: colors.danger,
+    fontSize: typography.fontSizes.xs,
+    fontWeight: typography.fontWeights.bold,
   },
 });

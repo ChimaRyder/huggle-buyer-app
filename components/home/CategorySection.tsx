@@ -5,11 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { colors } from '@/constants/theme';
 import { useProductContext } from '@/context/ProductContext';
 import { getCategoryIcon, getCategoryColor } from '@/components/icons/CategoryIcons';
+import { Ionicons } from '@expo/vector-icons';
 
 interface CategorySectionProps {
   onCategoryPress: (categoryId: string) => void;
@@ -22,6 +22,18 @@ interface DynamicCategory {
   color: string;
   IconComponent: React.ComponentType<{ size?: number; color?: string }>;
 }
+
+// Default categories that always show when no products are available
+const DEFAULT_CATEGORIES = [
+  { id: 'fruits', name: 'Fruits', iconName: 'nutrition-outline' as const },
+  { id: 'vegetables', name: 'Vegetables', iconName: 'leaf-outline' as const },
+  { id: 'meat', name: 'Meat', iconName: 'restaurant-outline' as const },
+  { id: 'seafood', name: 'Seafood', iconName: 'fish-outline' as const },
+  { id: 'dairy', name: 'Dairy', iconName: 'egg-outline' as const },
+  { id: 'bakery', name: 'Bakery', iconName: 'cafe-outline' as const },
+  { id: 'beverages', name: 'Beverages', iconName: 'wine-outline' as const },
+  { id: 'snacks', name: 'Snacks', iconName: 'fast-food-outline' as const },
+];
 
 const CategorySection: React.FC<CategorySectionProps> = ({ onCategoryPress }) => {
   const { trendingProducts, isFetchingTrending } = useProductContext();
@@ -36,7 +48,6 @@ const CategorySection: React.FC<CategorySectionProps> = ({ onCategoryPress }) =>
     const categoryMap = new Map<string, number>();
     
     trendingProducts.forEach(product => {
-      // Add product type as a category
       if (product.productType) {
         const type = product.productType.toLowerCase().trim();
         categoryMap.set(type, (categoryMap.get(type) || 0) + 1);
@@ -45,9 +56,9 @@ const CategorySection: React.FC<CategorySectionProps> = ({ onCategoryPress }) =>
     
     // Convert to category objects and sort by count
     const categories: DynamicCategory[] = Array.from(categoryMap.entries())
-      .filter(([name, count]) => count > 0) // Only include categories with at least 1 product
-      .sort(([, countA], [, countB]) => countB - countA) // Sort by count descending
-      .slice(0, 8) // Limit to top 8 categories
+      .filter(([, count]) => count > 0)
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, 8)
       .map(([name, count]) => {
         const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
         return {
@@ -61,52 +72,68 @@ const CategorySection: React.FC<CategorySectionProps> = ({ onCategoryPress }) =>
     
     return categories;
   }, [trendingProducts]);
-  
-  if (isFetchingTrending) {
+
+  // Use dynamic categories if available, otherwise show default categories
+  const showDynamicCategories = dynamicCategories.length > 0;
+
+  // Render a default category card with Ionicons
+  const renderDefaultCategory = (category: typeof DEFAULT_CATEGORIES[0]) => {
+    const categoryColor = getCategoryColor(category.id);
     return (
-      <View style={styles.section}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={colors.primary.main} />
-          <Text style={styles.loadingText}>Loading categories...</Text>
+      <TouchableOpacity
+        key={category.id}
+        style={[styles.categoryCard, { backgroundColor: categoryColor }]}
+        onPress={() => onCategoryPress(category.id)}
+      >
+        <View style={styles.iconContainer}>
+          <Ionicons name={category.iconName} size={28} color={colors.text.inverse} />
         </View>
-      </View>
+        <Text style={styles.categoryName}>{category.name}</Text>
+      </TouchableOpacity>
     );
-  }
-  
-  if (dynamicCategories.length === 0) {
+  };
+
+  // Render a dynamic category card
+  const renderDynamicCategory = (category: DynamicCategory) => {
+    const IconComponent = category.IconComponent;
     return (
-      <View style={styles.section}>
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No categories available</Text>
-          <Text style={styles.emptySubtext}>Categories will appear once products are loaded</Text>
+      <TouchableOpacity
+        key={category.id}
+        style={[styles.categoryCard, { backgroundColor: category.color }]}
+        onPress={() => onCategoryPress(category.id)}
+      >
+        <View style={styles.iconContainer}>
+          <IconComponent size={28} color={colors.text.inverse} />
         </View>
-      </View>
+        <Text style={styles.categoryName}>{category.name}</Text>
+        {category.count > 0 && (
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{category.count}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
     );
-  }
+  };
 
   return (
     <View style={styles.section}>
+      <View style={styles.header}>
+        <Text style={styles.sectionTitle}>Categories</Text>
+        {isFetchingTrending && !showDynamicCategories && (
+          <Text style={styles.loadingText}>Updating...</Text>
+        )}
+      </View>
+      
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
         style={styles.categoriesContainer}
         contentContainerStyle={styles.categoriesContent}
       >
-        {dynamicCategories.map((category) => {
-          const IconComponent = category.IconComponent;
-          return (
-            <TouchableOpacity
-              key={category.id}
-              style={[styles.categoryCard, { backgroundColor: category.color }]}
-              onPress={() => onCategoryPress(category.id)}
-            >
-              <View style={styles.iconContainer}>
-                <IconComponent size={28} color={colors.text.inverse} />
-              </View>
-              <Text style={styles.categoryName}>{category.name}</Text>
-            </TouchableOpacity>
-          );
-        })}
+        {showDynamicCategories 
+          ? dynamicCategories.map(renderDynamicCategory)
+          : DEFAULT_CATEGORIES.map(renderDefaultCategory)
+        }
       </ScrollView>
     </View>
   );
@@ -116,6 +143,21 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: 16,
     marginBottom: 24,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text.primary,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: colors.text.tertiary,
   },
   categoriesContainer: {
     flexDirection: 'row',
@@ -132,13 +174,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
+    position: 'relative',
   },
   iconContainer: {
     marginBottom: 6,
-  },
-  categoryIcon: {
-    fontSize: 24,
-    marginBottom: 8,
   },
   categoryName: {
     fontSize: 12,
@@ -147,31 +186,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 14,
   },
-  loadingContainer: {
-    paddingVertical: 32,
+  countBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
-    flexDirection: 'row',
     justifyContent: 'center',
+    paddingHorizontal: 4,
   },
-  loadingText: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginLeft: 8,
-  },
-  emptyContainer: {
-    paddingVertical: 32,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.text.quaternary,
-    textAlign: 'center',
-    marginTop: 4,
+  countText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.text.primary,
   },
 });
 

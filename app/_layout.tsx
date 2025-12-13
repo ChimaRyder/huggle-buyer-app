@@ -6,12 +6,14 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import * as eva from "@eva-design/eva";
 import { ApplicationProvider } from "@ui-kitten/components";
 import { StatusBar } from "expo-status-bar";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "../utils/cache";
+
+import { colors } from "@/constants/theme";
 
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -52,13 +54,29 @@ export default function RootLayout() {
             <CartProvider>
               <ApplicationProvider
                 {...eva}
-                theme={{...eva.light, ...mainTheme}}
+                theme={{ ...eva.light, ...mainTheme }}
               >
                 <ThemeProvider
                   value={DefaultTheme}
                 >
-                  <Slot />
-                  <StatusBar translucent backgroundColor="transparent" style="light"/>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      animation: 'fade',
+                    }}
+                  >
+                    <Stack.Screen name="index" />
+                    <Stack.Screen name="(login)" />
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+                    <Stack.Screen
+                      name="(screens)"
+                      options={{
+                        animation: 'slide_from_right',
+                      }}
+                    />
+                  </Stack>
+                  <StatusBar translucent={false} backgroundColor={colors.background.successSubtle} style="dark" />
                 </ThemeProvider>
               </ApplicationProvider>
             </CartProvider>

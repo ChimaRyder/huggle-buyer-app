@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BackendProduct } from '@/types/BackendModels';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@clerk/clerk-expo';
-import { colors, spacing } from '@/constants/theme';
+import { colors } from '@/constants/theme';
 import SafeImage from '@/components/common/SafeImage';
 import type { DynamicPricingInfo } from '@/types/DynamicPricing';
 import { fetchDynamicPricingInfo } from '@/services/pricingService';
@@ -12,37 +12,29 @@ import { PriceCountdown } from '@/components/product/PriceCountdown';
 interface FoodItemCardProps {
   item: BackendProduct;
   onPress: () => void;
+  fullWidth?: boolean;
 }
 
-const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
+const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress, fullWidth = false }) => {
   const { getToken } = useAuth();
   const [pricingInfo, setPricingInfo] = useState<DynamicPricingInfo | null>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
 
-  // Fetch dynamic pricing info if enabled
+  // Fetch dynamic pricing info only if enabled
   useEffect(() => {
     const loadPricingInfo = async () => {
-      console.log('🔍 FoodItemCard: Checking dynamic pricing', {
-        productId: item.id,
-        productName: item.name
-      });
-      
-      if (item.id) {
+      // Only fetch if dynamic pricing is enabled for this product
+      if (item.id && item.isDynamicPricingEnabled) {
         try {
           setLoadingPricing(true);
-          console.log('📡 FoodItemCard: Fetching pricing info for', item.id);
           const token = await getToken({ template: 'seller_app' });
           const response = await fetchDynamicPricingInfo(item.id, token);
-          console.log('✅ FoodItemCard: Pricing response:', {
-            success: response.success,
-            hasData: !!response.data,
-            trajectoryLength: response.data?.priceTrajectory?.length
-          });
           if (response.success && response.data) {
             setPricingInfo(response.data);
           }
         } catch (error) {
-          console.error('❌ FoodItemCard: Error fetching pricing info:', error);
+          // Silently handle errors - pricing info is optional enhancement
+          console.warn('FoodItemCard: Could not load pricing info for', item.id);
         } finally {
           setLoadingPricing(false);
         }
@@ -50,21 +42,40 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
     };
 
     loadPricingInfo();
-  }, []);
+  }, [item.id, item.isDynamicPricingEnabled]);
+
 
   // Calculate display price and discount info from DTO
   const hasDiscount = item.hasDiscount || (item.price < item.originalPrice);
   const displayPrice = item.price; // Current price from DTO
-  
+
+  // Get the best available image - handle both products and bundles
+  const getItemImage = () => {
+    if (item.coverImage) return item.coverImage;
+    if (item.image && item.image.length > 0) return item.image[0];
+    // Bundle-specific fallbacks (cast to any for bundle fields)
+    const bundleItem = item as any;
+    if (bundleItem.imageUrl) return bundleItem.imageUrl;
+    if (bundleItem.images && bundleItem.images.length > 0) return bundleItem.images[0];
+    return '';
+  };
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity style={[styles.container, fullWidth && styles.fullWidthContainer]} onPress={onPress}>
       <View style={styles.imageContainer}>
-        <SafeImage 
-          source={{ 
-            uri: item.coverImage || (item.image && item.image.length > 0 ? item.image[0] : '') 
-          }} 
-          style={styles.image} 
+        <SafeImage
+          source={{ uri: getItemImage() }}
+          style={styles.image}
         />
+
+        {/* Bundle Badge - to distinguish bundles from products */}
+        {item.isBundle && (
+          <View style={styles.bundleBadge}>
+            <Ionicons name="layers" size={10} color={colors.text.inverse} />
+            <Text style={styles.bundleBadgeText}>Bundle</Text>
+          </View>
+        )}
+
         {hasDiscount && (
           <View style={styles.popularBadge}>
             <Text style={styles.popularText}>
@@ -72,19 +83,28 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
             </Text>
           </View>
         )}
-        
+
         {/* Dynamic Pricing Countdown Badge */}
-        {pricingInfo && pricingInfo?.priceTrajectory[1] && (
-          <View style={styles.countdownBadge}>
-            <PriceCountdown 
-              targetTimestamp={pricingInfo.priceTrajectory[1].timestamp}
-              compact={true}
-              showIcon={true}
-            />
-          </View>
-        )}
+        {pricingInfo && pricingInfo?.priceTrajectory[1] && (() => {
+          const targetTime = new Date(pricingInfo.priceTrajectory[1].timestamp).getTime();
+          const now = new Date().getTime();
+          const daysDifference = (targetTime - now) / (1000 * 60 * 60 * 24);
+
+          if (daysDifference <= 3) {
+            return (
+              <View style={styles.countdownBadge}>
+                <PriceCountdown
+                  targetTimestamp={pricingInfo.priceTrajectory[1].timestamp}
+                  compact={true}
+                  showIcon={true}
+                />
+              </View>
+            );
+          }
+          return null;
+        })()}
       </View>
-      
+
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
@@ -95,7 +115,7 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({ item, onPress }) => {
             </View>
           )}
         </View>
-        
+
         <Text style={styles.description} numberOfLines={2}>
           {item.description}
         </Text>
@@ -136,6 +156,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     width: 170,
   },
+  fullWidthContainer: {
+    width: '100%',
+    marginBottom: 0,
+  },
   imageContainer: {
     height: 130,
     borderTopLeftRadius: 12,
@@ -156,6 +180,23 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   popularText: {
+    color: colors.text.inverse,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  bundleBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  bundleBadgeText: {
     color: colors.text.inverse,
     fontSize: 10,
     fontWeight: '600',

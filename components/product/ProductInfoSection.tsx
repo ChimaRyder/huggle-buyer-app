@@ -26,18 +26,18 @@ const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
 }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const hasDiscount = originalPrice && originalPrice > price;
-  const discountPercentage = hasDiscount 
+  const discountPercentage = hasDiscount
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
 
-  const formatPrice = (amount: number) => `$${amount.toFixed(2)}`;
+  const formatPrice = (amount: number) => `₱${amount.toFixed(2)}`;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -74,7 +74,7 @@ const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
           <Text style={styles.currentPrice}>
             {formatPrice(price)}
           </Text>
-          
+
           {hasDiscount && (
             <View style={styles.discountRow}>
               <Text style={styles.originalPrice}>
@@ -92,10 +92,10 @@ const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
         {/* Expiry Badge */}
         {expirationDate && (
           <View style={[styles.expiryBadge, isExpired() ? styles.expiredBadge : styles.validBadge]}>
-            <Ionicons 
-              name={isExpired() ? "warning" : "time"} 
-              size={14} 
-              color={colors.white} 
+            <Ionicons
+              name={isExpired() ? "warning" : "time"}
+              size={14}
+              color={colors.white}
             />
             <Text style={styles.expiryText}>
               {isExpired() ? 'Expired' : `Until ${formatDate(expirationDate)}`}

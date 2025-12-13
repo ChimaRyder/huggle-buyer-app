@@ -11,13 +11,13 @@ interface BundleProductCardProps {
   compact?: boolean; // For simplified seller-app style
 }
 
-const BundleProductCard: React.FC<BundleProductCardProps> = ({ 
-  product, 
+const BundleProductCard: React.FC<BundleProductCardProps> = ({
+  product,
   onPress,
-  compact = false 
+  compact = false
 }) => {
   const hasDiscount = product.price < product.originalPrice;
-  const discountPercentage = hasDiscount 
+  const discountPercentage = hasDiscount
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
@@ -30,18 +30,18 @@ const BundleProductCard: React.FC<BundleProductCardProps> = ({
   if (compact) {
     // Simplified seller-app style
     return (
-      <TouchableOpacity 
-        style={styles.compactContainer} 
+      <TouchableOpacity
+        style={styles.compactContainer}
         onPress={handlePress}
         disabled={!onPress}
         activeOpacity={onPress ? 0.7 : 1}
       >
         <View style={styles.compactImageContainer}>
-          <SafeImage 
-            source={{ 
-              uri: product.image && product.image.length > 0 ? product.image[0] : '' 
-            }} 
-            style={styles.compactImage} 
+          <SafeImage
+            source={{
+              uri: product.image && product.image.length > 0 ? product.image[0] : ''
+            }}
+            style={styles.compactImage}
           />
           {!product.isActive && (
             <View style={styles.compactInactiveOverlay}>
@@ -49,7 +49,7 @@ const BundleProductCard: React.FC<BundleProductCardProps> = ({
             </View>
           )}
         </View>
-        
+
         <View style={styles.compactContent}>
           <Text style={styles.compactName} numberOfLines={2}>{product.name}</Text>
           {product.tags && product.tags.length > 0 && (
@@ -64,18 +64,18 @@ const BundleProductCard: React.FC<BundleProductCardProps> = ({
 
   // Full detailed view
   return (
-    <TouchableOpacity 
-      style={styles.container} 
+    <TouchableOpacity
+      style={styles.container}
       onPress={handlePress}
       disabled={!onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
       <View style={styles.imageContainer}>
-        <SafeImage 
-          source={{ 
-            uri: product.image && product.image.length > 0 ? product.image[0] : '' 
-          }} 
-          style={styles.image} 
+        <SafeImage
+          source={{
+            uri: product.image && product.image.length > 0 ? product.image[0] : ''
+          }}
+          style={styles.image}
         />
         {hasDiscount && (
           <View style={styles.discountBadge}>
@@ -88,15 +88,15 @@ const BundleProductCard: React.FC<BundleProductCardProps> = ({
           </View>
         )}
       </View>
-      
+
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>{product.name}</Text>
           <View style={styles.stockContainer}>
-            <Ionicons 
-              name="cube-outline" 
-              size={12} 
-              color={product.stock > 0 ? colors.success : colors.error} 
+            <Ionicons
+              name="cube-outline"
+              size={12}
+              color={product.stock > 0 ? colors.success : colors.error}
             />
             <Text style={[
               styles.stockText,
@@ -106,14 +106,14 @@ const BundleProductCard: React.FC<BundleProductCardProps> = ({
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.priceContainer}>
-          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
-          {hasDiscount && (
-            <Text style={styles.originalPrice}>${product.originalPrice.toFixed(2)}</Text>
+          <Text style={styles.price}>₱{product.price.toFixed(2)}</Text>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <Text style={styles.originalPrice}>₱{product.originalPrice.toFixed(2)}</Text>
           )}
         </View>
-        
+
         {/* Product Tags */}
         {product.tags && product.tags.length > 0 && (
           <View style={styles.tagsContainer}>
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontStyle: 'italic',
   },
-  
+
   // Full detailed styles
   container: {
     backgroundColor: colors.background.primary,

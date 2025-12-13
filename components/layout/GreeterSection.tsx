@@ -55,9 +55,9 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
       try {
         const token = await getToken({ template: "seller_app" });
         const res = await getUnreadNotificationCount(user.id, token);
-        console.log('🔔 Buyer app received notification count response:', JSON.stringify(res));
+        // console.log('🔔 Buyer app received notification count response:', JSON.stringify(res));
         const count = Number(res.data?.UnreadCount || res.data?.unreadCount || res.UnreadCount || res.unreadCount) || 0;
-        console.log('🔔 Buyer app parsed count:', count);
+        // console.log('🔔 Buyer app parsed count:', count);
         if (mounted) setUnreadCount(count);
       } catch (error) {
         console.error('🔔 Buyer app failed to fetch unread count:', error);
@@ -89,22 +89,22 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
             setDisplayLocation(truncateLocation("Location access denied"));
             return;
           }
-          
+
           setDisplayLocation(truncateLocation("Getting location..."));
           const loc = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
             maximumAge: 300000, // 5 minutes
             timeout: 10000,
           });
-          
+
           const deviceLocation = {
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
           };
-          
+
           const address = await getLocationAddress(deviceLocation);
           const deviceLocationWithAddress = { ...deviceLocation, address };
-          
+
           // Automatically save the device location to context so products can load
           try {
             await setLocation(deviceLocationWithAddress);
@@ -112,7 +112,7 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
           } catch (error) {
             console.warn('⚠️ GreeterSection: Failed to save device location to context:', error);
           }
-          
+
           const truncatedLocation = truncateLocation(address);
           setDisplayLocation(truncatedLocation);
         }
@@ -134,10 +134,10 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
         activeOpacity={0.7}
       >
         <View style={styles.notificationIconContainer}>
-          <Ionicons 
-            name="notifications" 
-            size={24} 
-            color={colors.icon.primary} 
+          <Ionicons
+            name="notifications"
+            size={24}
+            color={colors.icon.primary}
           />
         </View>
         {unreadCount > 0 && (
@@ -157,10 +157,10 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
       {/* Header with Location and Notification icon */}
       <View style={styles.headerRow}>
         <View style={styles.locationContainer}>
-          <Ionicons 
-            name="location" 
-            size={24} 
-            color={colors.icon.primary} 
+          <Ionicons
+            name="location"
+            size={24}
+            color={colors.icon.primary}
             style={styles.locationIcon}
           />
           {onLocationPress ? (
@@ -185,12 +185,12 @@ const GreeterSection: React.FC<GreeterSectionProps> = ({ onLocationPress, onSear
         </View>
         <NotificationBell unreadCount={unreadCount} />
       </View>
-      
+
       {/* Greeting and Search Bar Box */}
-      <GreetingSearchBox 
-        greeting={greetingText} 
+      <GreetingSearchBox
+        greeting={greetingText}
         timeOfDay={timeOfDay}
-        onFocus={onSearchFocus || (() => {})} 
+        onFocus={onSearchFocus || (() => { })}
       />
     </View>
   );
