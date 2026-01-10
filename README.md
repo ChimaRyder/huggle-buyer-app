@@ -1,72 +1,108 @@
-# Food E-commerce App (Pickup Orders)
+# Huggle Buyer App
 
-This is a prototype of a food e-commerce application for pickup orders, built on top of the existing Huggle buyer app.
+The Huggle Buyer App is a mobile application built for the Huggle platform, designed to help customers browse products, find stores, manage orders, and chat with merchants. It is built using **Expo** and **React Native**.
 
 ## Features
 
-### Main Screens
-1. **Home Screen** - Browse food categories and popular restaurants
-2. **Search Screen** - Search for restaurants or food items
-3. **Favorites Screen** - View favorite restaurants
-4. **Profile Screen** - User profile and settings
-5. **Notifications Screen** - Order and promotional notifications
-
-### Food-Specific Screens
-1. **Restaurant Detail Screen** - View restaurant menu and place orders
-2. **Cart Screen** - Manage food items and checkout
-3. **Category Screen** - Browse restaurants by food category
-4. **Order Confirmation Screen** - View order confirmation details
+- **Store Discovery**: Find popular stores and products nearby using Google Maps integration.
+- **Product Browsing**: View trending products, bundles, and detailed product information.
+- **Shopping Cart & Checkout**: Manage cart items and place orders.
+- **Chat**: Real-time messaging with stores powered by [Stream Chat](https://getstream.io/).
+- **User Authentication**: Secure login and registration using [Clerk](https://clerk.com/).
+- **Order Management**: Track order status and view history.
+- **Social Feed**: View posts from followed stores.
 
 ## Architecture
 
-### Data Models
-- `FoodCategory` - Food categories (Burgers, Pizza, etc.)
-- `Restaurant` - Restaurant information
-- `FoodItem` - Individual food items
-- `CartItem` - Items in the shopping cart
-- `Order` - Order information
+The project follows a standard Expo/React Native directory structure:
 
-### Components
-- `RestaurantCard` - Display restaurant information
-- `FoodItemCard` - Display food item information
-- `CartItemCard` - Display cart items with quantity controls
+- **`app/`**: Contains the Expo Router file-based routing.
+    - `(tabs)`: Main tab navigation (Home, Search, Orders, Profile).
+    - `(screens)`: Modal and stack screens.
+- **`components/`**: Reusable UI components.
+- **`constants/`**: Configuration constants, theme settings, and API endpoints.
+- **`context/`**: React Context providers for global state (Auth, Chat, Location, Cart).
+- **`hooks/`**: Custom React hooks.
+- **`services/`**: API service layers for interacting with the backend.
+- **`types/`**: TypeScript type definitions.
+- **`utils/`**: Helper functions.
 
-### Context
-- `CartContext` - Manage shopping cart state across the app
+## Tech Stack
 
-## Implementation Notes
+- **Framework**: [Expo](https://expo.dev/) (SDK 50+)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **UI Library**: [React Native](https://reactnative.dev/), [React Native Paper](https://callstack.github.io/react-native-paper/)
+- **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/)
+- **Authentication**: [Clerk](https://clerk.com/)
+- **Maps**: [React Native Maps](https://github.com/react-native-maps/react-native-maps)
+- **Chat**: [Stream Chat](https://getstream.io/chat/docs/react-native/)
+- **Networking**: [Axios](https://axios-http.com/)
 
-This is a frontend-only prototype with mock data. Backend integration would require:
-1. REST API endpoints for restaurants, food items, and orders
-2. User authentication and profile management
-3. Payment processing integration
-4. Real-time order status updates
+## Prerequisites
 
-## Directory Structure
+Before you begin, ensure you have the implementation environment set up:
+
+- **Node.js**: (LTS version recommended)
+- **npm** or **yarn**
+- **Expo Go** app on your mobile device (Android/iOS) OR an Android/iOS emulator.
+
+## Setup
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone <repository-url>
+    cd huggle-buyer-app
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    npm install
+    # or
+    yarn install
+    ```
+
+3.  **Environment Variables:**
+
+    Create a `.env` file in the root directory and add the following keys:
+
+    ```env
+    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+    EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+    EXPO_PUBLIC_STREAM_API_KEY=your_stream_api_key
+    ```
+    
+    *Note: Contact the team lead for development keys.*
+
+## Running the App
+
+Start the development server:
+
+```bash
+npm start
+# or
+npx expo start
 ```
-/components
-  /food          - Food-specific UI components
-  /restaurant    - Restaurant-specific UI components
-  /cart          - Cart-related UI components
-/context         - React context providers
-/data
-  /food          - Food data models and mock data
-/screens
-  /food          - Food-specific screens
-```
 
-## Getting Started
+- **Run on Android**: Press `a` in the terminal (requires Android Studio/Emulator).
+- **Run on iOS**: Press `i` in the terminal (requires Xcode/Simulator - macOS only).
+- **Run on Web**: Press `w` in the terminal.
+- **Run on Device**: Scan the QR code with the Expo Go app (Android) or Camera app (iOS).
 
-1. Install dependencies: `npm install`
-2. Start the app: `npm run dev`
-3. Choose your platform (iOS, Android, or Web)
+## Scripts
 
-## Future Enhancements
+- `npm start`: Starts the Expo development server.
+- `npm run android`: Runs the app on an Android emulator/device.
+- `npm run ios`: Runs the app on an iOS simulator/device.
+- `npm run lint`: Lints the codebase using ESLint.
 
-1. Backend integration for real data
-2. User order history
-3. Restaurant ratings and reviews
-4. Advanced search and filtering
-5. Promotion and discount codes
-6. Multiple payment methods
-7. Real-time order tracking
+## Contributing
+
+1.  Create a new branch for your feature or fix.
+2.  Commit your changes with clear messages.
+3.  Push your branch and submit a Pull Request.
+
+## License
+
+[License Name]
